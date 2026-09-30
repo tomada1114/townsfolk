@@ -29,15 +29,15 @@ The outcomes being worked on, one to three of them. Each has its issues filed.
 - **A town that lives on its own** — the core interaction: if a glance does not show a
   living town, nothing else matters. First run founds a town, its residents write scenes
   on their own, and the status line, events and moves, and resident profiles show what
-  is going on. Issues: none filed yet. Done when: a fresh install on an Apple
+  is going on. Issues: tracked in #2. Done when: a fresh install on an Apple
   Intelligence Mac founds a town, and the window left visible at Fast gains a scene about
   every minute, with nothing shown while one is being written.
 - **Joining the town** — you take part as one of the residents: your posts and replies,
-  and the town answering minutes later. Issues: none filed yet. Done when: a post at Fast
+  and the town answering minutes later. Issues: tracked in #3. Done when: a post at Fast
   draws a group quoting it minutes later, never within seconds.
 - **A town that rests and remembers** — it runs only while you could be looking and keeps
   its history: running only while visible, catching up after a pause, the log surviving
-  a relaunch, Settings, and moving to another town. Issues: none filed yet. Done when:
+  a relaunch, Settings, and moving to another town. Issues: tracked in #4. Done when:
   after 30 minutes or more hidden at Normal, "While you were away" appears; a relaunch
   keeps the whole history; and choosing Japanese in Settings switches the UI at once.
 
