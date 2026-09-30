@@ -46,7 +46,7 @@ public final class FrontmostAppViewModel {
     /// Asks the port again and publishes whatever it answered, `nil` included.
     ///
     /// Nothing calls this for you: ``FrontmostAppProviding`` is a pull-style port, so
-    /// state here is only as fresh as the last caller made it. The app refreshes when
+    /// state here is only as fresh as the last caller made it. A caller refreshes when
     /// its scene becomes active; a live-updating app would observe an OS notification
     /// through a second port rather than poll this one.
     ///
@@ -58,11 +58,14 @@ public final class FrontmostAppViewModel {
     public func refresh() {
         let answer = provider.currentFrontmostApp()
         frontmostApp = answer
-        AppLog.frontmostApp.debug(
-            """
-            refresh: answered=\(answer != nil, privacy: .public) \
-            name=\(answer?.name ?? "", privacy: .private)
-            """,
-        )
+        // Whether the port answered is spelled in the static text rather than
+        // interpolated: each interpolation is an autoclosure the logger evaluates only
+        // while debug logging is on, so under `swift test` it is a function no test can
+        // run, and it counts against Core's function-coverage floor.
+        guard let answer else {
+            AppLog.frontmostApp.debug("refresh: answered=false")
+            return
+        }
+        AppLog.frontmostApp.debug("refresh: answered=true name=\(answer.name, privacy: .private)")
     }
 }
