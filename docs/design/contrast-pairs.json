@@ -1,0 +1,86 @@
+[
+ {
+  "name": "Light: post text (labelColor) on canvas",
+  "fg": "#272727",
+  "bg": "#FFFFFF",
+  "kind": "text"
+ },
+ {
+  "name": "Light: post text on Lamplight at its strongest",
+  "fg": "#272421",
+  "bg": "#FFEED6",
+  "kind": "text"
+ },
+ {
+  "name": "Light: SecondaryText on canvas",
+  "fg": "#666666",
+  "bg": "#FFFFFF",
+  "kind": "text"
+ },
+ {
+  "name": "Light: SecondaryText on Lamplight at its strongest",
+  "fg": "#666666",
+  "bg": "#FFEED6",
+  "kind": "text"
+ },
+ {
+  "name": "Light: SecondaryText on popover/grouped form (approx.)",
+  "fg": "#666666",
+  "bg": "#F2F2F2",
+  "kind": "text"
+ },
+ {
+  "name": "Light HC: SecondaryText on canvas",
+  "fg": "#4D4D4D",
+  "bg": "#FFFFFF",
+  "kind": "text"
+ },
+ {
+  "name": "Light HC: SecondaryText on Lamplight",
+  "fg": "#4D4D4D",
+  "bg": "#FFEED6",
+  "kind": "text"
+ },
+ {
+  "name": "Dark: post text (labelColor) on canvas",
+  "fg": "#DDDDDD",
+  "bg": "#1E1E1E",
+  "kind": "text"
+ },
+ {
+  "name": "Dark: post text on Lamplight at its strongest",
+  "fg": "#E1E0DD",
+  "bg": "#3D3221",
+  "kind": "text"
+ },
+ {
+  "name": "Dark: SecondaryText on canvas",
+  "fg": "#A3A3A3",
+  "bg": "#1E1E1E",
+  "kind": "text"
+ },
+ {
+  "name": "Dark: SecondaryText on Lamplight at its strongest",
+  "fg": "#A3A3A3",
+  "bg": "#3D3221",
+  "kind": "text"
+ },
+ {
+  "name": "Dark: SecondaryText on popover/grouped form (approx.)",
+  "fg": "#A3A3A3",
+  "bg": "#323232",
+  "kind": "text"
+ },
+ {
+  "name": "Dark HC: SecondaryText on canvas",
+  "fg": "#C2C2C2",
+  "bg": "#1E1E1E",
+  "kind": "text"
+ },
+ {
+  "name": "Dark HC: SecondaryText on Lamplight",
+  "fg": "#C2C2C2",
+  "bg": "#3D3221",
+  "kind": "text"
+ }
+]
