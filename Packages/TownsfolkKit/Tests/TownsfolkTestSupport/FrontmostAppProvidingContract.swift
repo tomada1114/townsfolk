@@ -1,13 +1,13 @@
-import MyAppCore
 import Testing
+import TownsfolkCore
 
-/// The promises ``MyAppCore/FrontmostAppProviding`` makes, checked against any
+/// The promises ``TownsfolkCore/FrontmostAppProviding`` makes, checked against any
 /// implementation of it (`.claude/rules/testing.md` › One Contract Suite per Port).
 ///
 /// A fake stands in for the adapter only while both keep the port's promises, so they are
 /// written once, here, over the protocol rather than over either implementation.
-/// `MyAppCoreTests` runs ``check(_:)`` against ``FakeFrontmostAppProvider`` on every
-/// `just test` and in CI; `MyAppPlatformTests` runs it against
+/// `TownsfolkCoreTests` runs ``check(_:)`` against ``FakeFrontmostAppProvider`` on every
+/// `just test` and in CI; `TownsfolkPlatformTests` runs it against
 /// `WorkspaceFrontmostAppProvider` under `.requiresLocalMachine` (`just test-local`).
 /// Every clause is one the port's `///` states; a new clause is stated there first.
 package enum FrontmostAppProvidingContract {

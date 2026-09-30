@@ -8,7 +8,7 @@
 #   scripts/smoke_launch.sh path/to/An.app  # smoke-test an existing bundle (no build)
 set -euo pipefail
 
-APP_NAME="MyApp"
+APP_NAME="Townsfolk"
 DERIVED_DATA="build/smoke-derived-data"
 ALIVE_SECONDS=10
 

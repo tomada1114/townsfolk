@@ -47,8 +47,9 @@ an individual is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported privately to the maintainer at <you@example.com>. Conduct reports are
-not handled through the public issue tracker — reporters deserve privacy.
+reported privately to the maintainer by direct message on X
+(<https://x.com/muscle_coding>). Conduct reports are not handled through the
+public issue tracker — reporters deserve privacy.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

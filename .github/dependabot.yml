@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "swift"
-    directory: "/Packages/MyAppKit"
+    directory: "/Packages/TownsfolkKit"
     schedule:
       interval: "weekly"
     cooldown:

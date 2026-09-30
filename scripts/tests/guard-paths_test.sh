@@ -75,7 +75,7 @@ case_secrets_substring_allowed() {
 
 case_signing_material_blocked() {
     expect_blocked Signing/DeveloperID.p12 cert.pfx AuthKey_ABC123.p8 \
-        MyApp.provisionprofile MyApp.mobileprovision build.keychain login.keychain-db \
+        Townsfolk.provisionprofile Townsfolk.mobileprovision build.keychain login.keychain-db \
         Cert.P12
 }
 
@@ -94,9 +94,9 @@ case_other_xcconfigs_allowed() {
 }
 
 case_public_and_ordinary_files_allowed() {
-    expect_allowed App/MyApp.entitlements cert.cer Signing/Request.certSigningRequest \
+    expect_allowed App/Townsfolk.entitlements cert.cer Signing/Request.certSigningRequest \
         Slides.key Package.resolved README.md cert.pem \
-        Packages/MyAppKit/Sources/MyAppCore/CounterViewModel.swift
+        Packages/TownsfolkKit/Sources/TownsfolkCore/CounterViewModel.swift
 }
 
 run_case "every .env and .env.* is blocked" case_env_files_blocked

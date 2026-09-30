@@ -45,7 +45,7 @@ just test
 just test-fast CounterTests
 
 # The adapter tests CI cannot run (real OS, local machine only) — run these by hand
-# whenever you change something under Sources/MyAppPlatform, and put the output in the PR
+# whenever you change something under Sources/TownsfolkPlatform, and put the output in the PR
 just test-local
 
 # Build the app
@@ -84,16 +84,16 @@ mise exec -- scripts/lint.sh
 mise exec -- scripts/tests/run.sh
 mise exec -- scripts/checks/run-all.sh
 scripts/coverage.sh
-(cd Packages/MyAppKit && swift test --filter CounterTests)   # just test-fast CounterTests
-(cd Packages/MyAppKit && RUN_LOCAL_MACHINE_TESTS=1 swift test --filter MyAppPlatformTests)  # just test-local
+(cd Packages/TownsfolkKit && swift test --filter CounterTests)   # just test-fast CounterTests
+(cd Packages/TownsfolkKit && RUN_LOCAL_MACHINE_TESTS=1 swift test --filter TownsfolkPlatformTests)  # just test-local
 mise exec -- xcodegen generate
-xcodebuild -project MyApp.xcodeproj -scheme MyApp -configuration Debug -derivedDataPath build/dev-derived-data build
+xcodebuild -project Townsfolk.xcodeproj -scheme Townsfolk -configuration Debug -derivedDataPath build/dev-derived-data build
 scripts/run-app.sh               # just run — quits the running instance, then launches
 scripts/bundle-id.sh             # the bundle identifier project.yml declares
 log stream --predicate "subsystem == \"$(scripts/bundle-id.sh)\"" --level debug   # just logs
 scripts/reset-permissions.sh     # just reset-permissions — resets TCC for this app only
 rm -rf build/LaunchUITests.xcresult
-xcodebuild test -project MyApp.xcodeproj -scheme MyApp -destination 'platform=macOS' -derivedDataPath build/dev-derived-data -resultBundlePath build/LaunchUITests.xcresult
+xcodebuild test -project Townsfolk.xcodeproj -scheme Townsfolk -destination 'platform=macOS' -derivedDataPath build/dev-derived-data -resultBundlePath build/LaunchUITests.xcresult
 scripts/smoke_launch.sh
 scripts/sync-agents.sh           # after editing .agents/skills/ (just agents-sync)
 scripts/sync-agents.sh --check   # just agents-check
@@ -111,9 +111,9 @@ scripts/release-prep.sh 0.2.0    # just release-prep 0.2.0 — version bump + ch
 
 ### Code Standards
 
-- New logic lives in `MyAppCore` with Swift Testing coverage (happy + error path)
+- New logic lives in `TownsfolkCore` with Swift Testing coverage (happy + error path)
 - SwiftLint strict and SwiftFormat must pass with no warnings
-- Maintain or improve the 80% line-coverage and 75% function-coverage floors on `MyAppCore`
+- Maintain or improve the 80% line-coverage and 75% function-coverage floors on `TownsfolkCore`
 - Public API carries `///` doc comments that explain *why*
 
 ### Commit Messages

@@ -40,7 +40,7 @@ for window in list {
 ```
 
 ```bash
-swift /tmp/windowid.swift MyApp     # prints one id per window
+swift /tmp/windowid.swift Townsfolk     # prints one id per window
 ```
 
 Reading the window list needs no permission; **capturing pixels does**. Screen Recording
@@ -57,11 +57,11 @@ for such a build, and fall back to a full-screen capture with the menu already o
 
 ## Drive a flow with a throwaway XCUITest
 
-`LaunchUITests/` is the only XCTest target (`project.yml`'s `MyAppLaunchUITests`, whose
+`LaunchUITests/` is the only XCTest target (`project.yml`'s `TownsfolkLaunchUITests`, whose
 `sources: [LaunchUITests]` takes the whole directory), so a probe is one file plus
 `just generate`. The app already carries accessibility identifiers for every control —
 `counterValue`, `incrementButton`, `decrementButton`, `resetButton`, `frontmostAppLabel`
-(`Packages/MyAppKit/Sources/MyAppUI/ContentView.swift`) — and a new control needs one
+(`Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift`) — and a new control needs one
 before it can be driven at all.
 
 ```swift
@@ -96,9 +96,9 @@ Run that one test, keeping the result bundle out of the way of `just uitest`'s o
 
 ```bash
 mise exec -- xcodegen generate
-xcodebuild test -project MyApp.xcodeproj -scheme MyApp -destination 'platform=macOS' \
+xcodebuild test -project Townsfolk.xcodeproj -scheme Townsfolk -destination 'platform=macOS' \
   -derivedDataPath build/dev-derived-data -resultBundlePath build/Probe.xcresult \
-  -only-testing:MyAppLaunchUITests/ScratchProbeTests
+  -only-testing:TownsfolkLaunchUITests/ScratchProbeTests
 xcrun xcresulttool export attachments --path build/Probe.xcresult --output-path /tmp/att
 ```
 
@@ -112,7 +112,7 @@ Two rules about the probe:
 
 - **It is deleted before the pull request**, along with a re-run of `just generate`.
   `LaunchUITests/` holds the launch guarantee and nothing else; a behavior worth keeping
-  is a `MyAppCore` test against a fake, not a UI test (`.claude/rules/testing.md` ›
+  is a `TownsfolkCore` test against a fake, not a UI test (`.claude/rules/testing.md` ›
   Where a Test Goes). An XCUITest is slow, needs a GUI session, and asserts through the
   accessibility layer — everything a decision test should not be.
 - **The first local XCUITest run may prompt for Accessibility** for whatever launched
@@ -121,7 +121,7 @@ Two rules about the probe:
 ## Start the app in a known state
 
 Nothing in this template reads a launch argument or an environment variable today:
-`CounterViewModel` always starts at zero, and no `App/` or `MyAppCore` code consults
+`CounterViewModel` always starts at zero, and no `App/` or `TownsfolkCore` code consults
 `UserDefaults` or `ProcessInfo`. The two snippets above pass `-counterStart 5` and
 `PROBE_STATE` to prove the plumbing, not because the app answers them. **Do not add such
 a hook to the app just to observe it** — a state you only need to *look at* is a state a
@@ -134,8 +134,8 @@ running build:
 
 ```bash
 open --env PROBE_STATE=known-state -n \
-  build/dev-derived-data/Build/Products/Debug/MyApp.app --args -counterStart 5
-ps -o command= -p "$(pgrep -f 'Debug/MyApp.app/Contents/MacOS/MyApp' | head -1)"
+  build/dev-derived-data/Build/Products/Debug/Townsfolk.app --args -counterStart 5
+ps -o command= -p "$(pgrep -f 'Debug/Townsfolk.app/Contents/MacOS/Townsfolk' | head -1)"
 ```
 
 - `--args` puts everything after it in the process's `argv`, which is also what fills
@@ -146,7 +146,7 @@ ps -o command= -p "$(pgrep -f 'Debug/MyApp.app/Contents/MacOS/MyApp' | head -1)"
   from a UI test.
 - `-n` opens a *new* instance even though one is running, which is how you end up
   watching two builds at once. Quit the verified pid first (`kill -TERM "$pid"`) unless you meant it.
-- The hook itself belongs in `MyAppCore`, behind one value a view model reads, so the
+- The hook itself belongs in `TownsfolkCore`, behind one value a view model reads, so the
   same state stays reachable from a Core test. `App/` — the composition root — is where
   the argument is read and turned into that value, and Core never learns where it came
   from.

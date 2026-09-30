@@ -1,0 +1,11 @@
+unknown
+unknown
+# Written once by scripts/bootstrap.sh; a re-run leaves this file alone.
+# Line 1: the template commit this app was created from. Line 2: its repository.
+# Both are unknown: this checkout's history does not start at the template's root
+# commit (or is a shallow clone), so its HEAD is not known to be a template commit and
+# "origin" is this app rather than the template. That is what GitHub's "Use this
+# template" produces. Find the template commit holding the same files, then fill both
+# lines in by hand:
+#   git log --format='%H %T' template/main | grep 6ccce210946093fa65678009c0a4a00ffe90fa01
+# See README.md, "Keeping up with template updates".

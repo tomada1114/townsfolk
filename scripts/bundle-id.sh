@@ -89,7 +89,7 @@ case "${VALUE}" in
         fail ERR_BUNDLEID_MALFORMED "PRODUCT_BUNDLE_IDENTIFIER is not a bundle identifier" \
             "alphanumerics, hyphens, and periods, not starting or ending with a period" \
             "'${VALUE}' in ${MANIFEST}" \
-            "fix the value in ${MANIFEST} (e.g. com.example.MyApp), then run \`just generate\`"
+            "fix the value in ${MANIFEST} (e.g. io.github.tomada1114.Townsfolk), then run \`just generate\`"
         ;;
 esac
 

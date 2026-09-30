@@ -3,11 +3,11 @@
 The detail behind `changing-gates`' `.swiftlint.yml` section: what each of the two
 `custom_rules:` holds and which parts of it are load-bearing.
 
-`no_ui_import_in_core` keeps `MyAppCore` from importing a UI or OS-integration
+`no_ui_import_in_core` keeps `TownsfolkCore` from importing a UI or OS-integration
 framework — SwiftUI, AppKit, UIKit, Cocoa, ApplicationServices, Carbon, and
 ServiceManagement — attributed and kind-qualified spellings included;
 `ArchitectureBoundaryTests` in
-`MyAppCoreTests` enforces the same boundary a second way. Its module list and the
+`TownsfolkCoreTests` enforces the same boundary a second way. Its module list and the
 test's `forbiddenModules` change together, in one commit — adding a framework to one
 and not the other leaves the boundary enforced once. Adding to that list strengthens
 the gate and is the routine direction; removing from it is weakening one. `os` and
@@ -15,12 +15,12 @@ the gate and is the routine direction; removing from it is weakening one. `os` a
 a test case pins their absence. Its
 `included` regex names the
 package and module, so a new Core-like target means widening it and the test's path.
-The sibling boundary — `MyAppUI` and `MyAppPlatform` never importing each other — is
+The sibling boundary — `TownsfolkUI` and `TownsfolkPlatform` never importing each other — is
 held by `ArchitectureBoundaryTests` alone, with no lint-rule twin.
 
 `no_print_in_sources` rejects `print(`, `debugPrint(`, and `NSLog(` under
 `Packages/*/Sources/` and `App/`, because an `open`-launched `.app` discards stdout:
-shipped code logs through `MyAppCore`'s `AppLog` instead (`.claude/rules/swift.md` ›
+shipped code logs through `TownsfolkCore`'s `AppLog` instead (`.claude/rules/swift.md` ›
 Logging). Four parts of it are load-bearing, and a widening edit usually breaks one:
 
 - `match_kinds: [identifier]` spares a `print(` inside a comment or a string literal —

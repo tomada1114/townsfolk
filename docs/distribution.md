@@ -77,14 +77,14 @@ and since macOS 15 the Control-click → Open bypass is gone. Users of unsigned
 builds must clear quarantine manually:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/MyApp.app
+xattr -dr com.apple.quarantine /Applications/Townsfolk.app
 ```
 
 Document this in your release notes, or better, configure the secrets above.
 
 ## Sandboxed or not
 
-`App/MyApp.entitlements` ships with `com.apple.security.app-sandbox` set to
+`App/Townsfolk.entitlements` ships with `com.apple.security.app-sandbox` set to
 `true`, and that is the right default: it is what the Mac App Store requires,
 and it keeps a bug in the app from reaching the rest of the user's machine.
 Some apps cannot keep it. Decide this before the first feature — the decision
@@ -122,7 +122,7 @@ the user's consent.
 - **Developer ID signing and notarization** — neither cares whether the app is
   sandboxed. Both signing paths in the release workflow carry whatever the
   entitlements file says: with the Developer ID secrets it re-signs with
-  `codesign --options runtime --entitlements App/MyApp.entitlements`; without
+  `codesign --options runtime --entitlements App/Townsfolk.entitlements`; without
   them it keeps the ad-hoc signature `xcodebuild` already applied, which
   `project.yml` builds from the same file (`CODE_SIGN_IDENTITY: "-"` and
   `CODE_SIGN_ENTITLEMENTS` on the Release configuration). Either way the
@@ -148,14 +148,14 @@ the user's consent.
 
 `project.yml` sets `GENERATE_INFOPLIST_FILE: YES`, so there is no `Info.plist`
 to hand-edit: a privacy string is an `INFOPLIST_KEY_NS…UsageDescription` build
-setting on the `MyApp` target (`project.yml` declares none yet).
+setting on the `Townsfolk` target (`project.yml` declares none yet).
 
 ```yaml
 targets:
-  MyApp:
+  Townsfolk:
     settings:
       base:
-        INFOPLIST_KEY_NSAppleEventsUsageDescription: "MyApp asks Finder to reveal the file you picked."
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Townsfolk asks Finder to reveal the file you picked."
 ```
 
 A TCC-gated API whose key is missing does not fall back to an error — the

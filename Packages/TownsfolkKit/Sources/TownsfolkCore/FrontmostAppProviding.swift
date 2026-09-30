@@ -18,7 +18,7 @@ public struct FrontmostApp: Equatable, Sendable {
 /// A port: "which application is frontmost right now?", asked in Core's own vocabulary.
 ///
 /// This is the template's worked example of the ports-and-adapters boundary
-/// (`docs/architecture.md`). Core declares the protocol, `MyAppPlatform` holds the
+/// (`docs/architecture.md`). Core declares the protocol, `TownsfolkPlatform` holds the
 /// adapter that answers it with `NSWorkspace`, tests substitute a fake, and `App/` —
 /// the composition root — decides which one a view model gets. Nothing below `App/`
 /// knows which implementation it is talking to.
@@ -41,7 +41,7 @@ public protocol FrontmostAppProviding: Sendable {
     /// so Core alone decides what "unavailable" reads like. Every call answers afresh
     /// and keeps this promise, the first and every later one alike.
     ///
-    /// `FrontmostAppProvidingContract` in `MyAppTestSupport` checks these clauses against
+    /// `FrontmostAppProvidingContract` in `TownsfolkTestSupport` checks these clauses against
     /// the fake (`just test`) and the real adapter (`just test-local`); a new clause is
     /// stated here first, then added there.
     func currentFrontmostApp() -> FrontmostApp?

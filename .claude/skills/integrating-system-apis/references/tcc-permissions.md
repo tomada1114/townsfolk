@@ -24,7 +24,7 @@ moment of the call. Add the key when the API has one.
 
 ```swift
 @preconcurrency import ApplicationServices
-import MyAppCore
+import TownsfolkCore
 
 /// Answers whether this process holds the Accessibility grant, and asks for it.
 public struct SystemAccessibilityTrust: AccessibilityTrustChecking {
@@ -127,10 +127,10 @@ public final class AccessibilityGateViewModel {
 ```
 
 That is the whole point of the port: `state`, `hasPrompted`, "prompt at most once", "what
-the blocked screen says" are all decisions, they are all in `MyAppCore`, and a Core test
+the blocked screen says" are all decisions, they are all in `TownsfolkCore`, and a Core test
 drives them with a fake whose `isTrusted` the test sets. `.claude/rules/testing.md` ›
 "Fakes, not mocks" has the fake's shape; `FakeFrontmostAppProvider` in
-`Tests/MyAppTestSupport` is the one to copy, and "One Contract Suite per Port" holds it
+`Tests/TownsfolkTestSupport` is the one to copy, and "One Contract Suite per Port" holds it
 and the adapter to the same promises.
 
 Everything else about the blocked state is product design, not code: name the permission
@@ -166,15 +166,15 @@ from `project.yml` — with `just reset-permissions`. Then `just run` and `just 
 
 | Question | Where it is answered |
 |---|---|
-| What the app shows while blocked, when it prompts, what a press means | `Tests/MyAppCoreTests` against a fake — CI-run, inside the 80% floor |
-| Does the adapter translate what the OS really returns | `Tests/MyAppPlatformTests`, `.requiresLocalMachine`, `just test-local` |
+| What the app shows while blocked, when it prompts, what a press means | `Tests/TownsfolkCoreTests` against a fake — CI-run, inside the 80% floor |
+| Does the adapter translate what the OS really returns | `Tests/TownsfolkPlatformTests`, `.requiresLocalMachine`, `just test-local` |
 | Does the grant flow work end to end | A human, by hand. Nothing automates it |
 
 CI cannot cross the second row: a runner has no logged-in GUI session and cannot be
 granted Accessibility, Input Monitoring, or Screen Recording, so those tests are reported
 as **skipped** under `just test` and in CI rather than being absent. That is deliberate —
 a skip is visible where a missing test is not — and it makes the third row procedural:
-a change under `Sources/MyAppPlatform/` is expected to come with `just test-local` output
+a change under `Sources/TownsfolkPlatform/` is expected to come with `just test-local` output
 in the pull request, and review is what notices when it does not (`AGENTS.md` ›
 "Enforcement layers").
 

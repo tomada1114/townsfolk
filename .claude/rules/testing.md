@@ -9,13 +9,13 @@ paths:
 Three kinds of test, split by what is under test:
 
 - **A decision → a Core test with a fake.** Anything that branches, clamps, formats, or
-  remembers lives in `MyAppCore` and is tested in `Tests/MyAppCoreTests` against a fake
+  remembers lives in `TownsfolkCore` and is tested in `Tests/TownsfolkCoreTests` against a fake
   of the port (see "Fakes, not mocks" below). These run in CI on every push and are what
   the 80% line- and 75% function-coverage floors measure. This is the default: if an adapter looks like it
   needs a test for a decision, move the decision into Core instead.
 - **Translation to or from the OS → a local-machine test.** Whether `NSWorkspace`, an
   event tap, or the accessibility API really answers what the adapter assumes can only
-  be checked against the real OS. Those tests live in `Tests/MyAppPlatformTests`, every
+  be checked against the real OS. Those tests live in `Tests/TownsfolkPlatformTests`, every
   suite carries the `.requiresLocalMachine` trait, and a human runs them with
   `just test-local`. CI cannot: a runner has no logged-in GUI session and cannot be
   granted Accessibility, Input Monitoring, or Screen Recording. So they are reported as
@@ -47,11 +47,11 @@ reading as a broken adapter.
 - Use `@Test(arguments:)` for input/output variations; don't copy-paste test bodies
 - Group related tests in a `@Suite`; annotate `@MainActor` suites that touch view models
 - TDD is required: write the failing test first, then implement to green
-- Plain `import MyAppCore`, never `@testable import`: a Core test exercises the public API
+- Plain `import TownsfolkCore`, never `@testable import`: a Core test exercises the public API
   the rest of the app calls, so an internal can be renamed without touching a test. A
   test that seems to need an internal is either testing a detail (test the behavior it
   produces) or has found a declaration another module legitimately needs — make that
-  `package`, which every target in `Packages/MyAppKit` sees (`swift.md` › Access Control)
+  `package`, which every target in `Packages/TownsfolkKit` sees (`swift.md` › Access Control)
 
 ## What to Test
 
@@ -71,9 +71,9 @@ the formula shares, where `#expect(counter.value == 100)` does not.
 
 ## Fakes, not mocks
 
-A port declared in `MyAppCore` (a `Sendable` protocol whose adapter lives in
-`MyAppPlatform`) is substituted in tests by a **fake**, never a mock. A fake is a real,
-working implementation of the protocol that lives in `Tests/MyAppTestSupport`, answers
+A port declared in `TownsfolkCore` (a `Sendable` protocol whose adapter lives in
+`TownsfolkPlatform`) is substituted in tests by a **fake**, never a mock. A fake is a real,
+working implementation of the protocol that lives in `Tests/TownsfolkTestSupport`, answers
 from data the test hands it, and records what it was asked in a plain value — a call
 count, or the arguments it received — which the test reads afterwards with `#expect`.
 It declares no expectations up front, verifies nothing itself, and needs no framework:
@@ -92,8 +92,8 @@ promises are asserted once, against both. The contract suite is a function over 
 protocol, not over either implementation, and every clause it checks is one the port's
 `///` states (add the clause there first). `FrontmostAppProviding` is the worked example:
 
-- The fakes and one contract function per port live in the `MyAppTestSupport` target
-  (`Tests/MyAppTestSupport`), which both test targets depend on — never one test target
+- The fakes and one contract function per port live in the `TownsfolkTestSupport` target
+  (`Tests/TownsfolkTestSupport`), which both test targets depend on — never one test target
   depending on another. It is test code: no product exports it, and
   `ArchitectureBoundaryTests` fails if a shipped module imports it.
 - `FrontmostAppProvidingContract.check(_:)` takes `some FrontmostAppProviding` and
@@ -101,9 +101,9 @@ protocol, not over either implementation, and every clause it checks is one the 
   more than once. Its `violations(of:)` returns what `check(_:)` asserts on, so a Core
   test hands it a provider that breaks a clause and sees the contract report it — the
   proof the contract is not vacuous.
-- `FrontmostAppProvidingContractTests` in `MyAppCoreTests` runs it against the fake:
+- `FrontmostAppProvidingContractTests` in `TownsfolkCoreTests` runs it against the fake:
   CI runs it, so the fake cannot drift from the port.
-- `WorkspaceFrontmostAppProviderTests` in `MyAppPlatformTests`, a `.requiresLocalMachine`
+- `WorkspaceFrontmostAppProviderTests` in `TownsfolkPlatformTests`, a `.requiresLocalMachine`
   suite, runs the same function against `WorkspaceFrontmostAppProvider` beside its
   translation test (`just test-local`).
 
@@ -121,10 +121,10 @@ protocol, not over either implementation, and every clause it checks is one the 
 - No `sleep` or timing-based assertion in a unit test; that flakiness belongs to no one.
   When time must pass, the type under test takes a clock or a `Tuning` delay (how: the
   `designing-core-logic` skill › Inject time), and the test hands it a zero `Duration`
-  or a manually advanced test `Clock` kept in `Tests/MyAppCoreTests/`, then advances it —
+  or a manually advanced test `Clock` kept in `Tests/TownsfolkCoreTests/`, then advances it —
   never `Task.sleep` to wait for something to happen
 - A test that touches the file system gets its own directory:
-  `FileManager.default.temporaryDirectory.appending(path: "MyAppTests-\(UUID().uuidString)")`,
+  `FileManager.default.temporaryDirectory.appending(path: "TownsfolkTests-\(UUID().uuidString)")`,
   created in the test and removed in a `defer`. Never a fixed shared path, the checkout,
   or the home directory — parallel tests would collide, and a leftover file changes the
   next run

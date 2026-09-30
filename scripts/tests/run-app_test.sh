@@ -14,22 +14,22 @@ set -euo pipefail
 trap cleanup_temp EXIT
 
 RUN_APP_SH="${REPO_ROOT}/scripts/run-app.sh"
-APP_RELATIVE_PATH="build/dev-derived-data/Build/Products/Debug/MyApp.app"
+APP_RELATIVE_PATH="build/dev-derived-data/Build/Products/Debug/Townsfolk.app"
 
 # make_fixture_root [--no-app] — a checkout-shaped directory: a project.yml
-# declaring com.example.MyApp, and (unless --no-app) a built Debug app bundle.
+# declaring io.github.tomada1114.Townsfolk, and (unless --no-app) a built Debug app bundle.
 make_fixture_root() {
     local root
     # Normalized (no doubled slash from TMPDIR), the way the script resolves it.
     root=$(cd "$(make_temp_dir)" && pwd)
     cat >"${root}/project.yml" <<'EOF'
-name: MyApp
+name: Townsfolk
 targets:
-  MyApp:
+  Townsfolk:
     type: application
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk
 EOF
     if [ "${1:-}" != "--no-app" ]; then
         mkdir -p "${root}/${APP_RELATIVE_PATH}/Contents/MacOS"
@@ -87,7 +87,7 @@ assert_pid_alive() {
 
 case_quits_then_launches() {
     root=$(make_fixture_root)
-    executable=$(make_fixture_bundle MyApp com.example.MyApp)
+    executable=$(make_fixture_bundle Townsfolk io.github.tomada1114.Townsfolk)
     pid=$(spawn_detached 'sleep 30')
     stub_process_table "  1 /sbin/launchd
   ${pid} ${executable}" "  4242 ${executable}"
@@ -96,8 +96,8 @@ case_quits_then_launches() {
     capture "${RUN_APP_SH}" --root "${root}"
     assert_exit 0
     assert_pid_gone "${pid}"
-    assert_stdout_contains "Quitting com.example.MyApp (pid ${pid})"
-    assert_stdout_contains "com.example.MyApp is running (pid 4242)"
+    assert_stdout_contains "Quitting io.github.tomada1114.Townsfolk (pid ${pid})"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk is running (pid 4242)"
     assert_open_called_with "${root}/${APP_RELATIVE_PATH}"
     grep -qF "CFBundleIdentifier" "${STUB_BIN}/plutil.log" ||
         _fail "the bundle identifier was never read from a running app's Info.plist"
@@ -106,7 +106,7 @@ case_quits_then_launches() {
 case_launches_when_nothing_is_running() {
     root=$(make_fixture_root)
     other=$(make_fixture_bundle Safari com.apple.Safari)
-    ours=$(make_fixture_bundle MyApp com.example.MyApp)
+    ours=$(make_fixture_bundle Townsfolk io.github.tomada1114.Townsfolk)
     stub_process_table "  1 /sbin/launchd
   321 ${other}" "  321 ${other}
   4242 ${ours}"
@@ -120,11 +120,11 @@ case_launches_when_nothing_is_running() {
 
 case_leaves_a_same_named_app_alone() {
     # The point of matching by bundle identifier: another app whose executable is
-    # named MyApp — a build of the template from a different checkout — is not
+    # named Townsfolk — a build of the template from a different checkout — is not
     # this app, and a name match would have quit it.
     root=$(make_fixture_root)
-    executable=$(make_fixture_bundle MyApp com.other.MyApp)
-    ours=$(make_fixture_bundle Ours com.example.MyApp)
+    executable=$(make_fixture_bundle Townsfolk com.other.Townsfolk)
+    ours=$(make_fixture_bundle Ours io.github.tomada1114.Townsfolk)
     pid=$(spawn_detached 'sleep 30')
     stub_process_table "  ${pid} ${executable}" "  ${pid} ${executable}
   4242 ${ours}"
@@ -140,7 +140,7 @@ case_leaves_a_same_named_app_alone() {
 
 case_survivor_is_reported_not_forced() {
     root=$(make_fixture_root)
-    executable=$(make_fixture_bundle MyApp com.example.MyApp)
+    executable=$(make_fixture_bundle Townsfolk io.github.tomada1114.Townsfolk)
     # SIG_IGN survives the fork, so this sleep really does ignore SIGTERM.
     pid=$(spawn_detached 'trap "" TERM; sleep 5')
     stub_process_table "  ${pid} ${executable}" "  4242 ${executable}"
@@ -216,7 +216,7 @@ case_leading_zero_quit_timeout() {
     # would read as octal there, and '08' would abort bash itself — after the
     # SIGTERM had already gone out, with no ERR_RUN_* line to act on.
     root=$(make_fixture_root)
-    executable=$(make_fixture_bundle MyApp com.example.MyApp)
+    executable=$(make_fixture_bundle Townsfolk io.github.tomada1114.Townsfolk)
     pid=$(spawn_detached 'sleep 30')
     stub_process_table "  ${pid} ${executable}" "  4242 ${executable}"
     stub_open

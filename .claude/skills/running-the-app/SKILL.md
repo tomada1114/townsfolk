@@ -22,7 +22,7 @@ structured behind a port (`integrating-system-apis`); what a pull request looks 
 (`create-pr`); which document a change owes (`updating-docs`).
 
 Running the app proves wiring, not logic. Every decision this app makes is owned by
-`MyAppCore` and gated by `just test`; `just build`, `just uitest`, and `just smoke`
+`TownsfolkCore` and gated by `just test`; `just build`, `just uitest`, and `just smoke`
 prove it compiles, launches, and stays alive. What none of them shows is the thing a
 person actually sees — the view that renders nothing, the adapter that returns an empty
 answer because macOS withheld a grant, the log line that never fires. That is what
@@ -38,7 +38,7 @@ just run      # just build, then scripts/run-app.sh
 `scripts/run-app.sh` quits every running process whose bundle declares this app's
 identifier — read from `project.yml` by `scripts/bundle-id.sh`, never hard-coded — waits
 up to 10 seconds for them to go, then `open`s
-`build/dev-derived-data/Build/Products/Debug/MyApp.app` and prints the new pid. The quit
+`build/dev-derived-data/Build/Products/Debug/Townsfolk.app` and prints the new pid. The quit
 step is the point: a bare `open` on an already-running app only activates the old
 process, so you would be watching the previous build with no signal that anything went
 wrong. A survivor of the SIGTERM is reported, never force-killed — the failure names the
@@ -47,9 +47,9 @@ pid and leaves the decision to you.
 Confirm the process really is the build you just made, before trusting anything you see:
 
 ```bash
-pid=$(pgrep -f 'Debug/MyApp.app/Contents/MacOS/MyApp' | head -1)
+pid=$(pgrep -f 'Debug/Townsfolk.app/Contents/MacOS/Townsfolk' | head -1)
 ps -o pid=,lstart=,comm= -p "$pid"
-stat -f '%Sm %N' build/dev-derived-data/Build/Products/Debug/MyApp.app/Contents/MacOS/MyApp
+stat -f '%Sm %N' build/dev-derived-data/Build/Products/Debug/Townsfolk.app/Contents/MacOS/Townsfolk
 ```
 
 Two things have to hold: the executable path is *this* checkout's (another worktree or
@@ -75,7 +75,7 @@ is itself TCC-gated (Automation) and prompts a human the first time.
 ## Read what it says
 
 Shipped code logs through `os.Logger`, never `print`
-(`Packages/MyAppKit/Sources/MyAppCore/AppLog.swift`; `.swiftlint.yml`'s
+(`Packages/TownsfolkKit/Sources/TownsfolkCore/AppLog.swift`; `.swiftlint.yml`'s
 `no_print_in_sources`), because a `.app` launched the way users launch it has nowhere to
 send stdout. `AppLog` declares one subsystem — the bundle identifier — and one logger
 per concern, named for the concern (`frontmost-app`), which is what makes a stream
@@ -84,7 +84,7 @@ narrowable to one story:
 ```bash
 just logs   # log stream --predicate 'subsystem == "<bundle id>"' --level debug
 /usr/bin/log stream --level debug --style compact \
-  --predicate 'subsystem == "com.example.MyApp" AND category == "frontmost-app"'
+  --predicate 'subsystem == "io.github.tomada1114.Townsfolk" AND category == "frontmost-app"'
 ```
 
 Four things cost time if you guess them:
@@ -141,7 +141,7 @@ app — and only this app — so the next launch prompts from scratch.
 No gate runs any of this, so the pull request is where it lands. State the exact command
 you ran, not a paraphrase, and paste:
 
-- **`just test-local` output** for any change under `Sources/MyAppPlatform/` — required
+- **`just test-local` output** for any change under `Sources/TownsfolkPlatform/` — required
   by `AGENTS.md`'s Review Checklist, and the one thing CI reports as skipped rather than
   absent.
 - **A log excerpt** (a few lines of the stream, with the predicate you used above them)

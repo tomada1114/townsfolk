@@ -4,7 +4,7 @@ description: >
   Decides whether a change owes a documentation update and which surface it lands on:
   README.md, AGENTS.md, CONTRIBUTING.md, CHANGELOG.md, docs/architecture.md,
   docs/getting-started.md, docs/adding-ios.md, docs/distribution.md, a skill under
-  .agents/skills/, or a /// doc comment in Packages/MyAppKit/Sources. Use when triaging
+  .agents/skills/, or a /// doc comment in Packages/TownsfolkKit/Sources. Use when triaging
   whether a pull request needs a document changed or a CHANGELOG entry, when a rule, a
   just recipe, or an architecture boundary moved and it is unclear which file owns it,
   when the quickstart or setup steps drifted, or when deciding that an internal refactor
@@ -72,7 +72,7 @@ another's content.
   flow updates that file and nothing else restates it.
 - `.agents/skills/<name>/SKILL.md` — the conventions of one kind of change, loaded on
   demand. `authoring-skills` owns how one is written, mirrored, and checked.
-- `///` doc comments in `Packages/MyAppKit/Sources/**` — a symbol's contract: the "why",
+- `///` doc comments in `Packages/TownsfolkKit/Sources/**` — a symbol's contract: the "why",
   not what the signature already says (`.claude/rules/swift.md`). Public API carries one
   (`CONTRIBUTING.md`'s "Code Standards"); this skill owns only whether one is owed.
 
@@ -108,7 +108,7 @@ neither should anything else.
 
 Document non-obvious behavior, architecture decisions, and trade-offs. Do not restate
 what the code or the type system already says — the same principle `///` comments follow
-in `Packages/MyAppKit/Sources/**`. If a reader could get the fact from the signature or
+in `Packages/TownsfolkKit/Sources/**`. If a reader could get the fact from the signature or
 from running the code, it does not need a sentence here.
 
 ## Nothing verifies a fenced example
@@ -123,7 +123,7 @@ stays silent.
 
 That leaves a discipline instead. Keep a fenced example to something a reader can check
 by eye — a command, a path, a short snippet. When the example has to be runnable, put the
-runnable thing where a test already calls it — `Packages/MyAppKit/Sources/MyAppCore/`
+runnable thing where a test already calls it — `Packages/TownsfolkKit/Sources/TownsfolkCore/`
 under `just test`, or a script under `scripts/` with its `scripts/tests/` file — and have
 the document point at it rather than copy it.
 
@@ -132,5 +132,5 @@ the document point at it rather than copy it.
 `.claude/skills/` is a generated mirror of `.agents/skills/` (`scripts/sync-agents.sh`,
 run as `just agents-sync`) — never hand-edit it, and never include it in a documentation
 sweep. Edit the authored file and re-run the sync; `authoring-skills` owns the rest.
-`MyApp.xcodeproj` is generated from `project.yml` the same way and is never documented
+`Townsfolk.xcodeproj` is generated from `project.yml` the same way and is never documented
 as if it were a source file.

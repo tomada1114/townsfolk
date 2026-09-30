@@ -1,20 +1,20 @@
 ---
 name: building-swiftui-screens
 description: >
-  Covers writing a SwiftUI view in MyAppUI as a thin renderer over a MyAppCore
+  Covers writing a SwiftUI view in TownsfolkUI as a thin renderer over a TownsfolkCore
   @Observable view model: how the view receives and holds its model (@State, a plain
   property, @Bindable, a Binding built from an action), what logic may and may not sit
   in body, #Preview per state, accessibility identifiers for LaunchUITests,
   accessibility labels, Reduce Motion, keyboard reachability, and how a screen is
   verified. Use when adding or changing a view, a subview, or a preview under
-  Packages/MyAppKit/Sources/MyAppUI, wiring a view to a view model in App/, adding an
+  Packages/TownsfolkKit/Sources/TownsfolkUI, wiring a view to a view model in App/, adding an
   accessibilityIdentifier, or fixing an accessibility_label_for_image or
   no_magic_numbers violation in a view.
 ---
 
 # Building SwiftUI Screens
 
-**Owns:** how a view in `MyAppUI` is written — how it gets its view model, what it may
+**Owns:** how a view in `TownsfolkUI` is written — how it gets its view model, what it may
 contain, its previews, and its accessibility wiring. **Does not own:** the view model's
 shape, state, and actions (`designing-core-logic`); what the screen looks like — color,
 type, spacing, the design lock (`designing-ui`); an OS integration behind a port
@@ -24,16 +24,16 @@ the app and the evidence a pull request carries (`running-the-app`).
 ## The rule, and why
 
 A view renders Core state and forwards user intent to a Core action; it decides nothing.
-`MyAppUI` is outside the coverage floor — `scripts/coverage.sh` measures `MyAppCore`
+`TownsfolkUI` is outside the coverage floor — `scripts/coverage.sh` measures `TownsfolkCore`
 only, because SwiftUI layout is not what `swift test` can assert — so any branch that
 lives in a view is a branch no gate tests.
-Keeping it in the view model is what makes the 80% floor on `MyAppCore` honest
+Keeping it in the view model is what makes the 80% floor on `TownsfolkCore` honest
 (`docs/architecture.md` › "Where new code goes"). `ContentView` over `CounterViewModel`
 and `FrontmostAppViewModel` is the worked example; copy its shape.
 
-- A view is a `struct` in `MyAppUI` importing `SwiftUI` and `MyAppCore`, and never
-  `MyAppPlatform`. Enforced by: `ArchitectureBoundaryTests`' sibling-import tests.
-- It is `public` only when `App/` constructs it; a subview used inside `MyAppUI` stays
+- A view is a `struct` in `TownsfolkUI` importing `SwiftUI` and `TownsfolkCore`, and never
+  `TownsfolkPlatform`. Enforced by: `ArchitectureBoundaryTests`' sibling-import tests.
+- It is `public` only when `App/` constructs it; a subview used inside `TownsfolkUI` stays
   internal.
 
 ## Getting the view model
@@ -43,8 +43,8 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
   initializer parameter so previews and `App/` can inject a state:
   `init(model: CounterViewModel = CounterViewModel())`. A default argument is only for a
   model that needs no port.
-- **A model that needs a port** cannot be built in `MyAppUI`: its adapter lives in
-  `MyAppPlatform`, which this module must not import. `App/`, the composition root,
+- **A model that needs a port** cannot be built in `TownsfolkUI`: its adapter lives in
+  `TownsfolkPlatform`, which this module must not import. `App/`, the composition root,
   builds it and passes it down — `ContentView`'s optional
   `frontmostApp: FrontmostAppViewModel?`, which previews simply leave out.
 - **A subview that only reads** takes the model as a plain `let` property. With
@@ -91,7 +91,7 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
 - No `try!` or force unwrap in a preview either (`.claude/rules/swift.md` › Error
   Handling): unwrap with `if let` and render a `Text` explaining the failure, as
   `ContentView`'s second preview does.
-- Previews never construct a `MyAppPlatform` adapter; a port-backed model is left out.
+- Previews never construct a `TownsfolkPlatform` adapter; a port-backed model is left out.
   A state reachable only through a port is covered by a Core test with the port's fake
   and seen in the running app.
 - A screen with any custom color gets a dark-appearance preview

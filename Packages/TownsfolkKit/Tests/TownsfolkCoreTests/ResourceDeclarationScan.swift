@@ -2,7 +2,7 @@ import Foundation
 
 /// One `LocalizedStringResource(…)` call found in a Swift source file.
 struct ResourceDeclaration {
-    /// The file it is in, relative to `Sources/MyAppCore`, for a failure message.
+    /// The file it is in, relative to `Sources/TownsfolkCore`, for a failure message.
     let file: String
     /// The first argument when it is a plain string literal, or `nil` when it is not —
     /// an interpolated or computed first argument is not a catalog key.
@@ -84,7 +84,7 @@ private struct CallCursor {
 enum ResourceDeclarationScan {
     static let callPrefix = "LocalizedStringResource("
 
-    /// Every call in `Sources/MyAppCore/**/*.swift`.
+    /// Every call in `Sources/TownsfolkCore/**/*.swift`.
     static func declarations(inSourcesAt root: URL) throws -> [ResourceDeclaration] {
         let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }

@@ -1,7 +1,7 @@
 import Foundation
-import MyAppCore
-import MyAppTestSupport
 import Testing
+import TownsfolkCore
+import TownsfolkTestSupport
 
 @MainActor
 @Suite("FrontmostAppViewModel")

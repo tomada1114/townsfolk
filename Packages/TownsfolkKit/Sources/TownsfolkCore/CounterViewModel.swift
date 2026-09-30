@@ -9,7 +9,7 @@ import Observation
 @Observable
 public final class CounterViewModel {
     /// The reset button's title, from Core's String Catalog. Wording lives in Core, not
-    /// in the view, so a view in `MyAppUI` never carries a literal a reader sees.
+    /// in the view, so a view in `TownsfolkUI` never carries a literal a reader sees.
     public static var resetTitle: LocalizedStringResource {
         LocalizedStringResource(
             "counter.reset",

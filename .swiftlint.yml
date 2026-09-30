@@ -32,20 +32,20 @@ excluded:
   - .build
   - "**/.build"
   - build
-  - MyApp.xcodeproj
+  - Townsfolk.xcodeproj
 
 custom_rules:
-  # MyAppCore stays free of UI and OS-integration frameworks (AGENTS.md › Architecture):
-  # an adapter that needs one belongs in MyAppPlatform, behind a Core-declared port.
+  # TownsfolkCore stays free of UI and OS-integration frameworks (AGENTS.md › Architecture):
+  # an adapter that needs one belongs in TownsfolkPlatform, behind a Core-declared port.
   # `os`/`OSLog` are NOT on this list — logging is neither, and Core logs through
   # AppLog (docs/architecture.md › Logging). Enforced twice: here, and by
-  # ArchitectureBoundaryTests in MyAppCoreTests — change both module lists together.
+  # ArchitectureBoundaryTests in TownsfolkCoreTests — change both module lists together.
   # No match_kinds: the ^\s* anchor already skips `// import …` comments, and a kind
   # filter would drop the attributed-import case.
   no_ui_import_in_core:
-    included: 'Packages/MyAppKit/Sources/MyAppCore/.+\.swift$'
+    included: 'Packages/TownsfolkKit/Sources/TownsfolkCore/.+\.swift$'
     regex: '^\s*(@[\w()]+\s+)*import\s+((typealias|struct|class|enum|protocol|let|var|func)\s+)?(SwiftUI|AppKit|UIKit|Cocoa|ApplicationServices|Carbon|ServiceManagement)\b'
-    message: "MyAppCore must not import SwiftUI, AppKit, UIKit, Cocoa, ApplicationServices, Carbon, or ServiceManagement — it stays UI- and OS-integration-free; put the adapter in MyAppPlatform behind a Core port (AGENTS.md › Architecture)."
+    message: "TownsfolkCore must not import SwiftUI, AppKit, UIKit, Cocoa, ApplicationServices, Carbon, or ServiceManagement — it stays UI- and OS-integration-free; put the adapter in TownsfolkPlatform behind a Core port (AGENTS.md › Architecture)."
     severity: error
 
   # Shipped code logs through AppLog (os.Logger), never stdout: a .app launched the way
@@ -57,12 +57,12 @@ custom_rules:
   # including one literally named `App` or `DemoApp`, which is what scripts/bootstrap.sh
   # produces. Matching a path *suffix* is also what keeps the rule firing over the temp
   # tree the pre-commit hook exports with `git checkout-index --prefix=`.
-  #   - `App/[^/]+\.swift$` — the app shell is flat (App/MyAppApp.swift), so exactly one
+  #   - `App/[^/]+\.swift$` — the app shell is flat (App/TownsfolkApp.swift), so exactly one
   #     component may follow. A checkout under `~/App/` therefore cannot drag anything
   #     deeper into the rule.
   #   - `Packages/[^/]+/Sources/[^/]+/.+\.swift$` — a package's module directory and
   #     everything under it, so `Packages/*/Tests/` cannot match this alternative.
-  #   - `excluded` then spares any `*Tests/` directory outright (MyAppCoreTests,
+  #   - `excluded` then spares any `*Tests/` directory outright (TownsfolkCoreTests,
   #     LaunchUITests), so even a pathological ancestor path cannot make the rule fire
   #     in a test target. Test code prints freely.
   #

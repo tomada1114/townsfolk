@@ -2,10 +2,10 @@
 # Package an .app into a compressed DMG with an /Applications symlink.
 # Zero dependencies beyond macOS's built-in hdiutil.
 #
-#   scripts/package_dmg.sh path/to/MyApp.app [output.dmg]
+#   scripts/package_dmg.sh path/to/Townsfolk.app [output.dmg]
 set -euo pipefail
 
-APP_PATH="${1:?usage: package_dmg.sh path/to/MyApp.app [output.dmg]}"
+APP_PATH="${1:?usage: package_dmg.sh path/to/Townsfolk.app [output.dmg]}"
 # Strip a trailing slash: BSD cp -R copies a directory's CONTENTS (not the
 # directory) when the source ends in '/', which would silently produce a DMG
 # without the .app bundle. zsh tab completion appends that slash.

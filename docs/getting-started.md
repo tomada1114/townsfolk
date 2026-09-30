@@ -18,13 +18,13 @@ clone needs `mise trust` first (interactively it prompts; non-interactive
 runs fail without it). `just install` then runs `mise install` (SwiftLint,
 SwiftFormat, XcodeGen, xcbeautify, actionlint, ShellCheck, typos — all pinned), points
 `core.hooksPath` at `.githooks/` for the fast pre-commit lint, and generates
-`MyApp.xcodeproj`.
+`Townsfolk.xcodeproj`.
 
 ## Everyday Commands
 
 ```bash
 just check     # the full local gate: verify-hooks → fmt → lint → test-scripts → check-harness → test → build
-just test      # Swift Testing suite + 80% line / 75% function coverage floors on MyAppCore
+just test      # Swift Testing suite + 80% line / 75% function coverage floors on TownsfolkCore
 just uitest    # XCUITest launch test (first local run may prompt for Accessibility)
 just smoke     # Release build + "does it actually launch" assertion
 ```
@@ -55,7 +55,7 @@ CODE_SIGN_STYLE = Manual
 CODE_SIGN_IDENTITY = Apple Development
 EOF
 just build
-codesign -d -r- build/dev-derived-data/Build/Products/Debug/MyApp.app
+codesign -d -r- build/dev-derived-data/Build/Products/Debug/Townsfolk.app
 ```
 
 Two details cost time if you guess them:
@@ -98,12 +98,12 @@ then run `just check`.
 
 **The counter** (the app's single screen):
 
-- [ ] `Packages/MyAppKit/Sources/MyAppCore/Counter.swift` and
+- [ ] `Packages/TownsfolkKit/Sources/TownsfolkCore/Counter.swift` and
       `CounterViewModel.swift` — replace with your domain model and view model
-- [ ] `Packages/MyAppKit/Tests/MyAppCoreTests/CounterTests.swift` and
+- [ ] `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/CounterTests.swift` and
       `CounterViewModelTests.swift` — replace with tests for your Core code, so
       the 80% coverage floor still has something to measure
-- [ ] `Packages/MyAppKit/Sources/MyAppUI/ContentView.swift` — the counter text,
+- [ ] `Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift` — the counter text,
       the three buttons, their accessibility identifiers, and both previews
 - [ ] `LaunchUITests/LaunchTests.swift` — `testAppLaunchesAndShowsCounter`
       clicks `incrementButton` and reads `counterValue`; point it at an element
@@ -116,29 +116,29 @@ then run `just check`.
 **The `FrontmostApp` example** (the worked ports-and-adapters example — keep it
 until your first real port exists if you want a pattern to copy):
 
-- [ ] The port: `Packages/MyAppKit/Sources/MyAppCore/FrontmostAppProviding.swift`
-- [ ] Its view model: `Packages/MyAppKit/Sources/MyAppCore/FrontmostAppViewModel.swift`
-- [ ] The adapter: `Packages/MyAppKit/Sources/MyAppPlatform/WorkspaceFrontmostAppProvider.swift`
-- [ ] The Core tests: `Packages/MyAppKit/Tests/MyAppCoreTests/FrontmostAppViewModelTests.swift`,
+- [ ] The port: `Packages/TownsfolkKit/Sources/TownsfolkCore/FrontmostAppProviding.swift`
+- [ ] Its view model: `Packages/TownsfolkKit/Sources/TownsfolkCore/FrontmostAppViewModel.swift`
+- [ ] The adapter: `Packages/TownsfolkKit/Sources/TownsfolkPlatform/WorkspaceFrontmostAppProvider.swift`
+- [ ] The Core tests: `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/FrontmostAppViewModelTests.swift`,
       `FrontmostAppProvidingContractTests.swift` beside it, and the `FakeFrontmostAppProvider`
       cases in `everyCase()` in `LocalizationTests.swift`
 - [ ] The fake and the contract: `FakeFrontmostAppProvider.swift` and
-      `FrontmostAppProvidingContract.swift` in `Packages/MyAppKit/Tests/MyAppTestSupport`
+      `FrontmostAppProvidingContract.swift` in `Packages/TownsfolkKit/Tests/TownsfolkTestSupport`
       (keep the target for your own port's fake and contract, or remove it from
       `Package.swift` and both test targets' dependencies once nothing is left in it)
 - [ ] The local-machine test:
-      `Packages/MyAppKit/Tests/MyAppPlatformTests/WorkspaceFrontmostAppProviderTests.swift`
+      `Packages/TownsfolkKit/Tests/TownsfolkPlatformTests/WorkspaceFrontmostAppProviderTests.swift`
       (if it was the last test there, keep the target with a test of your own
       adapter, or remove the target from `Package.swift` together with its
       `just test-local` references)
-- [ ] `AppLog.frontmostApp` in `Packages/MyAppKit/Sources/MyAppCore/AppLog.swift`,
+- [ ] `AppLog.frontmostApp` in `Packages/TownsfolkKit/Sources/TownsfolkCore/AppLog.swift`,
       plus the doc comment there that points at `FrontmostAppViewModel/refresh()`
       — add a `Logger` for your own concern instead
 - [ ] The `ContentView` row: the `frontmostApp` property, its `init` parameter,
       the `Frontmost:` label (`frontmostAppLabel`), and the `scenePhase`
-      refresh in `Packages/MyAppKit/Sources/MyAppUI/ContentView.swift`
+      refresh in `Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift`
 - [ ] The composition root: the `FrontmostAppViewModel(provider:
-      WorkspaceFrontmostAppProvider())` argument in `App/MyAppApp.swift`
+      WorkspaceFrontmostAppProvider())` argument in `App/TownsfolkApp.swift`
 - [ ] The mentions that cite it as the worked example: `AGENTS.md` ›
       Architecture ("The worked example is `FrontmostAppProviding` /
       `WorkspaceFrontmostAppProvider`"), `docs/architecture.md` › Ports and
@@ -154,10 +154,10 @@ until your first real port exists if you want a pattern to copy):
 
 ```bash
 just generate
-open MyApp.xcodeproj
+open Townsfolk.xcodeproj
 ```
 
-Remember: `MyApp.xcodeproj` is generated from `project.yml` and gitignored.
+Remember: `Townsfolk.xcodeproj` is generated from `project.yml` and gitignored.
 Change targets/settings in `project.yml`, then `just generate`.
 
 ## App Icon

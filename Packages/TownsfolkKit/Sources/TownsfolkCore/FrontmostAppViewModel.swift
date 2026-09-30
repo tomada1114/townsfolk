@@ -4,8 +4,8 @@ import Observation
 /// Observable presentation state over a ``FrontmostAppProviding`` port.
 ///
 /// The Core half of the worked example: it holds the port, not an adapter, so
-/// `MyAppCoreTests` drives it with a fake and `App/` hands it the `NSWorkspace`-backed
-/// adapter from `MyAppPlatform`. Everything a reader can observe — including the
+/// `TownsfolkCoreTests` drives it with a fake and `App/` hands it the `NSWorkspace`-backed
+/// adapter from `TownsfolkPlatform`. Everything a reader can observe — including the
 /// "nothing is frontmost" wording — is decided here, where the coverage floor sees it.
 @MainActor
 @Observable

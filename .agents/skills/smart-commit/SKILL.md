@@ -75,7 +75,7 @@ What stays with you is the judgment no pattern can make:
   with an embedded token, a customer's personal data.
 - Something the user plainly did not mean to commit, secret or not.
 
-Also never commit generated artifacts: `MyApp.xcodeproj/`, `.build/`, `build/`
+Also never commit generated artifacts: `Townsfolk.xcodeproj/`, `.build/`, `build/`
 (all gitignored — if one shows up as untracked, something is wrong; investigate
 instead of committing it).
 

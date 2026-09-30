@@ -1,5 +1,5 @@
-import MyAppCore
 import Testing
+import TownsfolkCore
 
 @Suite("Counter")
 struct CounterTests {

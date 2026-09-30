@@ -13,9 +13,9 @@ BUNDLE_ID_SH="${REPO_ROOT}/scripts/bundle-id.sh"
 # write_manifest ROOT SETTINGS_BODY — a project.yml shaped like the real one.
 write_manifest() {
     cat >"$1/project.yml" <<EOF
-name: MyApp
+name: Townsfolk
 targets:
-  MyApp:
+  Townsfolk:
     type: application
     settings:
       base:
@@ -25,10 +25,10 @@ EOF
 
 case_reads_the_identifier() {
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp'
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk'
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 0
-    assert_stdout_contains "com.example.MyApp"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk"
 }
 
 case_reads_a_renamed_identifier() {
@@ -46,30 +46,30 @@ case_reads_a_renamed_identifier() {
 
 case_strips_quotes_and_trailing_space() {
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: "com.example.MyApp"   '
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: "io.github.tomada1114.Townsfolk"   '
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 0
-    assert_stdout_contains "com.example.MyApp"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk"
     assert_stdout_not_contains '"' "the surrounding quotes"
 }
 
 case_strips_a_trailing_comment() {
     # XcodeGen accepts a YAML comment after the value, so this script must too.
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp # the app id'
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk # the app id'
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 0
-    assert_stdout_contains "com.example.MyApp"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk"
     assert_stdout_not_contains "#" "the comment"
     assert_stdout_not_contains "the app id" "the comment text"
 }
 
 case_strips_a_trailing_comment_after_quotes() {
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: "com.example.MyApp"   # the app id'
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: "io.github.tomada1114.Townsfolk"   # the app id'
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 0
-    assert_stdout_contains "com.example.MyApp"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk"
     assert_stdout_not_contains '"' "the surrounding quotes"
     assert_stdout_not_contains "#" "the comment"
 }
@@ -84,17 +84,17 @@ case_comment_only_value() {
 
 case_takes_the_first_target() {
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp'
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk'
     cat >>"${root}/project.yml" <<'EOF'
-  MyAppLaunchUITests:
+  TownsfolkLaunchUITests:
     type: bundle.ui-testing
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyAppLaunchUITests
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.TownsfolkLaunchUITests
 EOF
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 0
-    assert_stdout_contains "com.example.MyApp"
+    assert_stdout_contains "io.github.tomada1114.Townsfolk"
     assert_stdout_not_contains "LaunchUITests" "the test bundle's identifier"
 }
 
@@ -118,7 +118,7 @@ case_no_identifier_declared() {
 
 case_malformed_identifier() {
     root=$(make_temp_dir)
-    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: com.example My App'
+    write_manifest "${root}" '        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114 My App'
     capture "${BUNDLE_ID_SH}" --root "${root}"
     assert_exit 1
     assert_stderr_contains "ERR_BUNDLEID_MALFORMED"

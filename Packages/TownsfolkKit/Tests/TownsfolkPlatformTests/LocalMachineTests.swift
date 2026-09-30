@@ -3,7 +3,7 @@ import Testing
 
 /// The opt-in every test in this target carries, and the helpers those tests share.
 ///
-/// `MyAppPlatformTests` exercises adapters against the *real* OS. A CI runner has no
+/// `TownsfolkPlatformTests` exercises adapters against the *real* OS. A CI runner has no
 /// logged-in GUI session and cannot be granted Accessibility, Input Monitoring, or
 /// Screen Recording, so these tests can only be believed on a developer's machine.
 /// They are therefore opt-in rather than absent: with the opt-in unset they are
@@ -11,7 +11,7 @@ import Testing
 /// so a green run is never mistaken for evidence that an adapter works.
 ///
 /// The variable name carries no app-specific prefix on purpose. `scripts/bootstrap.sh`
-/// rewrites the literal `MyApp`, not an upper-cased spelling of it, so a prefixed name
+/// rewrites the literal `Townsfolk`, not an upper-cased spelling of it, so a prefixed name
 /// would survive the template rename as a stale one. It follows the repository's other
 /// environment opt-in, `ALLOW_MISSING_GIT_HOOKS`, in spelling and in what counts as set:
 /// any value other than empty, `0`, or `false` (`scripts/verify-hooks.sh`'s `is_truthy`),
@@ -63,7 +63,7 @@ extension Trait where Self == ConditionTrait {
     /// Runs the test only on a machine that opted in, and reports it as skipped
     /// everywhere else.
     ///
-    /// Every suite in `MyAppPlatformTests` carries this, so the whole target is one
+    /// Every suite in `TownsfolkPlatformTests` carries this, so the whole target is one
     /// switch: `RUN_LOCAL_MACHINE_TESTS=1` (what `just test-local` sets) runs it, and
     /// nothing else does. It is built on `.enabled(if:)` rather than on a `withKnownIssue`
     /// or a commented-out test so the skip is a reported outcome, not an absence.

@@ -1,6 +1,6 @@
 import Foundation
-import MyAppCore
 import Testing
+import TownsfolkCore
 
 @MainActor
 @Suite("CounterViewModel")

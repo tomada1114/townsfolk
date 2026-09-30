@@ -148,8 +148,8 @@ absent, and `worktree_setup.sh` handles the first two:
   `*.local`, `.envrc`. Copied from the main checkout. `.example` / `.sample` /
   `.template` variants are skipped, and so is anything actually tracked.
 - **Dependencies** -- this template has no lockfile install step: SwiftPM
-  resolves `Packages/MyAppKit` on the first `just check` into the worktree's own
-  `Packages/MyAppKit/.build/`. For a repository that does have one,
+  resolves `Packages/TownsfolkKit` on the first `just check` into the worktree's own
+  `Packages/TownsfolkKit/.build/`. For a repository that does have one,
   `node_modules`, `vendor/`, `.venv` are all empty and reinstalled from the
   lockfile; on macOS the script clones `node_modules` with `cp -Rc` first (APFS
   clonefile) except under `npm ci`, which wipes the directory anyway.
@@ -161,8 +161,8 @@ absent, and `worktree_setup.sh` handles the first two:
   `.git/` directory can misbehave; hook installers (husky, lefthook) are the
   common ones, and hooks themselves are shared repo-wide rather than
   per-worktree.
-- **Build caches** (`Packages/MyAppKit/.build/`, `build/`, the generated
-  `MyApp.xcodeproj`, anything keyed by absolute path) start cold. First run in each worktree is slower.
+- **Build caches** (`Packages/TownsfolkKit/.build/`, `build/`, the generated
+  `Townsfolk.xcodeproj`, anything keyed by absolute path) start cold. First run in each worktree is slower.
 
 ## Failure modes that look like the issue's fault
 

@@ -53,7 +53,7 @@ jobs:
       attestations: write
       id-token: write
     env:
-      APP_NAME: MyApp
+      APP_NAME: Townsfolk
       # Secret-gated signing/notarization: steps check these flags because the
       # secrets context is not available in step-level `if:` expressions.
       HAS_DEVELOPER_ID: ${{ secrets.DEVELOPER_ID_CERT_P12 != '' }}

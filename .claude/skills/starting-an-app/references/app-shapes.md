@@ -1,7 +1,7 @@
 # App shapes: windowed and menu-bar agent
 
 Two shapes cover most macOS apps started from this template. Choose one before writing
-features. The difference is only three files — `project.yml`, `App/MyAppApp.swift`, and
+features. The difference is only three files — `project.yml`, `App/TownsfolkApp.swift`, and
 `LaunchUITests/LaunchTests.swift` — but it decides what the launch guarantee *is*, and
 therefore what `just uitest` is able to assert at all.
 
@@ -21,7 +21,7 @@ ports and adapters, the coverage floor, signing, and every gate.
 ## Windowed: read the shipped files, not a copy
 
 The template **is** the windowed reference, so it is not duplicated here — a copy would
-be the first thing to go stale. Read `App/MyAppApp.swift` (a `WindowGroup` holding
+be the first thing to go stale. Read `App/TownsfolkApp.swift` (a `WindowGroup` holding
 `ContentView`) and `LaunchUITests/LaunchTests.swift` (wait for `app.windows.firstMatch`,
 then click through the counter). The app target needs no shape-specific `project.yml`
 key: `GENERATE_INFOPLIST_FILE: YES` with no `LSUIElement` entry *is* the regular shape.
@@ -36,30 +36,30 @@ and `just lint` only.
 
 ### 1. `project.yml` — one key
 
-One line in the `MyApp` target's `settings.base`, beside `GENERATE_INFOPLIST_FILE`
+One line in the `Townsfolk` target's `settings.base`, beside `GENERATE_INFOPLIST_FILE`
 (leave the UI-test target's copy of that key alone):
 
 ```yaml
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSUIElement: YES
 ```
 
 `INFOPLIST_KEY_LSUIElement` is how a generated Info.plist gets `LSUIElement`; there is
 no Info.plist file to edit, and adding one would fight `GENERATE_INFOPLIST_FILE`.
-Regenerate with `just generate` — `MyApp.xcodeproj` is generated output, never edited.
+Regenerate with `just generate` — `Townsfolk.xcodeproj` is generated output, never edited.
 
-### 2. `App/MyAppApp.swift` — the entry point
+### 2. `App/TownsfolkApp.swift` — the entry point
 
 ```swift
-import MyAppCore
-import MyAppPlatform
-import MyAppUI
+import TownsfolkCore
+import TownsfolkPlatform
+import TownsfolkUI
 import SwiftUI
 
-/// Application entry point — wiring only. All real code lives in Packages/MyAppKit.
+/// Application entry point — wiring only. All real code lives in Packages/TownsfolkKit.
 ///
 /// A menu-bar agent: `LSUIElement` keeps it out of the Dock and the app switcher, so
 /// `MenuBarExtra` is the whole user interface. `.menuBarExtraStyle(.window)` renders
@@ -68,9 +68,9 @@ import SwiftUI
 ///
 /// This is also the composition root: the one place that knows both halves of a port.
 @main
-struct MyAppApp: App {
+struct TownsfolkApp: App {
     var body: some Scene {
-        MenuBarExtra("MyApp", systemImage: "number.circle") {
+        MenuBarExtra("Townsfolk", systemImage: "number.circle") {
             ContentView(
                 frontmostApp: FrontmostAppViewModel(provider: WorkspaceFrontmostAppProvider()),
             )
@@ -81,9 +81,9 @@ struct MyAppApp: App {
 ```
 
 The shell still only wires: the scene type and the composition root line are the whole
-diff from the windowed entry point. The panel's content is a `MyAppUI` view — here the
+diff from the windowed entry point. The panel's content is a `TownsfolkUI` view — here the
 template's own `ContentView`, swapped for the app's real view later — and every
-decision it renders stays in `MyAppCore`.
+decision it renders stays in `TownsfolkCore`.
 
 ### 3. `LaunchUITests/LaunchTests.swift` — the replacement assertion
 
@@ -96,7 +96,7 @@ import XCTest
 /// whole visible surface.
 ///
 /// XCTest by necessity — Apple has not ported UI automation to Swift Testing.
-/// All other tests use Swift Testing in Packages/MyAppKit.
+/// All other tests use Swift Testing in Packages/TownsfolkKit.
 final class LaunchTests: XCTestCase {
     private enum Timeout {
         static let statusItemAppears: TimeInterval = 10
@@ -141,7 +141,7 @@ newer SDK:
   the status item, `windows`, `popovers`, `sheets`, `groups`, `otherElements`, and
   `staticTexts` are all empty — the panel is not exposed through the app's accessibility
   tree. The launch test therefore stops at "the item exists"; the behavior inside the
-  panel is covered by `MyAppCore` view-model tests, which is where it belongs anyway.
+  panel is covered by `TownsfolkCore` view-model tests, which is where it belongs anyway.
 - **The default `.menu` style *is* reachable**: after `click()`, its entries appear as
   `app.menuItems[…]`. They are matched **by title**
   (`app.menuItems["Increment"]`) — a SwiftUI `.accessibilityIdentifier` on a menu
@@ -156,15 +156,15 @@ Reach for `MenuBarExtra` first — it is a pure SwiftUI scene and needs no deleg
 custom status-item view, a drag destination, or a right-click menu distinct from the
 left-click behavior.
 
-**Where the delegate lives: `MyAppPlatform`, not `App/`.** It imports AppKit, owns
+**Where the delegate lives: `TownsfolkPlatform`, not `App/`.** It imports AppKit, owns
 state, and runs at a lifecycle moment — all three make it OS-integration code, which
-`docs/architecture.md` ("Ports and adapters") puts in `MyAppPlatform`. `App/` keeps the
+`docs/architecture.md` ("Ports and adapters") puts in `TownsfolkPlatform`. `App/` keeps the
 one wiring line that names it, and nothing more; anything the delegate has to *decide*
-moves into `MyAppCore` behind a port, like every other adapter. (`MyAppUI` is the wrong
-home for the same reason it cannot see `MyAppPlatform`: it is the view layer, not the
+moves into `TownsfolkCore` behind a port, like every other adapter. (`TownsfolkUI` is the wrong
+home for the same reason it cannot see `TownsfolkPlatform`: it is the view layer, not the
 OS layer.)
 
-`Packages/MyAppKit/Sources/MyAppPlatform/StatusItemAppDelegate.swift`:
+`Packages/TownsfolkKit/Sources/TownsfolkPlatform/StatusItemAppDelegate.swift`:
 
 ```swift
 import AppKit
@@ -172,10 +172,10 @@ import AppKit
 /// Owns an `NSStatusItem` for the cases `MenuBarExtra` cannot express: a custom button
 /// view, a drag destination, or a right-click menu distinct from the left-click one.
 ///
-/// It lives in `MyAppPlatform` because it imports AppKit and holds state — the app
+/// It lives in `TownsfolkPlatform` because it imports AppKit and holds state — the app
 /// shell stays wiring only (`docs/architecture.md` › Layers) and declares it with a
 /// single `@NSApplicationDelegateAdaptor` line. Anything it has to decide belongs in
-/// `MyAppCore` behind a port, the same as any other adapter.
+/// `TownsfolkCore` behind a port, the same as any other adapter.
 @MainActor
 public final class StatusItemAppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
@@ -191,7 +191,7 @@ public final class StatusItemAppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(
             systemSymbolName: "number.circle",
-            accessibilityDescription: "MyApp",
+            accessibilityDescription: "Townsfolk",
         )
         statusItem = item
     }
@@ -200,7 +200,7 @@ public final class StatusItemAppDelegate: NSObject, NSApplicationDelegate {
 
 `applicationDidFinishLaunching(_:)` takes an unnamed parameter on purpose: SwiftLint's
 `unused_parameter` rejects a named one it never reads, and the protocol conformance does
-not care about the name. In `MyAppApp`, the whole wiring is:
+not care about the name. In `TownsfolkApp`, the whole wiring is:
 
 ```swift
     @NSApplicationDelegateAdaptor(StatusItemAppDelegate.self)
@@ -210,13 +210,13 @@ not care about the name. In `MyAppApp`, the whole wiring is:
 ## What an agent app loses, and what to do about it
 
 - **Quitting.** There is no ⌘Q and no app menu, so a locally run agent app has no way
-  out until you give it one: `pkill -x MyApp` is the stopgap (verified), a Quit control
+  out until you give it one: `pkill -x Townsfolk` is the stopgap (verified), a Quit control
   in the menu content is the fix. `NSApplication.shared.terminate(nil)` is AppKit, so it
-  goes behind a Core port with a `MyAppPlatform` adapter like any other OS call — do not
-  import AppKit into `MyAppUI` for it.
+  goes behind a Core port with a `TownsfolkPlatform` adapter like any other OS call — do not
+  import AppKit into `TownsfolkUI` for it.
 - **Settings.** ⌘, is gone with the app menu. Add a `Settings { SettingsView() }` scene
   beside the `MenuBarExtra` in the same `body` (a `Scene` builder takes both), put
-  `SettingsView` in `MyAppUI`, and open it from the menu content with
+  `SettingsView` in `TownsfolkUI`, and open it from the menu content with
   `SettingsLink { … }` (macOS 14+, which this template already targets). The skeleton
   above leaves both out — add them when the app has something to configure.
 - **Being noticed at all.** An agent app that launches and shows nothing is
@@ -225,7 +225,7 @@ not care about the name. In `MyAppApp`, the whole wiring is:
 
 ## What does not change
 
-`scripts/smoke_launch.sh`, `App/MyApp.entitlements`, signing and notarization, the
+`scripts/smoke_launch.sh`, `App/Townsfolk.entitlements`, signing and notarization, the
 coverage floor, and the layer rules are all shape-independent. An agent app is still an
 ordinary signed app bundle — `LSUIElement` only tells the Dock and the app switcher to
 ignore it.

@@ -1,7 +1,7 @@
 # C callbacks under Swift 6
 
 Every snippet below was compiled in a clone of this repository, as files under
-`Packages/MyAppKit/Sources/`, with `swift build` (Swift 6 language mode, every warning an
+`Packages/TownsfolkKit/Sources/`, with `swift build` (Swift 6 language mode, every warning an
 error — `Package.swift`'s `strictSettings`), `swiftlint --strict`, and
 `swiftformat --lint`. They are the shape that passes all three, which is not the shape
 most sample code on the internet uses. What each API does is Apple's to document and is
@@ -47,7 +47,7 @@ public protocol KeyPressObserving: Sendable {
 
 ```swift
 import CoreGraphics
-import MyAppCore
+import TownsfolkCore
 
 /// `@convention(c)` gives the callback no captured context, so everything it needs
 /// arrives through `refcon` — and everything it hands on must already be a value,
@@ -84,7 +84,7 @@ private let keyPressTapCallback: CGEventTapCallBack = { _, type, event, refcon i
     return Unmanaged.passUnretained(event)
 }
 
-/// A `CGEventTap` adapter for ``MyAppCore/KeyPressObserving``.
+/// A `CGEventTap` adapter for ``TownsfolkCore/KeyPressObserving``.
 @MainActor
 public final class KeyPressEventTap: KeyPressObserving {
     private var machPort: CFMachPort?

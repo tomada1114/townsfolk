@@ -4,7 +4,7 @@
 # before calling it, and the line- and function-floor cases have the stub hand
 # back a codecov JSON fixture from this case's temp directory for the real python3
 # gate to read.
-# The script cds into Packages/MyAppKit but, with swift stubbed, writes nothing.
+# The script cds into Packages/TownsfolkKit but, with swift stubbed, writes nothing.
 set -euo pipefail
 # shellcheck source=scripts/tests/lib.sh
 . "$(dirname "$0")/lib.sh"
@@ -22,16 +22,16 @@ stub_swift() {
 }
 
 # write_fixture LINES_COVERED LINES_COUNT [FUNCTIONS_COVERED FUNCTIONS_COUNT] — a
-# codecov JSON with one MyAppCore file at those lines and functions (functions
+# codecov JSON with one TownsfolkCore file at those lines and functions (functions
 # default to 1/1) and one UI file at 0% of both that the gate must ignore.
 write_fixture() {
     export CODECOV_FIXTURE="${CASE_DIR}/codecov.json"
     cat >"${CODECOV_FIXTURE}" <<JSON
 {"data": [{"files": [
-  {"filename": "/x/Sources/MyAppCore/Counter.swift", "summary": {
+  {"filename": "/x/Sources/TownsfolkCore/Counter.swift", "summary": {
     "lines": {"covered": $1, "count": $2},
     "functions": {"covered": ${3:-1}, "count": ${4:-1}}}},
-  {"filename": "/x/Sources/MyAppUI/ContentView.swift", "summary": {
+  {"filename": "/x/Sources/TownsfolkUI/ContentView.swift", "summary": {
     "lines": {"covered": 0, "count": 50},
     "functions": {"covered": 0, "count": 50}}}
 ]}]}
@@ -62,8 +62,8 @@ case_at_floor_passes() {
     write_fixture 80 100 75 100
     capture "${BASH}" "${COVERAGE_SRC}"
     assert_exit 0
-    assert_stdout_contains "MyAppCore line coverage: 80.0% (floor 80.0%)"
-    assert_stdout_contains "MyAppCore function coverage: 75.0% (75 of 100 functions; floor 75.0%)"
+    assert_stdout_contains "TownsfolkCore line coverage: 80.0% (floor 80.0%)"
+    assert_stdout_contains "TownsfolkCore function coverage: 75.0% (75 of 100 functions; floor 75.0%)"
     grep -qx 'test --enable-code-coverage' "${STUB_BIN}/swift.log" || _fail "swift test was not run with coverage"
 }
 
@@ -82,9 +82,9 @@ case_functions_below_floor_fails() {
     write_fixture 100 100 7496 10000
     capture "${BASH}" "${COVERAGE_SRC}"
     assert_exit 1
-    head -n 1 "${CASE_DIR}/stderr" | grep -qx 'ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR: MyAppCore function coverage 74.96% is below the 75.0% floor' ||
+    head -n 1 "${CASE_DIR}/stderr" | grep -qx 'ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR: TownsfolkCore function coverage 74.96% is below the 75.0% floor' ||
         _fail "first stderr line is not the ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR line"
-    assert_stderr_contains "Expected: at least 75.0% of MyAppCore functions run under"
+    assert_stderr_contains "Expected: at least 75.0% of TownsfolkCore functions run under"
     assert_stderr_contains "Actual: 7496 of 10000 functions ran (74.96%)"
     assert_stderr_contains "Next: "
     assert_stderr_not_contains "is below the 80.0% floor"
@@ -100,14 +100,14 @@ case_both_below_floor_reports_both() {
     assert_stderr_contains "coverage 79.96% is below the 80.0% floor"
 }
 
-# A MyAppCore file with no functions counts as fully covered rather than dividing
+# A TownsfolkCore file with no functions counts as fully covered rather than dividing
 # by zero, as a file with no lines already does.
 case_no_functions_passes() {
     stub_swift
     write_fixture 90 100 0 0
     capture "${BASH}" "${COVERAGE_SRC}"
     assert_exit 0
-    assert_stdout_contains "MyAppCore function coverage: 100.0% (0 of 0 functions; floor 75.0%)"
+    assert_stdout_contains "TownsfolkCore function coverage: 100.0% (0 of 0 functions; floor 75.0%)"
 }
 
 run_case "COVERAGE_MIN=50 is rejected before any test runs" case_lower_integer_rejected
@@ -118,5 +118,5 @@ run_case "coverage exactly at the 80% line and 75% function floors passes" case_
 run_case "line coverage just below the 80% floor fails" case_below_floor_fails
 run_case "function coverage just below the 75% floor fails with its error code" case_functions_below_floor_fails
 run_case "both floors missed are both reported" case_both_below_floor_reports_both
-run_case "MyAppCore with no functions passes the function floor" case_no_functions_passes
+run_case "TownsfolkCore with no functions passes the function floor" case_no_functions_passes
 finish

@@ -2,13 +2,13 @@ import os
 
 /// This app's unified-log entry point: one subsystem, one `Logger` per concern.
 ///
-/// `MyAppCore` is allowed to `import os`. The Core ban list holds UI frameworks and the
+/// `TownsfolkCore` is allowed to `import os`. The Core ban list holds UI frameworks and the
 /// OS-integration frameworks an adapter reaches for; `os` is neither — it is Apple's
 /// logging facility, it pulls in no AppKit, and it works unchanged on every platform
 /// Core is meant to serve, so keeping logging behind a port would buy nothing and cost
-/// every call site an injection (`docs/architecture.md` › Logging). `MyAppUI`,
-/// `MyAppPlatform`, and `App/` log through these same loggers, which they already see
-/// by importing `MyAppCore`.
+/// every call site an injection (`docs/architecture.md` › Logging). `TownsfolkUI`,
+/// `TownsfolkPlatform`, and `App/` log through these same loggers, which they already see
+/// by importing `TownsfolkCore`.
 ///
 /// Never `print`, `debugPrint`, or `NSLog` under `Sources/` or `App/`: a `.app` launched
 /// the way users launch it has nowhere to send stdout, so those lines vanish exactly
@@ -25,7 +25,7 @@ public enum AppLog {
     /// once and nowhere else in Swift; `scripts/bootstrap.sh` rewrites it with the same
     /// placeholder replacement that rewrites `project.yml`, and `AppLogTests` fails if
     /// the two ever disagree.
-    public static let subsystem = "com.example.MyApp"
+    public static let subsystem = "io.github.tomada1114.Townsfolk"
 
     /// The frontmost-application concern: ``FrontmostAppProviding`` and its view model.
     ///

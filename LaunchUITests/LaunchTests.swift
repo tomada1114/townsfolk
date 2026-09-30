@@ -3,7 +3,7 @@ import XCTest
 /// The template's launch guarantee: the app starts, shows its window, and responds.
 ///
 /// XCTest by necessity — Apple has not ported UI automation to Swift Testing.
-/// All other tests use Swift Testing in Packages/MyAppKit.
+/// All other tests use Swift Testing in Packages/TownsfolkKit.
 final class LaunchTests: XCTestCase {
     private enum Timeout {
         static let windowAppears: TimeInterval = 10

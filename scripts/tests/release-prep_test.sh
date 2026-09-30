@@ -17,14 +17,14 @@ RELEASE_PREP_SH="${REPO_ROOT}/scripts/release-prep.sh"
 # real project.yml: the settings are nested and quoted.
 write_manifest() {
     cat >"$1/project.yml" <<EOF
-name: MyApp
+name: Townsfolk
 settings:
   base:
     SWIFT_VERSION: "6.0"
     MARKETING_VERSION: "$2"
     CURRENT_PROJECT_VERSION: "$3"
 targets:
-  MyApp:
+  Townsfolk:
     type: application
 EOF
 }
@@ -47,7 +47,7 @@ All notable changes to this project will be documented in this file.
 
 - A fixed thing
 
-[Unreleased]: https://github.com/octo/my-app/commits/main
+[Unreleased]: https://github.com/octo/townsfolk/commits/main
 EOF
 }
 
@@ -89,9 +89,9 @@ case_rolls_the_release() {
         _fail "an entry was lost"
     grep -q '^### Fixed$' "${repo}/CHANGELOG.md" ||
         _fail "a subsection was lost"
-    grep -qF '[0.2.0]: https://github.com/octo/my-app/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
+    grep -qF '[0.2.0]: https://github.com/octo/townsfolk/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
         _fail "the release link reference was not added"
-    grep -qF '[Unreleased]: https://github.com/octo/my-app/commits/main' "${repo}/CHANGELOG.md" ||
+    grep -qF '[Unreleased]: https://github.com/octo/townsfolk/commits/main' "${repo}/CHANGELOG.md" ||
         _fail "the [Unreleased] link reference was changed"
 }
 
@@ -202,7 +202,7 @@ case_refuses_an_empty_unreleased_section() {
 
 - The first release
 
-[Unreleased]: https://github.com/octo/my-app/commits/main
+[Unreleased]: https://github.com/octo/townsfolk/commits/main
 EOF
     git -C "${repo}" add -A
     git -C "${repo}" commit -q -m "fixture"
@@ -283,21 +283,21 @@ case_writes_a_link_reference_with_no_space_after_the_colon() {
     # Markdown link reference definition needs no space after the colon.
     repo=$(make_temp_repo)
     write_manifest "${repo}" 0.1.0 1
-    printf '# Changelog\n\n## [Unreleased]\n\n- Something new\n\n[Unreleased]:https://github.com/octo/my-app/commits/main\n' \
+    printf '# Changelog\n\n## [Unreleased]\n\n- Something new\n\n[Unreleased]:https://github.com/octo/townsfolk/commits/main\n' \
         >"${repo}/CHANGELOG.md"
     git -C "${repo}" add -A
     git -C "${repo}" commit -q -m "fixture"
     capture "${RELEASE_PREP_SH}" --root "${repo}" 0.2.0
     assert_exit 0
-    assert_stdout_contains "link reference [0.2.0]: https://github.com/octo/my-app/releases/tag/v0.2.0"
-    grep -qF '[0.2.0]: https://github.com/octo/my-app/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
+    assert_stdout_contains "link reference [0.2.0]: https://github.com/octo/townsfolk/releases/tag/v0.2.0"
+    grep -qF '[0.2.0]: https://github.com/octo/townsfolk/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
         _fail "the plan promised a link reference the write did not add"
 }
 
 case_moves_a_compare_range_to_the_new_version() {
     repo=$(make_temp_repo)
     write_manifest "${repo}" 0.1.0 1
-    printf '# Changelog\n\n## [Unreleased]\n\n- Something new\n\n[Unreleased]: https://github.com/octo/my-app/compare/v0.1.0...HEAD\n' \
+    printf '# Changelog\n\n## [Unreleased]\n\n- Something new\n\n[Unreleased]: https://github.com/octo/townsfolk/compare/v0.1.0...HEAD\n' \
         >"${repo}/CHANGELOG.md"
     git -C "${repo}" add -A
     git -C "${repo}" commit -q -m "fixture"
@@ -305,11 +305,11 @@ case_moves_a_compare_range_to_the_new_version() {
     assert_exit 0
     # The range names a version, so leaving it at v0.1.0 would make [Unreleased]
     # link to the changes this run just released.
-    grep -qF '[Unreleased]: https://github.com/octo/my-app/compare/v0.2.0...HEAD' "${repo}/CHANGELOG.md" ||
+    grep -qF '[Unreleased]: https://github.com/octo/townsfolk/compare/v0.2.0...HEAD' "${repo}/CHANGELOG.md" ||
         _fail "the compare range was not moved to the new version"
-    grep -qF '[0.2.0]: https://github.com/octo/my-app/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
+    grep -qF '[0.2.0]: https://github.com/octo/townsfolk/releases/tag/v0.2.0' "${repo}/CHANGELOG.md" ||
         _fail "the release link reference was not added"
-    assert_stdout_contains "link reference [Unreleased]: https://github.com/octo/my-app/compare/v0.2.0...HEAD"
+    assert_stdout_contains "link reference [Unreleased]: https://github.com/octo/townsfolk/compare/v0.2.0...HEAD"
 }
 
 case_keeps_a_commits_link_reference_as_it_is() {
@@ -317,7 +317,7 @@ case_keeps_a_commits_link_reference_as_it_is() {
     repo=$(make_fixture_repo)
     capture "${RELEASE_PREP_SH}" --root "${repo}" 0.2.0
     assert_exit 0
-    grep -qF '[Unreleased]: https://github.com/octo/my-app/commits/main' "${repo}/CHANGELOG.md" ||
+    grep -qF '[Unreleased]: https://github.com/octo/townsfolk/commits/main' "${repo}/CHANGELOG.md" ||
         _fail "the commits-shaped [Unreleased] reference was rewritten"
     assert_stdout_not_contains "link reference [Unreleased]" "a rewrite it did not make"
 }

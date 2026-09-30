@@ -1,6 +1,6 @@
 import Foundation
-import MyAppCore
 import Testing
+import TownsfolkCore
 
 /// ``AppLog/subsystem`` is the only place this app's unified-log subsystem is spelled,
 /// and it has to stay the bundle identifier `project.yml` declares: `just logs` streams
@@ -14,7 +14,7 @@ struct AppLogTests {
     static let settingKey = "PRODUCT_BUNDLE_IDENTIFIER:"
 
     /// The checkout root, resolved from this file's path:
-    /// `Packages/MyAppKit/Tests/MyAppCoreTests/<this file>`, five levels up.
+    /// `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/<this file>`, five levels up.
     static let repositoryRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
@@ -31,8 +31,8 @@ struct AppLogTests {
     /// declares first — so a target added later (an iOS one, a helper) never shadows it.
     /// A YAML trailing comment (whitespace, then `#`) and one surrounding pair of single
     /// or double quotes are stripped; the value is otherwise taken literally, and
-    /// compared for equality rather than containment, so `com.example.MyApp.Helper` is
-    /// not `com.example.MyApp`.
+    /// compared for equality rather than containment, so `io.github.tomada1114.Townsfolk.Helper` is
+    /// not `io.github.tomada1114.Townsfolk`.
     ///
     /// Answers `nil` when the manifest declares no identifier, or declares an empty one.
     static func declaredBundleIdentifier(inManifest manifest: String) -> String? {
@@ -139,7 +139,7 @@ struct AppLogTests {
 
     @Test
     func `a manifest that declares no identifier has no answer`() {
-        #expect(Self.declaredBundleIdentifier(inManifest: "name: MyApp\n") == nil)
+        #expect(Self.declaredBundleIdentifier(inManifest: "name: Townsfolk\n") == nil)
         #expect(Self.declaredBundleIdentifier(inManifest: "PRODUCT_BUNDLE_IDENTIFIER:\n") == nil)
         #expect(Self
             .declaredBundleIdentifier(inManifest: "PRODUCT_BUNDLE_IDENTIFIER: #TBD\n") == nil)

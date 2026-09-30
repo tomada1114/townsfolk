@@ -1,7 +1,7 @@
-import MyAppCore
 import os
+import TownsfolkCore
 
-/// The one fake of ``MyAppCore/FrontmostAppProviding``, shared by every test target.
+/// The one fake of ``TownsfolkCore/FrontmostAppProviding``, shared by every test target.
 ///
 /// A fake, not a mock (`.claude/rules/testing.md` › Fakes, not mocks): a real conforming
 /// implementation whose answers are data the test hands it, and whose calls are recorded

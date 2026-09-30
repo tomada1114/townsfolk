@@ -70,7 +70,7 @@ Do:
 4. Add or update the tests that cover the change, and run the verification
    command above. Report the exact command. For a performance task, re-run
    step 2's baseline under the same conditions and report both numbers under
-   MEASURE. A change under Packages/MyAppKit/Sources/MyAppPlatform/ also runs
+   MEASURE. A change under Packages/TownsfolkKit/Sources/TownsfolkPlatform/ also runs
    `just test-local` and reports its output under VERIFY -- CI and `just test`
    report those tests as skipped.
 5. If the change is user-facing, add an entry to CHANGELOG.md under

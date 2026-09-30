@@ -14,7 +14,7 @@ install:
     @if command -v xcodebuild >/dev/null 2>&1; then xcode_local="$(xcodebuild -version | head -n1 | awk '{print $2}')"; xcode_pinned="$(cat .xcode-version)"; if [ "$xcode_local" != "$xcode_pinned" ]; then echo "warning: local Xcode $xcode_local differs from the CI-pinned $xcode_pinned — results may diverge from CI"; fi; fi
     just verify-hooks
 
-# Regenerate MyApp.xcodeproj from project.yml
+# Regenerate Townsfolk.xcodeproj from project.yml
 generate:
     mise exec -- xcodegen generate
 
@@ -50,7 +50,7 @@ test-scripts:
 check-harness:
     mise exec -- scripts/checks/run-all.sh
 
-# Run tests with the 80% line-coverage and 75% function-coverage floors on MyAppCore
+# Run tests with the 80% line-coverage and 75% function-coverage floors on TownsfolkCore
 test:
     scripts/coverage.sh
 
@@ -58,12 +58,12 @@ test:
 # for fast local iteration; `just test` is still the gate
 [doc("Run only the tests matching FILTER, with no coverage floor")]
 test-fast filter:
-    cd Packages/MyAppKit && swift test --filter '{{filter}}'
+    cd Packages/TownsfolkKit && swift test --filter '{{filter}}'
 
 # Build the app (Debug)
 build:
     mise exec -- xcodegen generate
-    set -o pipefail && xcodebuild -project MyApp.xcodeproj -scheme MyApp -configuration Debug -derivedDataPath build/dev-derived-data build | mise exec -- xcbeautify --quiet
+    set -o pipefail && xcodebuild -project Townsfolk.xcodeproj -scheme Townsfolk -configuration Debug -derivedDataPath build/dev-derived-data build | mise exec -- xcbeautify --quiet
 
 # Build (Debug), quit any running instance of this app, and launch the fresh
 # build, left running until you quit it (scripts/run-app.sh)
@@ -88,7 +88,7 @@ logs:
 uitest:
     mise exec -- xcodegen generate
     rm -rf build/LaunchUITests.xcresult
-    set -o pipefail && xcodebuild test -project MyApp.xcodeproj -scheme MyApp -destination 'platform=macOS' -derivedDataPath build/dev-derived-data -resultBundlePath build/LaunchUITests.xcresult | mise exec -- xcbeautify
+    set -o pipefail && xcodebuild test -project Townsfolk.xcodeproj -scheme Townsfolk -destination 'platform=macOS' -derivedDataPath build/dev-derived-data -resultBundlePath build/LaunchUITests.xcresult | mise exec -- xcbeautify
 
 # Build Release and assert the app launches and stays alive
 smoke:
@@ -109,7 +109,7 @@ agents-check:
 
 # Remove build artifacts and the generated project
 clean:
-    rm -rf build Packages/MyAppKit/.build MyApp.xcodeproj
+    rm -rf build Packages/TownsfolkKit/.build Townsfolk.xcodeproj
 
 # Create or update this repository's GitHub labels from .github/labels.yml
 # (never deletes). Requires `gh`, authenticated against this repository: it is
@@ -126,12 +126,12 @@ labels:
 ruleset:
     scripts/apply-ruleset.sh
 
-# Run the local-machine tests (MyAppPlatformTests): the adapter tests CI cannot run,
+# Run the local-machine tests (TownsfolkPlatformTests): the adapter tests CI cannot run,
 # because a runner has no logged-in GUI session and cannot be granted the permissions
 # below. Sets RUN_LOCAL_MACHINE_TESTS=1, the opt-in the `.requiresLocalMachine` trait
 # reads, so these run here and stay reported-as-skipped everywhere else. No coverage
 # floor: adapters translate rather than decide, so `scripts/coverage.sh` still measures
-# MyAppCore only, and `just test` is still the gate.
+# TownsfolkCore only, and `just test` is still the gate.
 #
 # Grants: today's suite needs none — NSWorkspace only needs a GUI session. A test that
 # reaches for Accessibility, Input Monitoring, or Screen Recording needs that permission
@@ -143,9 +143,9 @@ ruleset:
 #
 # Run it before a PR that touches an adapter, and paste the result in the PR: no gate
 # can do it for you.
-[doc("Run the local-machine adapter tests (MyAppPlatformTests) CI cannot run")]
+[doc("Run the local-machine adapter tests (TownsfolkPlatformTests) CI cannot run")]
 test-local:
-    cd Packages/MyAppKit && RUN_LOCAL_MACHINE_TESTS=1 swift test --filter 'MyAppPlatformTests'
+    cd Packages/TownsfolkKit && RUN_LOCAL_MACHINE_TESTS=1 swift test --filter 'TownsfolkPlatformTests'
 
 # Prepare a release — `just release-prep <version>`, plus `--dry-run` to check
 # without writing: sets MARKETING_VERSION, increments CURRENT_PROJECT_VERSION, and

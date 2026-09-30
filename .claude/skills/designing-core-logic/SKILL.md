@@ -1,19 +1,19 @@
 ---
 name: designing-core-logic
 description: >
-  Covers how logic in MyAppCore is shaped: time, the current date, Locale, and
+  Covers how logic in TownsfolkCore is shaped: time, the current date, Locale, and
   randomness injected rather than read (Clock, any Clock<Duration>, Date.now,
   Locale.current, SystemRandomNumberGenerator), tunable numbers gathered in one Tuning
   type, action-shaped methods on @MainActor @Observable view models, and the patterns
   this template deliberately does not adopt. Use when adding a type, a view model, a
   timer, a debounce, a delay, a formatted string, a threshold, or anything random to
-  MyAppCore, or when reaching for a repository, a coordinator, a use-case class, or an
+  TownsfolkCore, or when reaching for a repository, a coordinator, a use-case class, or an
   event bus.
 ---
 
 # Designing Core Logic
 
-**Owns:** how a type or view model in `MyAppCore` is shaped so its logic stays
+**Owns:** how a type or view model in `TownsfolkCore` is shaped so its logic stays
 deterministic under `swift test` — what it is handed rather than reads, where tunable
 numbers live, what its entry points look like, and which patterns are not adopted.
 **Does not own:** the test-first loop itself (`tdd`); an OS integration behind a port
@@ -23,21 +23,21 @@ boundaries and import rules (`AGENTS.md` › Architecture, `.claude/rules/swift.
 
 ## Why this exists
 
-The 80% coverage floor on `MyAppCore` only means something if a test can reach every
+The 80% coverage floor on `TownsfolkCore` only means something if a test can reach every
 branch without waiting, without depending on the machine's clock, language, or luck.
 Anything Core would read from the world — the time, the locale, a random number — is
 therefore an input, the same way `FrontmostAppViewModel` is handed an
 `any FrontmostAppProviding` instead of asking `NSWorkspace`.
 
 These are standard-library and Foundation values, not OS integrations, so they are
-injected as plain parameters. They do not need a port in `MyAppPlatform`; add a port
+injected as plain parameters. They do not need a port in `TownsfolkPlatform`; add a port
 only when the answer really comes from an OS framework Core may not import.
 
 ## Inject time
 
 - **Waiting** (a delay, a debounce, a timeout, a periodic tick): take a clock, not
   `Task.sleep(for:)` against the real one. `platforms: [.macOS(.v14)]` in
-  `Packages/MyAppKit/Package.swift` makes `Clock`, `ContinuousClock`, and
+  `Packages/TownsfolkKit/Package.swift` makes `Clock`, `ContinuousClock`, and
   `SuspendingClock` available without an availability check.
 
   ```swift
@@ -71,7 +71,7 @@ only when the answer really comes from an OS framework Core may not import.
 - **Tests:** pass a fixed date, `{ Date(timeIntervalSince1970: 1_700_000_000) }`, and a
   `Calendar(identifier: .gregorian)` with an explicit `TimeZone(identifier: "UTC")`.
   For a clock, the test target defines its own manually advanced `Clock` (the standard
-  library ships none); keep it in `Tests/MyAppCoreTests/`, never in `Sources/`. Passing
+  library ships none); keep it in `Tests/TownsfolkCoreTests/`, never in `Sources/`. Passing
   a zero `Duration` through `Tuning` is often enough and needs no fake clock at all.
 
 ## Inject locale
@@ -97,12 +97,12 @@ only when the answer really comes from an OS framework Core may not import.
 - **Tests:** Swift's standard library has no seeded generator, so the test target
   defines one — a few lines of SplitMix64 conforming to `RandomNumberGenerator` — and
   asserts on the exact sequence a given seed produces. It lives in
-  `Tests/MyAppCoreTests/`; shipping code never needs it.
+  `Tests/TownsfolkCoreTests/`; shipping code never needs it.
 
 ## One `Tuning` type
 
 - Every number someone might want to tweak — a delay, a threshold, a limit, a retry
-  count — lives in one `public struct Tuning: Sendable, Equatable` in `MyAppCore` with a
+  count — lives in one `public struct Tuning: Sendable, Equatable` in `TownsfolkCore` with a
   `` static let `default` `` (the backticks are required: `default` is a keyword), never
   as a literal scattered through method bodies.
 - Types take a `Tuning` in their initializer (defaulting to `.default`), so a test

@@ -2,9 +2,9 @@
 name: designing-errors
 description: >
   Covers how errors are designed in this Swift 6 repository: error enums declared in
-  MyAppCore, typed throws(SomeError) versus plain throws, what an error payload and an
+  TownsfolkCore, typed throws(SomeError) versus plain throws, what an error payload and an
   AppLog (os.Logger) message may carry, propagating CancellationError instead of
-  swallowing it, and how a MyAppPlatform adapter maps OSStatus, NSError, or AXError into
+  swallowing it, and how a TownsfolkPlatform adapter maps OSStatus, NSError, or AXError into
   a Core error. Use when adding or changing an Error type, a throwing function or port,
   a do/catch, a Task that can be cancelled, or an adapter that calls a failing OS API.
 ---
@@ -20,10 +20,10 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 
 ## Where an error type lives
 
-- Declare every error a caller can observe in `MyAppCore`, next to the port or model
+- Declare every error a caller can observe in `TownsfolkCore`, next to the port or model
   that throws it — `FrontmostAppProviding.swift` would hold a `FrontmostAppError`.
-  `MyAppUI` and `App/` switch on it, and a Core test's fake throws it, so it cannot
-  live in `MyAppPlatform` (Core never imports Platform).
+  `TownsfolkUI` and `App/` switch on it, and a Core test's fake throws it, so it cannot
+  live in `TownsfolkPlatform` (Core never imports Platform).
 - One `enum` per failure domain, `Error, Equatable, Sendable`. Cases name what went
   wrong for the caller (`.permissionDenied`, `.notRunning`), not which API failed.
 - Payloads carry only what a caller needs to decide, and are `Sendable` values:
@@ -122,7 +122,7 @@ do {
 The adapter translates, never decides (`AGENTS.md` › Architecture). Mapping an OS
 error to a Core case is translation; choosing what the app does about it is Core's.
 
-- Convert at the call site, inside `MyAppPlatform`, into the Core enum the port
+- Convert at the call site, inside `TownsfolkPlatform`, into the Core enum the port
   declares. Nothing OS-typed crosses the port.
 - `AXError`: switch the known cases (`.apiDisabled`, `.notImplemented`, …) into Core
   cases; everything else becomes `.systemFailure(code: result.rawValue)`.
@@ -135,7 +135,7 @@ error to a Core case is translation; choosing what the app does about it is Core
 
 ```swift
 import ApplicationServices
-import MyAppCore
+import TownsfolkCore
 
 extension FrontmostAppError {
     /// Translation only: which Core case an Accessibility result means.
@@ -148,13 +148,13 @@ extension FrontmostAppError {
 }
 ```
 
-A test in `Tests/MyAppPlatformTests` checks this mapping against the real OS under
+A test in `Tests/TownsfolkPlatformTests` checks this mapping against the real OS under
 `.requiresLocalMachine`; a Core test checks the decision with a fake that throws each
 Core case.
 
 ## Checklist
 
-- The error enum is in `MyAppCore`, `Error, Equatable, Sendable`, with value payloads.
+- The error enum is in `TownsfolkCore`, `Error, Equatable, Sendable`, with value payloads.
 - `throws(E)` only where a caller switches on `E`; plain `throws` otherwise.
 - No user content in a payload; logs use `AppLog` with explicit privacy.
 - `CancellationError` is rethrown, never logged or mapped to a failure.

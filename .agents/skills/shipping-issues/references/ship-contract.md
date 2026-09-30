@@ -5,7 +5,7 @@ comment block anywhere in the body:
 
 ```
 <!-- ship: tier=P1 area=core blocked-by=none blocks=#98
-     touches=Packages/MyAppKit/Sources/MyAppCore/,Packages/MyAppKit/Tests/MyAppCoreTests/ design=settled -->
+     touches=Packages/TownsfolkKit/Sources/TownsfolkCore/,Packages/TownsfolkKit/Tests/TownsfolkCoreTests/ design=settled -->
 ```
 
 Nothing here is required, and a repo with no contracts works exactly as before --

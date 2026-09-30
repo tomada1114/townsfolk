@@ -172,7 +172,7 @@ session's, and this is the whole list:
 
 Before concluding the repository is broken, read the red baseline against what
 is actually in the tree: an untracked build or package-manager cache in the repo
-root can fail the baseline on its own -- here a stale `Packages/MyAppKit/.build/` or
+root can fail the baseline on its own -- here a stale `Packages/TownsfolkKit/.build/` or
 `build/` built by an earlier toolchain or at another path. Seen in practice
 in another repository: a package-manager store holding a unix socket, which a
 test helper that copies untracked files hit with a bare `ENOTSUP`. This is why the dirty-tree question is asked at plan time,

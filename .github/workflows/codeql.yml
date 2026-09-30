@@ -41,7 +41,7 @@ jobs:
       - name: Build the package for analysis
         # App/ is a thin @main shell; all logic lives in the local package
         # (docs/architecture.md), so building it covers every analyzable line.
-        run: swift build --package-path Packages/MyAppKit
+        run: swift build --package-path Packages/TownsfolkKit
 
       - name: Analyze
         uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1

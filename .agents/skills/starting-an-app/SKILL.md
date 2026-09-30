@@ -149,7 +149,7 @@ both shapes side by side: the `project.yml` keys, the `App/` entry point, and th
 Decide this with the shape, before the first feature. An app that drives other
 applications through the Accessibility API, posts `CGEvent`s, installs a global event
 tap, or reads files the user never picked through an open panel cannot be sandboxed —
-and an unsandboxed app can never ship on the Mac App Store. `App/MyApp.entitlements`
+and an unsandboxed app can never ship on the Mac App Store. `App/Townsfolk.entitlements`
 ships with `com.apple.security.app-sandbox` on and stays on unless the new app is one
 of those.
 

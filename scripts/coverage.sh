@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Run the MyAppKit test suite with code coverage and enforce a line-coverage floor
-# and a function-coverage floor on Sources/MyAppCore. The report below is filtered
-# to that path, so MyAppUI and MyAppPlatform are outside it rather than measured
+# Run the TownsfolkKit test suite with code coverage and enforce a line-coverage floor
+# and a function-coverage floor on Sources/TownsfolkCore. The report below is filtered
+# to that path, so TownsfolkUI and TownsfolkPlatform are outside it rather than measured
 # and waived. The floors are
-# honest because all logic lives in Core: views render it and MyAppPlatform adapters
+# honest because all logic lives in Core: views render it and TownsfolkPlatform adapters
 # only translate for it, so neither holds a decision a test could catch
-# (AGENTS.md > Architecture). MyAppPlatformTests does link MyAppPlatform, but its
+# (AGENTS.md > Architecture). TownsfolkPlatformTests does link TownsfolkPlatform, but its
 # tests are skipped unless RUN_LOCAL_MACHINE_TESTS=1 (`just test-local`) — so they
 # contribute nothing here, and measuring Platform would gate the build on whether a
 # human opted in.
@@ -31,7 +31,7 @@
 # Errors (each followed by Expected:/Actual:/Next: lines, exit 1):
 #   ERR_COVERAGE_OVERRIDE_REMOVED       COVERAGE_MIN is set; it is no longer read,
 #                                       and the script stops before running any test
-#   ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR  MyAppCore function coverage is below
+#   ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR  TownsfolkCore function coverage is below
 #                                       FUNCTION_COVERAGE_FLOOR
 # A line coverage below COVERAGE_FLOOR predates this contract and exits non-zero
 # with a one-line message from the embedded Python instead.
@@ -50,7 +50,7 @@ if [ -n "${COVERAGE_MIN+set}" ]; then
     exit 1
 fi
 
-cd "$(dirname "$0")/../Packages/MyAppKit"
+cd "$(dirname "$0")/../Packages/TownsfolkKit"
 
 swift test --enable-code-coverage
 CODECOV_JSON="$(swift test --show-codecov-path)"
@@ -70,7 +70,7 @@ def percent(summary):
 lines = {"covered": 0, "count": 0}
 functions = {"covered": 0, "count": 0}
 for f in data["data"][0]["files"]:
-    if "/Sources/MyAppCore/" not in f["filename"]:
+    if "/Sources/TownsfolkCore/" not in f["filename"]:
         continue
     for total, key in ((lines, "lines"), (functions, "functions")):
         total["covered"] += f["summary"][key]["covered"]
@@ -80,12 +80,12 @@ for f in data["data"][0]["files"]:
         f'functions {percent(f["summary"]["functions"]):.1f}%'
     )
 if lines["count"] == 0:
-    sys.exit("coverage: no MyAppCore files found — gate misconfigured")
+    sys.exit("coverage: no TownsfolkCore files found — gate misconfigured")
 line_pct = percent(lines)
 function_pct = percent(functions)
-print(f"MyAppCore line coverage: {line_pct:.1f}% (floor {line_floor}%)")
+print(f"TownsfolkCore line coverage: {line_pct:.1f}% (floor {line_floor}%)")
 print(
-    f"MyAppCore function coverage: {function_pct:.1f}% "
+    f"TownsfolkCore function coverage: {function_pct:.1f}% "
     f'({functions["covered"]} of {functions["count"]} functions; floor {function_floor}%)'
 )
 
@@ -96,13 +96,13 @@ failed = False
 if function_pct < function_floor:
     failed = True
     for message in (
-        f"ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR: MyAppCore function coverage "
+        f"ERR_COVERAGE_FUNCTIONS_BELOW_FLOOR: TownsfolkCore function coverage "
         f"{function_pct:.2f}% is below the {function_floor}% floor",
-        f"Expected: at least {function_floor}% of MyAppCore functions run under "
+        f"Expected: at least {function_floor}% of TownsfolkCore functions run under "
         "`just test` (FUNCTION_COVERAGE_FLOOR in scripts/coverage.sh)",
         f'Actual: {functions["covered"]} of {functions["count"]} functions ran '
         f"({function_pct:.2f}%)",
-        "Next: add a MyAppCore test that calls the uncovered functions in the files "
+        "Next: add a TownsfolkCore test that calls the uncovered functions in the files "
         "listed above, then rerun `just test`; the floor is never lowered (AGENTS.md).",
     ):
         print(message, file=sys.stderr)

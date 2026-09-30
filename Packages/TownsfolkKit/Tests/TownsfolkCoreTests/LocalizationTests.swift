@@ -1,7 +1,7 @@
 import Foundation
-import MyAppCore
-import MyAppTestSupport
 import Testing
+import TownsfolkCore
+import TownsfolkTestSupport
 
 /// The subset of the String Catalog format these tests read: its source language and,
 /// per key, each language's single string. A plural or device-varied entry has
@@ -37,13 +37,13 @@ private struct CatalogLocalization: Decodable {
     let stringUnit: StringUnit?
 }
 
-/// The String Catalog plumbing (`Sources/MyAppCore/Resources/Localizable.xcstrings`).
+/// The String Catalog plumbing (`Sources/TownsfolkCore/Resources/Localizable.xcstrings`).
 ///
 /// `swift test` builds with SwiftPM's native build system, which copies the catalog into
 /// Core's resource bundle uncompiled, so every English string here comes from a
 /// resource's `defaultValue`; only `xcodebuild` compiles the catalog into the app. These
 /// tests therefore read the sources and the catalog as text and hold them together:
-/// every `LocalizedStringResource(…)` call in `Sources/MyAppCore` declares an explicit
+/// every `LocalizedStringResource(…)` call in `Sources/TownsfolkCore` declares an explicit
 /// key, a `defaultValue`, and `bundle: .module`; the keys those calls declare are exactly
 /// the catalog's and exactly ``everyCase()``'s; and the catalog's English is what Core
 /// renders. Without them, a key missing from the catalog still reads correctly in
@@ -59,12 +59,12 @@ struct LocalizationTests {
         let arguments: [any CVarArg]
     }
 
-    /// `Sources/MyAppCore`, resolved from this file's path.
+    /// `Sources/TownsfolkCore`, resolved from this file's path.
     static let coreSources = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-        .appending(path: "Sources/MyAppCore")
+        .appending(path: "Sources/TownsfolkCore")
 
     /// Every resource Core returns, once per state that picks a different key, with the
     /// arguments its English takes. Adding a key to Core means adding it here: the
@@ -84,7 +84,7 @@ struct LocalizationTests {
         ]
     }
 
-    /// `Sources/MyAppCore/Resources/Localizable.xcstrings`.
+    /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.
     private static func catalog() throws -> StringCatalog {
         let url = coreSources.appending(path: "Resources/Localizable.xcstrings")
         return try JSONDecoder().decode(StringCatalog.self, from: Data(contentsOf: url))

@@ -21,7 +21,7 @@ BT='`'
 # this file is tracked too, and the rename must not rewrite the fixture's copy of the
 # literal whose absence tells that check the rename has happened.
 PH_NAME='My''App'
-BOUNDARY_TESTS="Packages/MyAppKit/Tests/MyAppCoreTests/ArchitectureBoundaryTests.swift"
+BOUNDARY_TESTS="Packages/TownsfolkKit/Tests/TownsfolkCoreTests/ArchitectureBoundaryTests.swift"
 
 if ! command -v just >/dev/null 2>&1; then
     echo "ERR_TESTS_TOOL_MISSING: 'just' is not on PATH" >&2
@@ -292,7 +292,7 @@ EOF
 strict: true
 custom_rules:
   no_ui_import_in_core:
-    included: 'Packages/MyAppKit/Sources/MyAppCore/.+\.swift$'
+    included: 'Packages/TownsfolkKit/Sources/TownsfolkCore/.+\.swift$'
     regex: '^\s*(@[\w()]+\s+)*import\s+((typealias|struct|class)\s+)?(SwiftUI|AppKit|Carbon)\b'
     severity: error
 

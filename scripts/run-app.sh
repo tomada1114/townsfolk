@@ -34,7 +34,7 @@
 #   ERR_RUN_LAUNCH_FAILED  `open` refused to launch the bundle
 set -euo pipefail
 
-APP_NAME="MyApp"
+APP_NAME="Townsfolk"
 APP_RELATIVE_PATH="build/dev-derived-data/Build/Products/Debug/${APP_NAME}.app"
 QUIT_TIMEOUT=10
 # The launch poll only decides what to print, so it stays short: `open` has
