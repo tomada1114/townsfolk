@@ -11,21 +11,19 @@ Include:
 
 - Description of the vulnerability
 - Steps to reproduce
-- Affected versions
+- The commit on `main` you tested against
 - Suggested fix (if available)
 
 ## Response
 
 This project is maintained on a best-effort basis and makes no guaranteed response
-time. Reports are acknowledged and assessed as maintainer time allows, and a fix
-ships in the next release once one is ready.
+time. Townsfolk has no releases — it is not distributed and is built from source
+([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)) — so reports are
+assessed against `main`, and a fix lands on `main` once one is ready.
 
 ## Supported Versions
 
-| Version | Supported |
-|---|---|
-| Latest release | Yes |
-| Previous minor | Best effort |
+There are no released versions. Only the current `main` branch is supported.
 
 ## Supply-Chain Posture
 
@@ -49,5 +47,5 @@ We follow a coordinated disclosure process. We ask that you:
 2. Allow reasonable time for a fix before public disclosure
 3. Avoid exploiting the vulnerability beyond what is necessary to demonstrate it
 
-We will credit reporters in the release notes unless they prefer to remain
+We will credit reporters in the fix's pull request or its `CHANGELOG.md` entry unless they prefer to remain
 anonymous.
