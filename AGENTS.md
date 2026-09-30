@@ -172,6 +172,11 @@ Config/Debug.xcconfig       # Debug-only build settings project.yml cannot expre
 ```
 
 - New logic goes in `TownsfolkCore` with tests; views only render Core state
+- Townsfolk's own shape on these layers — the town engine, its SQLite store
+  (`import SQLite3`), and the conversation with the on-device model
+  (`import FoundationModels`) in Core; the model call and window presence as Platform
+  adapters — is `docs/architecture.md` › Townsfolk on these layers, and each choice is
+  an ADR under `docs/architecture/adr/`
 - The dependency direction is one-way: Core ← UI and Core ← Platform, both ← App.
   `TownsfolkUI` and `TownsfolkPlatform` are siblings and never import each other
 - OS integration goes in `TownsfolkPlatform` as an adapter behind a `Sendable` port Core
@@ -531,9 +536,12 @@ Before submitting a PR:
 
 ## Important Reminders
 
-- All code, docs, commits, and PRs must be written in English. The one exception is a
+- All code, docs, commits, and PRs must be written in English. The exceptions are a
   translated value in a `*.xcstrings` String Catalog — the entry for a language other
   than `en`; its key, its `comment`, and its English stay English (`localizing-the-app`)
+  — and a value in a seed table for a language other than English under
+  `Packages/TownsfolkKit/Sources/TownsfolkCore/Resources/Seeds/`, whose keys stay
+  English (ADR-0007, `docs/architecture/adr/0007-english-and-japanese.md`)
 - Do what has been asked; nothing more, nothing less
 - NEVER create files unless absolutely necessary
 - ALWAYS prefer editing an existing file to creating a new one

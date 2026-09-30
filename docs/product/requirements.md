@@ -7,7 +7,7 @@
   Apple's on-device model through the Foundation Models framework, called directly: no
   server, no API key, nothing leaves the Mac. Requires macOS 27 or later on an Apple
   silicon Mac with Apple Intelligence turned on — the template targets macOS 14, so the
-  new floor is recorded as an ADR.
+  new floor is recorded as [ADR-0003](../architecture/adr/0003-macos-27-floor.md).
 
 Numbers marked † are **starting values**. They live in one `Tuning` type and are
 adjusted by using the app; they were deliberately not decided on paper, because only
@@ -402,12 +402,15 @@ a migration (the persistence ADR decides the store).
 
 ## 6. Open questions
 
-- **Owner decides:** Mac App Store or a signed and notarized DMG only — if the store,
-  "Townsfolk" must also be free as a store name. Settled in the distribution ADR.
-- **Owner decides:** if the app is shared with others, how it stands against the
+- **Deferred by the owner:** this version is not distributed; the Mac App Store or a
+  signed and notarized DMG is chosen when a release is wanted — if the store,
+  "Townsfolk" must also be free as a store name
+  ([ADR-0009](../architecture/adr/0009-not-distributed-yet.md)).
+- **Deferred by the owner:** if the app is shared with others, how it stands against the
   Foundation Models acceptable-use requirement that forbids enabling dependency or
   spiraling interactions harmful to mental health. The non-goals in §2 keep it clear of
-  engagement hooks; the question is about distribution, not about this version.
+  engagement hooks; the owner judges it from their own use before anything is shared
+  ([ADR-0009](../architecture/adr/0009-not-distributed-yet.md)).
 - **Unknowable until shared:** whether anyone but the owner finds it fun.
 - **Settled in use** (starting values above): the three speeds and the heat they cause;
   catch-up size and how it looks; how strong your influence feels and the balance of
@@ -420,7 +423,8 @@ a migration (the persistence ADR decides the store).
   at a glance at all.
 - **Read at run time / confirmed during implementation:** the context size on the
   owner's Mac (M2, 16 GB, macOS 27.0); whether only the smaller on-device model is
-  available on it; the exact macOS floor (the OS-floor ADR).
+  available on it. The macOS floor is 27.0
+  ([ADR-0003](../architecture/adr/0003-macos-27-floor.md)).
 - **Known gap:** a single mistaken post cannot be removed without moving away (deleting
   is Later).
 

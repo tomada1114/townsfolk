@@ -3,7 +3,8 @@
 This page describes the layers every app cut from this template starts with. What an
 app decides on top of them — its shape, sandbox posture, persistence, dependencies,
 distribution, macOS floor, and permissions — is recorded as ADRs under
-[`docs/architecture/`](architecture/README.md), whose `README.md` is the index.
+[`docs/architecture/`](architecture/README.md), whose `README.md` is the index. How
+Townsfolk sits on these layers is [Townsfolk on these layers](#townsfolk-on-these-layers).
 
 ## Layers
 
@@ -152,6 +153,114 @@ Keeping logic out of views is what makes the coverage floor honest: the gate
 measures the code that can regress silently, not SwiftUI layout. The same reasoning
 keeps decisions out of adapters — see "Ports and adapters" above.
 
+## Townsfolk on these layers
+
+Everything above is the template's. This section is Townsfolk's own shape on it — the
+result of the ADRs in [`docs/architecture/`](architecture/README.md), which hold the
+reasons. What the app is comes from `AGENTS.md` › Product and
+[`docs/product/requirements.md`](product/requirements.md), whose sections are cited as §.
+
+### Principles
+
+- **Rules decide; the model only writes.** Timing, speakers, seeds, events, moves,
+  delays, influence, and catch-up are Core code, and the model fills in text through
+  structured output (§3.11, ADR-0005). Rules out agents, tool calling, and the model
+  choosing who speaks.
+- **The log is the truth; a model session is thrown away.** Every call is rebuilt from
+  the store and forgotten (§3.8, ADR-0004). Rules out memory kept in a session, and state
+  that lives only in the model's context.
+- **One writer at a time.** Ordinary scenes, responses, and catch-up go through one
+  engine, one call after another. Rules out parallel generation and interleaved scenes.
+- **Only while seen.** The town moves only while its window is visible (§3.7, ADR-0006).
+  Rules out background work, timers while hidden, and anything that calls the person
+  back.
+- **Local, and enforced.** No network entitlement (ADR-0002), no analytics, and no text
+  the person or the model wrote in a log or an error. Rules out any feature that needs
+  the network without a new ADR.
+- **The machinery stays out of sight.** Only founding shows a wait; a failed call is a
+  scene that never appears (`docs/design/ux-guidelines.md`). Rules out progress, typing,
+  and "generating" states in the UI.
+
+### Shape
+
+| Domain | Layer | Where |
+|---|---|---|
+| The town engine: schedule, speakers, seeds, influence, events, moves, catch-up, whether the town runs | Core | one engine that takes one step at a time, driven by an injected clock, random number generator, and `Tuning`, which holds the requirements' † starting values (`designing-core-logic`) |
+| Prompts, `@Generable` outputs, the context budget, the retry rules | Core | `import FoundationModels` (ADR-0005) |
+| The model call, availability, token counts | Platform | an adapter behind `LanguageModelProviding` (ADR-0005) |
+| The town's store and its migrations | Core | `TownStore` over `import SQLite3` (ADR-0004) |
+| Settings | Core | `UserDefaults` keys (ADR-0004) |
+| Window visible, app active, Mac awake | Platform | an adapter behind `WindowPresenceProviding` (ADR-0006) |
+| Seed tables and wording, in English and Japanese | Core resources | `Resources/Seeds/<language>.json` and `Localizable.xcstrings` (ADR-0007) |
+| First run, founding, the timeline, the composer, the status line, profiles, Settings | UI | views built against the design lock (ADR-0008) |
+| Scenes, menus, composition | App | one `Window` and one `Settings` scene (ADR-0001) |
+
+Only Core values cross a boundary: the model's output enters Core as generated content
+that Core decodes into its own types, presence arrives as a stream of values, and views
+read view-model state and call its actions.
+
+### Data
+
+Requirements §5 lists the entities: the town, residents, posts, events (moves included),
+the names you brought up, the schedule, and settings. All but settings live in one
+SQLite file in the app's container, and settings are `UserDefaults` keys that survive
+moving away (ADR-0004). The seed tables ship read-only with the app (ADR-0007). What a
+model call sees is assembled from the store each time: the recent posts that fit the
+context from roughly the last day, ongoing events, the residents involved, and the
+relevant names you brought up (§3.8).
+
+### Core flows
+
+- **A scene.** The clock makes a scene due → the engine checks that the town runs
+  (presence, the setting, model availability, the thermal state) → rules pick the seed
+  and the speakers → Core builds the prompt within the budget, counting tokens through
+  the port → the port runs the call → Core checks the speakers; a refusal is retried
+  with a new seed up to twice, then the turn is skipped → one transaction stores the
+  posts, tags, names, and the next due time → the view model reveals the posts one at a
+  time, and the status line follows the tags and events.
+- **Your post.** The composer hands Core the text → Core validates it and stores it at
+  once → the engine schedules the responses, the first 2–10 minutes later at Normal →
+  each is a scene seeded by your post (§3.5).
+- **A pause.** Presence reports the window hidden, or the app inactive with the setting
+  off → the engine stops and records when the town last ran → presence reports the
+  window visible → the engine measures the pause and writes at most five catch-up scenes,
+  one by one, with times spread across it, shown under "While you were away" (§3.7).
+- **Founding, and moving away.** First run, or a confirmed move that first deletes the
+  store → the model invents the town, its residents, and a first scene → one transaction
+  stores them all → the timeline opens on "You moved to …" (§3.1, §3.9).
+
+### Quality targets
+
+| Target | Checked by |
+|---|---|
+| The timeline stays responsive past 100,000 posts | a Core test asserting that the page query uses the `happened_at` index (`EXPLAIN QUERY PLAN`), so its cost does not grow with the log |
+| Refusals and failures never stall the town | Core tests with a fake model that refuses: at most 2 retries, then the turn is skipped; something refused 3 times in a row is left out |
+| One generation at a time | a Core test with a fake model that records overlapping calls |
+| Catch-up never floods | Core tests with a fake clock: at most 5 scenes after any pause, weeks included |
+| No scene while the Mac is too hot | a Core test with the thermal state injected as serious |
+| A failed step leaves nothing behind | a Core test in which a step fails mid-transaction and the store is unchanged (ADR-0004) |
+| Every stored version still opens | one migration test per schema version (ADR-0004) |
+| Nothing leaves the Mac | review: no network entitlement (ADR-0002), and nothing the person or the model wrote is logged (`.claude/rules/swift.md` › Logging) |
+| The app launches without a model | `just uitest` and `just smoke` on CI, where the model is unavailable |
+
+### Decisions
+
+- [ADR-0001](architecture/adr/0001-app-shape.md) — one window, and closing it quits.
+- [ADR-0002](architecture/adr/0002-sandbox-posture.md) — keep the App Sandbox, and add
+  no entitlement.
+- [ADR-0003](architecture/adr/0003-macos-27-floor.md) — macOS 27.0 as the floor.
+- [ADR-0004](architecture/adr/0004-persistence-sqlite-in-core.md) — the town in one
+  SQLite file owned by Core, and settings in `UserDefaults`.
+- [ADR-0005](architecture/adr/0005-foundation-models-in-core.md) — Core speaks to
+  Foundation Models, and the model call is a Platform adapter.
+- [ADR-0006](architecture/adr/0006-window-presence-port.md) — window presence behind a
+  Core port.
+- [ADR-0007](architecture/adr/0007-english-and-japanese.md) — English and Japanese,
+  switched inside the app.
+- [ADR-0008](architecture/adr/0008-design-lock.md) — the design lock.
+- [ADR-0009](architecture/adr/0009-not-distributed-yet.md) — not distributed in this
+  version.
+
 ## What is contract and what is private
 
 Nothing here is published, so the contract is not a package's export list. It is what
@@ -166,8 +275,11 @@ else is private.
 | **`UserDefaults` keys** — each key the app stores, and the type of its value | A user's saved preferences, read back by every later version | Renaming, removing, or retyping a key silently resets the user's value, because the old one is left unread. Read the old key and migrate it in Core, with a test that starts from the old value. Choosing `UserDefaults` at all is the persistence ADR |
 | **File formats** — anything the app writes and reads back in a later version: a config file, saved state, a document | Files already on a user's disk, and for a hand-edited config ("A human-editable config file" below), the user who edits it | A new version still reads the old format — a version field and a migration in Core, with a test that decodes a sample of the previous format. The format and where it lives are the persistence ADR. A cache the app can rebuild from scratch is private |
 
-The template ships no `UserDefaults` key and no file format; the first one an app adds
-is where its persistence ADR starts (`AGENTS.md` › "Before changing the architecture").
+The template ships no `UserDefaults` key and no file format. Townsfolk's are its four
+settings keys and its town database, `town.sqlite`, both in
+[ADR-0004](architecture/adr/0004-persistence-sqlite-in-core.md), and the `AppleLanguages`
+default it writes for the menus macOS provides
+([ADR-0007](architecture/adr/0007-english-and-japanese.md)).
 
 **Private** is everything else: `internal` and `private` declarations, how an adapter
 talks to the OS behind its port, view structure, file and type layout, test helpers, and

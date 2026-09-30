@@ -191,8 +191,9 @@ Color Filters).
 
 - Open: whether one status line carries enough at a glance, or needs a second line or
   rotation — settled by using the app (requirements §3.3).
-- Open: the arrival tint's color and strength — set by the design lock, then measured for
-  contrast.
+- Settled: the arrival tint is Lamplight, at 20% over the light canvas and 14% over the
+  dark one ([ADR-0008](../architecture/adr/0008-design-lock.md)), measured in
+  design-direction.md; whether it is visible enough at a glance is settled in use.
 
 ## Decision log
 

@@ -1,8 +1,8 @@
 # Townsfolk — Design direction
 
 - **Status:** research record from the kickoff (2026-09-30). The binding design lock is
-  an ADR under `docs/architecture/adr/`, per the `designing-ui` skill; this file is its
-  source.
+  [ADR-0008](../architecture/adr/0008-design-lock.md), per the `designing-ui` skill; this
+  file is its source.
 - **Inputs:** `docs/product/requirements.md`, `docs/product/ux-flows.md`,
   `docs/design/ux-guidelines.md`; the template's `designing-ui` (system first, custom by
   exception) and its design-lock fields.

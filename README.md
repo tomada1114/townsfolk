@@ -78,6 +78,8 @@ translation and a reviewer; an app that wants one records it as an ADR. The
 tests: `swift test` copies the catalog uncompiled (only `xcodebuild` compiles
 it), so `LocalizationTests` scans Core's sources for `LocalizedStringResource`
 calls and checks their keys and English against the catalog's source.
+Townsfolk itself ships English and Japanese, switched inside the app:
+[ADR-0007](docs/architecture/adr/0007-english-and-japanese.md).
 
 ### Why Swift Testing?
 
