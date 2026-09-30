@@ -59,10 +59,10 @@ for such a build, and fall back to a full-screen capture with the menu already o
 
 `LaunchUITests/` is the only XCTest target (`project.yml`'s `TownsfolkLaunchUITests`, whose
 `sources: [LaunchUITests]` takes the whole directory), so a probe is one file plus
-`just generate`. The app already carries accessibility identifiers for every control —
-`counterValue`, `incrementButton`, `decrementButton`, `resetButton`, `frontmostAppLabel`
-(`Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift`) — and a new control needs one
-before it can be driven at all.
+`just generate`. The town window's root carries the identifier `townWindow`
+(`Packages/TownsfolkKit/Sources/TownsfolkUI/RootView.swift`), and every later state of the
+window keeps it; a new control needs an identifier of its own before it can be driven at
+all.
 
 ```swift
 // LaunchUITests/ScratchProbeTests.swift — throwaway, never committed
@@ -72,25 +72,24 @@ final class ScratchProbeTests: XCTestCase {
     @MainActor
     func testProbe() {
         let app = XCUIApplication()
-        app.launchArguments += ["-counterStart", "5"]
+        app.launchArguments += ["-probeStart", "known-state"]
         app.launchEnvironment["PROBE_STATE"] = "known-state"
         app.launch()
-        app.buttons["incrementButton"].click()
-        app.buttons["incrementButton"].click()
+        let root = app.windows["Townsfolk"].descendants(matching: .any)["townWindow"]
+        XCTAssertTrue(root.waitForExistence(timeout: 5))
+        app.typeKey(",", modifierFlags: .command)   // Settings…
         let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "after-two-increments"
+        shot.name = "settings-open"
         shot.lifetime = .keepAlways
         add(shot)
-        // macOS exposes a SwiftUI Text's string as `value` (sometimes `label`) and
-        // updates it asynchronously — wait on a predicate covering both, exactly as
-        // LaunchUITests/LaunchTests.swift does, instead of reading `.value` right away.
-        let counter = app.staticTexts["counterValue"]
-        let showsTwo = NSPredicate(format: "label == '2' OR value == '2'")
-        let updated = XCTNSPredicateExpectation(predicate: showsTwo, object: counter)
-        XCTAssertEqual(XCTWaiter.wait(for: [updated], timeout: 5), .completed)
     }
 }
 ```
+
+To read what a `Text` shows, wait on a predicate instead of reading `.value` right away:
+macOS exposes a SwiftUI `Text`'s string as `value` (sometimes `label`) and updates it
+asynchronously, so `NSPredicate(format: "label == 'x' OR value == 'x'")` in an
+`XCTNSPredicateExpectation`, passed to `XCTWaiter.wait(for:timeout:)`, covers both.
 
 Run that one test, keeping the result bundle out of the way of `just uitest`'s own:
 
@@ -103,7 +102,7 @@ xcrun xcresulttool export attachments --path build/Probe.xcresult --output-path 
 ```
 
 The export writes each attachment under a UUID file name plus a `manifest.json` that
-maps it back to `suggestedHumanReadableName` ("after-two-increments_0_….png") and the
+maps it back to `suggestedHumanReadableName` ("settings-open_0_….png") and the
 test it came from — read the manifest, then look at the PNG. `just uitest` runs the whole
 scheme (the launch guarantee included) and writes `build/LaunchUITests.xcresult`; use it
 when you want both, `-only-testing:` while iterating.
@@ -120,13 +119,13 @@ Two rules about the probe:
 
 ## Start the app in a known state
 
-Nothing in this template reads a launch argument or an environment variable today:
-`CounterViewModel` always starts at zero, and no `App/` or `TownsfolkCore` code consults
-`UserDefaults` or `ProcessInfo`. The two snippets above pass `-counterStart 5` and
-`PROBE_STATE` to prove the plumbing, not because the app answers them. **Do not add such
-a hook to the app just to observe it** — a state you only need to *look at* is a state a
-Core test can construct directly, by handing `ContentView` a view model, exactly as its
-`#Preview("At the upper bound")` does.
+Nothing in this app reads a launch argument or an environment variable today: no `App/`
+or `TownsfolkCore` code consults `UserDefaults` or `ProcessInfo`. The two snippets here
+pass `-probeStart known-state` and `PROBE_STATE` to prove the plumbing, not because the
+app answers them. **Do not add such a hook to the app just to observe it** — a state you
+only need to *look at* is a state a Core test can construct directly, and a view shows it
+when handed a view model already in that state, exactly as a `#Preview` per state does
+(`building-swiftui-screens` › Previews).
 
 When a hook is genuinely warranted — a state that is expensive or impossible to reach by
 hand, wanted from both a UI probe and by hand — this is the mechanism, verified against a
@@ -134,7 +133,7 @@ running build:
 
 ```bash
 open --env PROBE_STATE=known-state -n \
-  build/dev-derived-data/Build/Products/Debug/Townsfolk.app --args -counterStart 5
+  build/dev-derived-data/Build/Products/Debug/Townsfolk.app --args -probeStart known-state
 ps -o command= -p "$(pgrep -f 'Debug/Townsfolk.app/Contents/MacOS/Townsfolk' | head -1)"
 ```
 
