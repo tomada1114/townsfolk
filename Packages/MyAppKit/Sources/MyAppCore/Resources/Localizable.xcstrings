@@ -1,0 +1,61 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "counter.decrement" : {
+      "comment" : "Accessibility label for the button shown as a minus sign, which lowers the counter by one.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decrement"
+          }
+        }
+      }
+    },
+    "counter.increment" : {
+      "comment" : "Accessibility label for the button shown as a plus sign, which raises the counter by one.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Increment"
+          }
+        }
+      }
+    },
+    "counter.reset" : {
+      "comment" : "Button that sets the counter back to zero.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
+    },
+    "frontmostApp.label" : {
+      "comment" : "Footnote naming the application that is frontmost. The argument is that application's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frontmost: %@"
+          }
+        }
+      }
+    },
+    "frontmostApp.unavailable" : {
+      "comment" : "Footnote shown when no application is frontmost, or before the app has asked.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frontmost: —"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

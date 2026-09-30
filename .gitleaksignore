@@ -1,0 +1,4 @@
+# Exact gitleaks fingerprints (<commit>:<path>:<rule>:<line>) of findings that are not
+# real secrets. Scoped to one commit each, so a new leak on the same line still fails.
+# The deliberately fake AWS example key the staged-guard tests feed to scripts/guard/.
+ed3bb5e655abafa68d080c8baa113466d5f8bf5b:scripts/tests/guard-credentials_test.sh:generic-api-key:23

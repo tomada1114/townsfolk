@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions: {}
+
+defaults:
+  run:
+    # `bash` runs as `bash --noprofile --norc -eo pipefail {0}`; an unnamed shell is
+    # `bash -e {0}`, which misses a failure before a `|`
+    # (scripts/checks/workflow-hygiene.sh).
+    shell: bash
+
+jobs:
+  test:
+    name: Test before release
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/select-xcode
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          # No caching in the release path (zizmor: cache-poisoning hardening).
+          cache: false
+
+      - name: Run tests with coverage floor
+        run: scripts/coverage.sh
+
+      - name: Build app (Debug)
+        run: just build
+
+  release:
+    name: Build, Sign & Release DMG
+    needs: [test]
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    env:
+      APP_NAME: MyApp
+      # Secret-gated signing/notarization: steps check these flags because the
+      # secrets context is not available in step-level `if:` expressions.
+      HAS_DEVELOPER_ID: ${{ secrets.DEVELOPER_ID_CERT_P12 != '' }}
+      HAS_NOTARIZATION: ${{ secrets.APPLE_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/select-xcode
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          # No caching in the release path (zizmor: cache-poisoning hardening).
+          cache: false
+
+      - name: Validate tag matches MARKETING_VERSION
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION=$(grep -E '^[[:space:]]*MARKETING_VERSION:' project.yml | awk '{print $2}' | tr -d '"' || true)
+          if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match MARKETING_VERSION '$VERSION' (expected 'v$VERSION')."
+            exit 1
+          fi
+          echo "Tag $GITHUB_REF_NAME matches MARKETING_VERSION $VERSION."
+
+      - name: Build app (Release)
+        run: |
+          xcodegen generate
+          set -o pipefail
+          xcodebuild -project "$APP_NAME.xcodeproj" -scheme "$APP_NAME" \
+            -configuration Release -derivedDataPath build build | xcbeautify --quiet
+
+      - name: Sign with Developer ID
+        if: ${{ env.HAS_DEVELOPER_ID == 'true' }}
+        env:
+          CERT_P12: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/release.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S "apple-tool:,apple:" -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | awk -F'"' '/Developer ID Application/ {print $2; exit}' || true)
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No 'Developer ID Application' identity found in the imported certificate."
+            exit 1
+          fi
+          codesign --force --options runtime --timestamp \
+            --entitlements "App/$APP_NAME.entitlements" \
+            --sign "$IDENTITY" "build/Build/Products/Release/$APP_NAME.app"
+          codesign --verify --verbose=2 "build/Build/Products/Release/$APP_NAME.app"
+
+      - name: Keep the ad-hoc signature (Developer ID secrets not configured)
+        if: ${{ env.HAS_DEVELOPER_ID != 'true' }}
+        # xcodebuild already ad-hoc signed the Release build with
+        # App/$APP_NAME.entitlements (project.yml: CODE_SIGN_IDENTITY "-" and
+        # CODE_SIGN_ENTITLEMENTS). Re-signing here without --entitlements would
+        # strip the sandbox, so this step only verifies.
+        run: |
+          echo "::notice::DEVELOPER_ID_CERT_P12 is not set — ad-hoc signing only. Downloads will be blocked by Gatekeeper; see docs/distribution.md."
+          codesign --verify --verbose=2 "build/Build/Products/Release/$APP_NAME.app"
+
+      - name: Verify the signed app keeps its entitlements
+        run: |
+          ENTITLEMENTS=$(codesign -d --entitlements - "build/Build/Products/Release/$APP_NAME.app" 2>/dev/null)
+          echo "$ENTITLEMENTS"
+          if ! printf '%s\n' "$ENTITLEMENTS" | grep -q 'com.apple.security.app-sandbox'; then
+            echo "::error::The signed app carries no com.apple.security.app-sandbox entitlement — signing dropped App/$APP_NAME.entitlements."
+            exit 1
+          fi
+
+      - name: Smoke-test the signed app
+        run: scripts/smoke_launch.sh "build/Build/Products/Release/$APP_NAME.app"
+
+      - name: Package DMG
+        run: scripts/package_dmg.sh "build/Build/Products/Release/$APP_NAME.app" "$APP_NAME.dmg"
+
+      - name: Notarize and staple
+        # Requires Developer ID signing too: Apple always rejects ad-hoc-signed
+        # submissions, so notarizing without the cert would fail after a full
+        # notary round-trip.
+        if: ${{ env.HAS_NOTARIZATION == 'true' && env.HAS_DEVELOPER_ID == 'true' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set +e
+          OUT=$(xcrun notarytool submit "$APP_NAME.dmg" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait 2>&1)
+          SUBMIT_EXIT=$?
+          set -e
+          echo "$OUT"
+          if [ "$SUBMIT_EXIT" -ne 0 ] || ! grep -q 'status: Accepted' <<<"$OUT"; then
+            SUBMISSION_ID=$(awk '/^[[:space:]]*id: /{print $2; exit}' <<<"$OUT")
+            echo "::error::Notarization was not accepted — fetching the notary log for submission '$SUBMISSION_ID'."
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" || true
+            exit 1
+          fi
+          xcrun stapler staple "$APP_NAME.dmg"
+
+      - name: Notarization skipped notice
+        if: ${{ env.HAS_NOTARIZATION != 'true' || env.HAS_DEVELOPER_ID != 'true' }}
+        run: |
+          if [ "$HAS_NOTARIZATION" = "true" ] && [ "$HAS_DEVELOPER_ID" != "true" ]; then
+            echo "::warning::Notarization secrets are set but DEVELOPER_ID_CERT_P12 is missing — Apple rejects ad-hoc-signed submissions, so notarization was skipped. See docs/distribution.md."
+          else
+            echo "::notice::Notarization secrets (APPLE_ID / APPLE_TEAM_ID / APPLE_APP_SPECIFIC_PASSWORD) are not fully set — skipping notarization. See docs/distribution.md."
+          fi
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: ${{ env.APP_NAME }}.dmg
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --generate-notes "$APP_NAME.dmg"

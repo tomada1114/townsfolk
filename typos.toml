@@ -1,0 +1,7 @@
+[files]
+# typos skips hidden paths by default, which would leave .agents/, .claude/, .github/
+# and .githooks/ unchecked; .git is excluded instead so pack data is never scanned.
+ignore-hidden = false
+# .claude/skills/ is the generated mirror of .agents/skills/ (checked here); the
+# mirror is held byte-identical by scripts/sync-agents.sh --check.
+extend-exclude = ["*.xcassets", ".build", ".git", "Package.resolved", ".claude/skills"]

@@ -1,0 +1,68 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just check)",
+      "Bash(just check-harness)",
+      "Bash(just verify-hooks)",
+      "Bash(just lint)",
+      "Bash(just fmt)",
+      "Bash(just fix)",
+      "Bash(just test)",
+      "Bash(just test-fast:*)",
+      "Bash(just test-local)",
+      "Bash(just test-scripts)",
+      "Bash(just build)",
+      "Bash(just run)",
+      "Bash(just uitest)",
+      "Bash(just smoke)",
+      "Bash(just generate)",
+      "Bash(just agents-sync)",
+      "Bash(just agents-check)",
+      "Bash(swift build:*)",
+      "Bash(swift test:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)"
+    ],
+    "deny": [
+      "Bash(git commit --no-verify:*)",
+      "Bash(git commit * --no-verify)",
+      "Bash(git commit * --no-verify *)",
+      "Bash(git commit -n:*)",
+      "Bash(git commit * -n)",
+      "Bash(git commit * -n *)",
+      "Bash(git push --force:*)",
+      "Bash(git push * --force)",
+      "Bash(git push * --force *)",
+      "Bash(git push -f:*)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push * --force-with-lease)",
+      "Bash(git push * --force-with-lease *)",
+      "Bash(git push --force-with-lease=*)",
+      "Bash(git push * --force-with-lease=*)",
+      "Bash(git push +*)",
+      "Bash(git push * +*)",
+      "Edit(/App/*.entitlements)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && mise exec -- scripts/format-edited-file.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

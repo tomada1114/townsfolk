@@ -1,0 +1,26 @@
+// Debug-only build settings for the app target, wired in by project.yml's
+// `configFiles`. This is the one thing project.yml cannot express: an xcconfig is
+// the only place that can `#include?` a file which may not exist.
+//
+// Why it exists: an ad-hoc signature (`CODE_SIGN_IDENTITY = -`) has no stable
+// identity, so macOS tells one build from the next by its cdhash. Every rebuild is
+// therefore a *new* app to TCC, and an Accessibility, Input Monitoring, or Screen
+// Recording grant made for the previous build silently stops applying. Signing with
+// a real certificate instead gives the app a designated requirement that survives a
+// rebuild, so the grant survives with it.
+//
+// That certificate is per-machine, so it is never committed. Create
+// Config/Local.xcconfig — gitignored, and refused by the commit-time guard
+// (scripts/guard/paths.sh) — and set DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY there;
+// docs/getting-started.md › "Keeping permission grants across rebuilds" has the
+// recipe. With no such file the include below is skipped and the Debug build is
+// signed ad hoc exactly as before, so CI and a fresh clone are unaffected.
+//
+// Release is deliberately absent from `configFiles`: it keeps its settings from
+// project.yml alone, so nothing a local file says can reach `just smoke` or the
+// release workflow.
+
+CODE_SIGN_IDENTITY = -
+
+// Optional, uncommitted, and last, so it can override everything above.
+#include? "Local.xcconfig"

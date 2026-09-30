@@ -1,0 +1,65 @@
+# XcodeGen manifest — the SOURCE OF TRUTH for the app target.
+# MyApp.xcodeproj is generated (`just generate`) and gitignored; never hand-edit it.
+name: MyApp
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  MyAppKit:
+    path: Packages/MyAppKit
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MyApp:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - package: MyAppKit
+        product: MyAppUI
+      # The app shell is the composition root: it is the only target that links the
+      # OS adapters (MyAppPlatform) and hands them to Core view models as ports.
+      - package: MyAppKit
+        product: MyAppPlatform
+    # Debug alone reads an xcconfig, because only an xcconfig can `#include?` the
+    # optional, uncommitted Config/Local.xcconfig that gives a developer's Debug
+    # builds a stable signing identity — which is what keeps a TCC permission grant
+    # alive across rebuilds (Config/Debug.xcconfig explains the mechanism). Release
+    # is left out on purpose: it takes its signing from this manifest alone, so no
+    # local file can reach `just smoke` or the release workflow.
+    configFiles:
+      Debug: Config/Debug.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.MyApp
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: App/MyApp.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        # A target-level setting outranks the target's xcconfig, so Debug's ad-hoc
+        # default lives in Config/Debug.xcconfig where Local.xcconfig can override
+        # it. Release keeps it here, exactly as before.
+        Release:
+          CODE_SIGN_IDENTITY: "-"
+  MyAppLaunchUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [LaunchUITests]
+    dependencies:
+      - target: MyApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  MyApp:
+    build:
+      targets: { MyApp: all }
+    test:
+      targets: [MyAppLaunchUITests]
