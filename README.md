@@ -1,19 +1,34 @@
-# townsfolk
+# Townsfolk
 
 [![CI](https://github.com/tomada1114/townsfolk/actions/workflows/ci.yml/badge.svg)](https://github.com/tomada1114/townsfolk/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/tomada1114/townsfolk/badge)](https://scorecard.dev/viewer/?uri=github.com/tomada1114/townsfolk)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A strict, supply-chain-hardened GitHub template for open-source macOS apps.
-It ships as a working counter app: XcodeGen project, thin app shell over a
-local Swift package, Swift Testing suite with an enforced coverage floor, an
-XCUITest launch guarantee, and hardened CI — all from the first commit.
+A small fictional town that lives in a window at the edge of your Mac screen. Its
+residents — people, text only in this version — post to a shared board shaped like a
+small social feed and keep conversations going on their own. You glance at it for a few
+seconds while you work, read it like a social app when you have a minute, and now and
+then post a line as one of the residents; the town answers over the following minutes,
+one resident at a time.
 
-Most popular OSS macOS apps ship without CI-gated tests, SECURITY.md,
-Dependabot, or pinned actions. This template starts with all of them.
+Townsfolk is not a tool: it does not help you work, manage tasks, or answer questions.
+It exists to be pleasant to watch. What it will not grow is listed under Non-goals in
+[`AGENTS.md`](AGENTS.md) › Product and in
+[`docs/product/requirements.md`](docs/product/requirements.md).
 
-**Starting your own app from this template?** Jump to
-[Using This Template](#using-this-template).
+- **Requirements:** macOS 27 or later, an Apple silicon Mac, and Apple Intelligence
+  turned on.
+- **Nothing leaves the Mac:** every word the town writes comes from Apple's on-device
+  model through the Foundation Models framework — no server, no API key, no network
+  access, no analytics. Your posts and the generated text never reach a log
+  ([ADR-0002](docs/architecture/adr/0002-sandbox-posture.md)).
+- **Languages:** English and Japanese, chosen inside the app
+  ([ADR-0007](docs/architecture/adr/0007-english-and-japanese.md)).
+- **Getting it:** this version is not distributed — there is no download and no DMG.
+  Build it from source with `just install`, then `just run`
+  ([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)).
+
+Built from the `tomada1114/macos-app-template` repository.
 
 ## Quickstart
 
@@ -26,13 +41,14 @@ cd townsfolk
 mise trust     # approve mise.toml once — mise refuses untrusted configs
 just install   # pinned tools via mise + git hooks + xcodegen generate
 just check     # verify-hooks → fmt → lint → test-scripts → check-harness → test → build
-open Townsfolk.xcodeproj
+just run       # build (Debug) and launch the app
 ```
 
 ## Design Philosophy
 
-Every choice in this template has a reason. If you disagree with a decision,
-you know exactly what to change and why it was there in the first place.
+Townsfolk inherits these choices from the template it was cut from, and each has a
+reason. Townsfolk's own principles and how it sits on these layers are in
+[docs/architecture.md › Townsfolk on these layers](docs/architecture.md#townsfolk-on-these-layers).
 
 ### Why XcodeGen with a gitignored `.xcodeproj`?
 
@@ -64,7 +80,7 @@ meaningless view tests. Note: Swift's llvm-cov has no dependable branch
 metric, so the gate uses line coverage, plus function coverage so a Core function
 no test calls cannot hide under the line floor.
 
-### Why one String Catalog in Core, and English only?
+### Why one String Catalog in Core?
 
 User-facing wording is a decision like any other, so it lives where the
 coverage floor sees it: Core view models return `LocalizedStringResource`
@@ -73,7 +89,7 @@ coverage floor sees it: Core view models return `LocalizedStringResource`
 their own, because a SwiftUI literal is looked up in the app's main bundle, not
 the package's. The template ships English alone — `defaultLocalization: "en"`
 and one catalog — since a second language makes every later string owe a
-translation and a reviewer; an app that wants one records it as an ADR. The
+translation and a reviewer, so an app that wants one records it as an ADR. The
 `localizing-the-app` skill holds the rules, including one that shapes the
 tests: `swift test` copies the catalog uncompiled (only `xcodebuild` compiles
 it), so `LocalizationTests` scans Core's sources for `LocalizedStringResource`
@@ -90,7 +106,7 @@ Testing.
 
 ### Why zero dependencies?
 
-An app template should not impose opinions about networking, persistence, or
+The template does not impose opinions about networking, persistence, or
 update frameworks. You add what you need; docs/architecture.md lists vetted
 suggestions (ViewInspector, swift-snapshot-testing, Sparkle) and when they
 earn their place.
@@ -111,11 +127,12 @@ rules) — reducing review cycles.
 
 ### Why an ADR tree that ships empty?
 
-The template's own decisions are the ones above, and this section is where
-they live. An app cut from the template makes decisions of a different kind —
-its shape, its sandbox posture, where it keeps state, how it ships, which
-permissions it asks for — and records each as an Architecture Decision Record
-under `docs/architecture/`, whose index the template ships empty. `AGENTS.md`'s
+The template's own decisions are the ones above. An app makes decisions of a
+different kind — its shape, its sandbox posture, where it keeps state, how it
+ships, which permissions it asks for — and records each as an Architecture
+Decision Record under `docs/architecture/`, whose index the template ships
+empty. Townsfolk's decisions are ADR-0001 through ADR-0009, listed in
+[docs/architecture/README.md](docs/architecture/README.md). `AGENTS.md`'s
 "Before changing the architecture" names the changes that owe one. An accepted
 ADR takes small corrections in place, dated; a replaced decision gets a new
 ADR rather than a rewrite, so the reasoning that held at the time stays
@@ -123,72 +140,15 @@ readable.
 
 ### Why secret-gated notarization?
 
-The release workflow always produces a DMG; when Developer ID secrets are
-configured it signs, notarizes, and staples, otherwise it ad-hoc signs and
-says so loudly. The template works on day one without an Apple Developer
-Program membership, and upgrades to fully trusted distribution by adding
-secrets — no workflow edits. See docs/distribution.md.
+The template's release workflow always produces a DMG; when Developer ID
+secrets are configured it signs, notarizes, and staples, otherwise it ad-hoc
+signs and says so loudly, so it works without an Apple Developer Program
+membership and upgrades to fully trusted distribution by adding secrets — no
+workflow edits. See docs/distribution.md. Townsfolk releases nothing yet: no
+`v*` tag is pushed, so the workflow never runs, and no secret is configured
+([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)).
 
-## Using This Template
-
-1. Click **"Use this template"** on GitHub and clone your new repository
-   (the bootstrap script enumerates files with `git ls-files`, so it needs a
-   git checkout — a ZIP download must be `git init`-ed first)
-2. Run the bootstrap script to rename everything:
-
-   ```bash
-   scripts/bootstrap.sh CoolApp \
-     --bundle-id-prefix io.example --github-user janedoe \
-     --author "Jane Doe" --email jane@example.com
-   ```
-
-   <!-- bootstrap:keep-begin -->
-   This replaces `MyApp` (and `MyAppKit`/`MyAppCore`/`MyAppUI`), `my-app`,
-   `com.example`, `your-username`, `Your Name`, and `you@example.com` across
-   all tracked files, renames the matching paths, and regenerates the Xcode
-   project. Omitted optional arguments leave their placeholders as-is. This
-   paragraph, and the other passages that explain the placeholders, sit between
-   keep markers the script never rewrites, so they still read correctly after it runs.
-   <!-- bootstrap:keep-end -->
-3. Fill in `AGENTS.md`'s `## Product` section: what the app is and who it is
-   for, the core interaction, and the **Non-goals** it must not grow — the
-   agent instructions have no other in-repo answer to "is this in scope?".
-   Delete every `TODO:` marker as you go; `just check` fails while one is left
-   (`scripts/checks/product-section-filled.sh`).
-   Then fill in the `docs/architecture/roadmap.md` skeleton — the Now, Next,
-   and Later outcomes that follow from it (the `steering-the-roadmap` skill);
-   nothing checks that page, so its `TODO:` lines stay until you replace them
-4. Verify the rename: `just install && just check`
-5. Create the label set on the new repository: `just labels`
-   (`.github/labels.yml`; issue forms rely on these labels existing)
-6. Update `README.md` (this file), `SECURITY.md`, the rest of `AGENTS.md`, and
-   `CODE_OF_CONDUCT.md` for your app (the conduct-reporting contact stays
-   `you@example.com` if `--email` was omitted, so check it), and review
-   `LICENSE`'s copyright line (`CHANGELOG.md` is reset automatically)
-7. Replace or remove the example code — the counter and the `FrontmostApp`
-   port/adapter — following the checklist in
-   [docs/getting-started.md › Removing the example code](docs/getting-started.md#removing-the-example-code);
-   keep the Core/UI split and the tests
-8. For signed releases, add the secrets listed in docs/distribution.md
-9. Optional, repository admin only: once the bootstrap commit is on `main`,
-   protect it with `just ruleset` (`.github/rulesets/main.json`; it requires
-   pull requests from then on, and needs a paid plan on a private repository)
-10. Private repository only, before step 9: delete
-    `.github/workflows/scorecard.yml`, `codeql.yml`, and `dependency-review.yml`
-    (they need a public repository or GitHub Advanced Security), remove the
-    `Attest build provenance` step from `release.yml` unless your plan supports
-    attestations on private repositories, and drop the `Dependency Review` context
-    from `.github/rulesets/main.json` — otherwise no pull request can merge. Details:
-    [private-repository.md](.agents/skills/starting-an-app/references/private-repository.md)
-
-To find any placeholders the script left untouched (the pattern uses `.`
-wildcards so the rename cannot rewrite this very command into your new names):
-
-```bash
-rg -i "my.?app|com\.example|your.username|Your.Name|you@example"
-```
-
-### Keeping up with template updates
+## Keeping up with template updates
 
 A repository generated from a GitHub template has no upstream link — the files
 are copied once. The bootstrap script therefore writes `.template-origin`: the
@@ -234,6 +194,11 @@ ad-hoc-signed Debug builds lose the grant on every rebuild.
 
 ## Documentation
 
+- [Requirements](docs/product/requirements.md)
+- [UX Flows](docs/product/ux-flows.md)
+- [UX Guidelines](docs/design/ux-guidelines.md)
+- [Design Direction](docs/design/design-direction.md)
+- [Roadmap](docs/architecture/roadmap.md)
 - [Getting Started](docs/getting-started.md)
 - [Architecture](docs/architecture.md)
 - [Architecture Decisions](docs/architecture/README.md)
