@@ -135,6 +135,13 @@ After `cleanup_run.sh` and after the step 10 report text, as the run's last
 tool call: one command covering every holding directory this run filled plus
 anything in `deferred.md` -- e.g. `rm -rf <runstate>/holding/42
 <runstate>/holding/57` -- so the user answers one prompt, not one per issue.
+
+In this repository the holding half needs no prompt at all: `just clear-holding
+42 57` (`scripts/clear-holding.sh`) deletes exactly those holding directories,
+refuses any name that is not an issue number or `run`, and is allowed in
+`.claude/settings.json`. Use it instead of `rm -rf` for the holding area, still
+after the report lists what it covers; only what `deferred.md` holds still
+takes the one approval-gated call.
 List exactly what it covers in the report just above it (each held path with
 its original location, each deferred command with its reason), so the user
 approves something they can see. Delete only this run's holding directories,
