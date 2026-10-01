@@ -58,14 +58,11 @@ public final class FrontmostAppViewModel {
     public func refresh() {
         let answer = provider.currentFrontmostApp()
         frontmostApp = answer
-        // Whether the port answered is spelled in the static text rather than
-        // interpolated: each interpolation is an autoclosure the logger evaluates only
-        // while debug logging is on, so under `swift test` it is a function no test can
-        // run, and it counts against Core's function-coverage floor.
-        guard let answer else {
-            AppLog.frontmostApp.debug("refresh: answered=false")
-            return
-        }
-        AppLog.frontmostApp.debug("refresh: answered=true name=\(answer.name, privacy: .private)")
+        AppLog.frontmostApp.debug(
+            """
+            refresh: answered=\(answer != nil, privacy: .public) \
+            name=\(answer?.name ?? "", privacy: .private)
+            """,
+        )
     }
 }
