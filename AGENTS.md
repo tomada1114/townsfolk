@@ -87,7 +87,7 @@ just verify-hooks  # Verify the git hooks are installed and executable (scripts/
 just test-scripts  # Run the plain-bash tests for scripts/ and the skills' Python suites (scripts/tests/run.sh)
 just check-harness # Re-assert the harness's claims about itself (scripts/checks/run-all.sh)
 just test      # Run tests with the 80% line / 75% function coverage floors on TownsfolkCore
-just test-fast CounterTests  # Run only the matching tests, no coverage floor (iteration only)
+just test-fast LocalizationTests  # Run only the matching tests, no coverage floor (iteration only)
 just test-local    # Run the local-machine adapter tests (TownsfolkPlatformTests) CI cannot run
 just build     # Build the app (Debug)
 just run       # Build (Debug), quit any running instance, and launch the fresh build
@@ -123,7 +123,7 @@ job call.
 | A fake or a port contract under `Packages/TownsfolkKit/Tests/TownsfolkTestSupport/` | `just test` (the contract against the fake); then `just test-local` (the contract against the real adapter) |
 | Formatting or style of any Swift file | `just lint` |
 | A SwiftLint or SwiftFormat violation that may be auto-fixable | `just fix` (formats, runs `swiftlint --fix`, then `just lint` reports what still needs a hand edit) |
-| One Core suite, while iterating | `just test-fast <filter>` (e.g. `just test-fast CounterTests`) — no coverage floor, so finish with `just test` |
+| One Core suite, while iterating | `just test-fast <filter>` (e.g. `just test-fast LocalizationTests`) — no coverage floor, so finish with `just test` |
 | `Packages/TownsfolkKit/Sources/TownsfolkCore/Resources/Localizable.xcstrings`, or a `LocalizedStringResource` in Core | `just test` (`LocalizationTests` scans Core's `LocalizedStringResource(…)` calls and holds their keys and English to the catalog); `just build` to compile the catalog into the app |
 | `project.yml`, or `Config/Debug.xcconfig` | `just generate && just build` |
 | A test under `LaunchUITests/`, or launch behavior | `just uitest` |

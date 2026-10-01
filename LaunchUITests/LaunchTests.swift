@@ -1,6 +1,6 @@
 import XCTest
 
-/// The template's launch guarantee: the app starts, shows its window, and responds.
+/// The launch guarantee: the app starts and shows the town window.
 ///
 /// XCTest by necessity — Apple has not ported UI automation to Swift Testing.
 /// All other tests use Swift Testing in Packages/TownsfolkKit.
@@ -11,27 +11,20 @@ final class LaunchTests: XCTestCase {
     }
 
     @MainActor
-    func testAppLaunchesAndShowsCounter() {
+    func testAppLaunchesAndShowsTownWindow() {
         // A failed launch assertion should end the test immediately instead of
         // cascading through the remaining waits against a dead app.
         continueAfterFailure = false
 
         let app = XCUIApplication()
         app.launch()
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: Timeout.windowAppears))
 
-        let counter = app.staticTexts["counterValue"]
-        XCTAssertTrue(counter.waitForExistence(timeout: Timeout.elementAppears))
+        let window = app.windows["Townsfolk"]
+        XCTAssertTrue(window.waitForExistence(timeout: Timeout.windowAppears))
+        XCTAssertEqual(app.windows.count, 1, "the app should open exactly one window")
 
-        app.buttons["incrementButton"].click()
-        // macOS exposes a SwiftUI Text's string as `value` (sometimes `label`),
-        // and the update is asynchronous — wait on a predicate covering both.
-        let showsOne = NSPredicate(format: "label == '1' OR value == '1'")
-        let updated = XCTNSPredicateExpectation(predicate: showsOne, object: counter)
-        XCTAssertEqual(
-            XCTWaiter.wait(for: [updated], timeout: Timeout.elementAppears),
-            .completed,
-            "counterValue should read 1 after clicking increment",
-        )
+        // Every later state of the window keeps this identifier on its root.
+        let root = window.descendants(matching: .any)["townWindow"]
+        XCTAssertTrue(root.waitForExistence(timeout: Timeout.elementAppears))
     }
 }

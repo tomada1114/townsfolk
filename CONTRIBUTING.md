@@ -42,7 +42,7 @@ just check-harness
 just test
 
 # While iterating: run only the matching tests, with no coverage floor
-just test-fast CounterTests
+just test-fast LocalizationTests
 
 # The adapter tests CI cannot run (real OS, local machine only) — run these by hand
 # whenever you change something under Sources/TownsfolkPlatform, and put the output in the PR
@@ -84,7 +84,7 @@ mise exec -- scripts/lint.sh
 mise exec -- scripts/tests/run.sh
 mise exec -- scripts/checks/run-all.sh
 scripts/coverage.sh
-(cd Packages/TownsfolkKit && swift test --filter CounterTests)   # just test-fast CounterTests
+(cd Packages/TownsfolkKit && swift test --filter LocalizationTests)   # just test-fast LocalizationTests
 (cd Packages/TownsfolkKit && RUN_LOCAL_MACHINE_TESTS=1 swift test --filter TownsfolkPlatformTests)  # just test-local
 mise exec -- xcodegen generate
 xcodebuild -project Townsfolk.xcodeproj -scheme Townsfolk -configuration Debug -derivedDataPath build/dev-derived-data build

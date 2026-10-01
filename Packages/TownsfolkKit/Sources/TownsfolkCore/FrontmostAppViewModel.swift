@@ -46,7 +46,7 @@ public final class FrontmostAppViewModel {
     /// Asks the port again and publishes whatever it answered, `nil` included.
     ///
     /// Nothing calls this for you: ``FrontmostAppProviding`` is a pull-style port, so
-    /// state here is only as fresh as the last caller made it. The app refreshes when
+    /// state here is only as fresh as the last caller made it. A caller refreshes when
     /// its scene becomes active; a live-updating app would observe an OS notification
     /// through a second port rather than poll this one.
     ///
