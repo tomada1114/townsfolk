@@ -1,6 +1,11 @@
 # ADR-0001: One window, and closing it quits
 
 - **Status:** Accepted 2026-09-30
+- **Amended:** 2026-09-30 — Open question settled: the window's size and position are
+  restored across launches with no extra code. SwiftUI autosaves the `Window` scene's
+  frame in the app's defaults under its id (`NSWindow Frame town`); moved and resized to
+  440 × 590 pt, quit with ⌘Q, and launched again, the window reopened at the same frame
+  (#7).
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -70,9 +75,7 @@ delegate. The menu-bar agent is a non-goal.
 
 ## Open questions
 
-- Unverified: that SwiftUI restores a `Window` scene's size and position across launches
-  with no extra code, as ux-flows §2 asks. Checked in the running app by the issue that
-  builds the window.
+- None.
 
 ## Sources
 

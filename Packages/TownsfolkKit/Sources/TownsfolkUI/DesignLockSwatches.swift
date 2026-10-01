@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Both Color Sets side by side, so a look at the canvas answers ADR-0008's open question
-/// of whether a `TownsfolkUI` preview resolves the app catalog's colors.
+/// Both Color Sets side by side. In the canvas they render clear, because the preview
+/// host has no copy of the app's asset catalog (ADR-0008 › Amended); the swatches show
+/// the colors once the Color Sets move into a `TownsfolkUI` resource catalog.
 private struct DesignLockSwatches: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DesignLock.Spacing.small) {

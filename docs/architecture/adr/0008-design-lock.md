@@ -1,6 +1,14 @@
 # ADR-0008: Design lock — one lamp in a quiet street
 
 - **Status:** Accepted 2026-09-30
+- **Amended:** 2026-09-30 — Open question settled: `Color("SecondaryText")` does not
+  resolve in a `TownsfolkUI` `#Preview`. A named color is looked up in the main bundle's
+  asset catalog; the preview host, Xcode's `XCPreviewAgent.app`, ships none, and outside
+  `Townsfolk.app` both Color Sets resolve to clear with SwiftUI's "No color named
+  'SecondaryText' found in asset catalog for main bundle". The Color Sets stay in
+  `App/Assets.xcassets`, where the running app resolves them; moving them to a
+  `TownsfolkUI` resource catalog, which changes `Package.swift`, is proposed as a
+  follow-up (#7).
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -135,9 +143,6 @@ private `Layout` enum refers to it. None of it goes in `TownsfolkCore`.
   raised to meet AA rather than shipped in the system's gray.
 - Whether the wash is visible enough at a glance from a second display is settled in
   use.
-- Unverified: whether `Color("SecondaryText")` in a `TownsfolkUI` `#Preview` resolves the
-  app catalog's Color Set. If it does not, the Color Sets move to a `TownsfolkUI` resource
-  catalog, an amendment to this ADR.
 - Each event kind's symbol is chosen when the tables are written and checked in the SF
   Symbols app.
 
