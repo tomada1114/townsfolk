@@ -111,6 +111,19 @@ agents-check:
 clean:
     rm -rf build Packages/TownsfolkKit/.build Townsfolk.xcodeproj
 
+# Remove only Xcode's derived data and result bundles under build/ — narrower than
+# `clean`: the generated project and SwiftPM's .build stay
+[doc("Remove build/dev-derived-data and build/*.xcresult only")]
+clear-derived-data:
+    rm -rf build/dev-derived-data build/*.xcresult
+
+# Delete what a shipping-issues run moved aside into its holding area — one
+# directory per issue number (or `run`), never anything outside holding/
+# (scripts/clear-holding.sh)
+[doc("Delete shipping-issues holding directories by issue number or `run`")]
+clear-holding +names:
+    scripts/clear-holding.sh {{ names }}
+
 # Create or update this repository's GitHub labels from .github/labels.yml
 # (never deletes). Requires `gh`, authenticated against this repository: it is
 # not a mise tool (see mise.toml), so it comes from your own PATH, not `mise exec --`.
