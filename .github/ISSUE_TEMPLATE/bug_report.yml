@@ -58,7 +58,7 @@ body:
     attributes:
       label: macOS Version
       description: Output of `sw_vers -productVersion`.
-      placeholder: "15.5"
+      placeholder: "27.0"
     validations:
       required: true
 
@@ -67,4 +67,4 @@ body:
     attributes:
       label: Xcode Version
       description: Only if you built from source — output of `xcodebuild -version`.
-      placeholder: "26.5"
+      placeholder: "27.0"

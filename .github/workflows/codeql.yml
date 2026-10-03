@@ -20,7 +20,7 @@ defaults:
 jobs:
   analyze:
     name: Analyze Swift
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     permissions:
       contents: read
@@ -32,16 +32,32 @@ jobs:
 
       - uses: ./.github/actions/select-xcode
 
+      - name: Install Rosetta for CodeQL build tracing
+        # CodeQL's compiled-language tracing requires Rosetta on Apple silicon.
+        # Install before init, which injects the tracer into subsequent processes.
+        # https://codeql.github.com/docs/codeql-overview/system-requirements/
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          install_args: xcodegen
+
+      - name: Generate the app project
+        run: xcodegen generate
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           languages: swift
           build-mode: manual
 
-      - name: Build the package for analysis
-        # App/ is a thin @main shell; all logic lives in the local package
-        # (docs/architecture.md), so building it covers every analyzable line.
-        run: swift build --package-path Packages/TownsfolkKit
+      - name: Build the app and package for analysis
+        # Resolve the package and compile all shipped Swift code under the tracer.
+        run: |
+          xcodebuild -project Townsfolk.xcodeproj -scheme Townsfolk \
+            -configuration Debug -destination 'generic/platform=macOS' \
+            -derivedDataPath build/codeql-derived-data \
+            CODE_SIGNING_ALLOWED=NO clean build
 
       - name: Analyze
         uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1

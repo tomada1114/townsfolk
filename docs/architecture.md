@@ -332,12 +332,12 @@ the registration.
 
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) — passes:
   MIT; 3.1.0 released 2026-09-11; not archived; floor `.macOS(.v10_15)`, at or below
-  this package's `.macOS(.v14)`; one Swift target, no binary target, no build plugin,
+  this package's `.macOS("27.0")`; one Swift target, no binary target, no build plugin,
   no package dependencies. It ships AppKit and SwiftUI recorder views, so it belongs to
   `TownsfolkUI` and `TownsfolkPlatform` — its types must not reach Core.
 
 **Launch at login.** No package. `SMAppService.mainApp.register()` (ServiceManagement,
-macOS 13+, below this package's macOS 14 floor) is the entire API, with
+macOS 13+, below this package's macOS 27.0 floor) is the entire API, with
 `SMAppService.mainApp.status` to read it back; it lives in a `TownsfolkPlatform` adapter
 because `ServiceManagement` is also on Core's blocked-import list. Do not add
 `sindresorhus/LaunchAtLogin`: that repository now redirects to `LaunchAtLogin-Legacy`
