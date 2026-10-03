@@ -38,26 +38,20 @@ jobs:
         # https://codeql.github.com/docs/codeql-overview/system-requirements/
         run: sudo softwareupdate --install-rosetta --agree-to-license
 
-      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
-        with:
-          install_args: xcodegen
-
-      - name: Generate the app project
-        run: xcodegen generate
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           languages: swift
           build-mode: manual
 
-      - name: Build the app and package for analysis
-        # Resolve the package and compile all shipped Swift code under the tracer.
+      - name: Build the package for analysis
+        # The owner approved disabling execution sandboxes only for CodeQL's
+        # analysis build: macOS 27 sandbox-exec cannot run under this tracer.
+        # Keep manifest and source compilation after CodeQL initialization.
         run: |
-          xcodebuild -project Townsfolk.xcodeproj -scheme Townsfolk \
-            -configuration Debug -destination 'generic/platform=macOS' \
-            -derivedDataPath build/codeql-derived-data \
-            CODE_SIGNING_ALLOWED=NO clean build
+          swift build --package-path Packages/TownsfolkKit --arch arm64 \
+            --scratch-path build/codeql-package --manifest-cache none \
+            --disable-sandbox -Xswiftc -disable-sandbox
 
       - name: Analyze
         uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1

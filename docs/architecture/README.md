@@ -63,7 +63,7 @@ Design Philosophy. The first row is the app's first ADR.
 |---|---|---|
 | [0001](adr/0001-app-shape.md) | One window, and closing it quits | Accepted |
 | [0002](adr/0002-sandbox-posture.md) | Keep the App Sandbox, and add no entitlement | Accepted |
-| [0003](adr/0003-macos-27-floor.md) | macOS 27.0 as the floor | Accepted |
+| [0003](adr/0003-macos-27-floor.md) | macOS 27.0 as the floor | Accepted; amended 2026-10-03 |
 | [0004](adr/0004-persistence-sqlite-in-core.md) | The town in one SQLite file owned by Core, and settings in UserDefaults | Accepted |
 | [0005](adr/0005-foundation-models-in-core.md) | Core speaks to Foundation Models, and the model call is a Platform adapter | Accepted |
 | [0006](adr/0006-window-presence-port.md) | When the town runs — window presence behind a Core port | Accepted |

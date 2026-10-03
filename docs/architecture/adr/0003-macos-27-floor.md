@@ -1,6 +1,7 @@
 # ADR-0003: macOS 27.0 as the floor
 
 - **Status:** Accepted 2026-09-30
+- **Amended 2026-10-03:** Record the implemented toolchain follow-up and the owner-approved CodeQL-only execution sandbox exception. The dated Context remains the original observation.
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -80,11 +81,20 @@ a 26.x floor would be support nobody exercises.
 
 ### Follow-ups
 
-- The owner installs Xcode 27 (a human step).
-- One `ci:` pull request moves the pin and the images together: `.xcode-version` to
-  27.0, every `runs-on: macos-26` to `xcode-27`, `docs/getting-started.md`'s Xcode
-  requirement, and `deploymentTarget` and `platforms:` to 27.0 (`changing-gates`) — an
-  issue in the backlog.
+- [x] The owner installed Xcode 27: local validation uses Xcode 27.0 (27A266a).
+- [x] [PR #39](https://github.com/tomada1114/townsfolk/pull/39) implements the pin,
+  images, floor, and prerequisite prose together for
+  [Issue #6](https://github.com/tomada1114/townsfolk/issues/6).
+  Local tests and app launches require macOS 27, even though Xcode itself installs
+  on macOS 26.6. The issue closes only after its CI and review gates pass.
+- The owner approved disabling SwiftPM and Swift compiler execution sandboxes only
+  during the CodeQL analysis build. CodeQL's tracer cannot execute macOS 27's
+  arm64e-only `sandbox-exec`; both a package build and an Xcode build failed during
+  manifest evaluation ([observed run](https://github.com/tomada1114/townsfolk/actions/runs/37135940848)).
+  The exception avoids that executable while keeping manifest and package source
+  compilation after CodeQL initialization. App Sandbox entitlements, local
+  validation, lint, coverage, and required PR checks retain their protections.
+  CodeQL analysis must still pass before the migration lands.
 
 ## Open questions
 
