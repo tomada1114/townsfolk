@@ -32,6 +32,12 @@ jobs:
 
       - uses: ./.github/actions/select-xcode
 
+      - name: Install Rosetta for CodeQL build tracing
+        # CodeQL's compiled-language tracing requires Rosetta on Apple silicon.
+        # Install before init, which injects the tracer into subsequent processes.
+        # https://codeql.github.com/docs/codeql-overview/system-requirements/
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
