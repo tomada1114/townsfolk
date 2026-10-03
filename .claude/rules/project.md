@@ -24,7 +24,7 @@ paths:
   - **Weight** — the direct and transitive package count after `swift package resolve`
   - **Build-time code** — whether it ships a binary target or a build/command plugin (code
     that runs at build time); either needs explicit human approval
-  - **Platforms** — its platform floor is at or below this package's `.macOS(.v14)`
+  - **Platforms** — its platform floor is at or below this package's `.macOS("27.0")`
     (`platforms:` in `Packages/TownsfolkKit/Package.swift`)
   - **Advisories** — no open security advisory against the version being added
 - Allowed licenses (SPDX): MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, Zlib.

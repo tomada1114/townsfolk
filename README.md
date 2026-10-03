@@ -32,7 +32,7 @@ Built from the `tomada1114/macos-app-template` repository.
 
 ## Quickstart
 
-Prerequisites: Xcode 26.5+, [mise](https://mise.jdx.dev/), and
+Prerequisites: Xcode 27+, [mise](https://mise.jdx.dev/), and
 [Just](https://just.systems) (`brew install mise just`).
 
 ```bash

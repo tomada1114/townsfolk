@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- [Xcode 26.5+](https://developer.apple.com/xcode/) (`xcode-select --install` alone is not enough — the app target needs the full IDE toolchain; CI pins the exact version in `.xcode-version`)
+- [Xcode 27+](https://developer.apple.com/xcode/) on macOS 26.6 or later (`xcode-select --install` alone is not enough — the app target needs the full IDE toolchain; CI pins the exact version in `.xcode-version`)
 - [mise](https://mise.jdx.dev/) — installs the pinned CLI tools from `mise.toml`
 - [Just](https://just.systems/man/en/installation.html) (optional — every recipe's underlying commands are plain shell; see CONTRIBUTING.md)
 

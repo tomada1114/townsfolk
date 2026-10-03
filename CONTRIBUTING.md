@@ -7,7 +7,7 @@ your development environment and submit changes.
 
 Install these tools:
 
-- [Xcode 26.5+](https://developer.apple.com/xcode/) (CI pins the exact version in
+- [Xcode 27+](https://developer.apple.com/xcode/) (CI pins the exact version in
   `.xcode-version`)
 - [mise](https://mise.jdx.dev/) — provides the pinned CLI tools from `mise.toml`
 - [Just](https://just.systems/man/en/installation.html) (optional — you can run
