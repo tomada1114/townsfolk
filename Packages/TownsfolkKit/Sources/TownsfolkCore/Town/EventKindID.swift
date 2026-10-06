@@ -1,7 +1,7 @@
 /// The kind of a ``TownEvent``: an id naming an entry in the seed tables' event kinds
 /// (ADR-0007), which carry its symbol, wording, and duration. A `String` so the tables
-/// can grow without a code change.
-public struct EventKindID: RawRepresentable, Hashable, Sendable {
+/// can grow without a code change. Decodes from the bare string the tables spell it as.
+public struct EventKindID: RawRepresentable, Hashable, Sendable, Decodable {
     /// A resident moved in (requirements.md:262); the event names the resident.
     public static let moveIn = Self(rawValue: "move-in")
     /// A resident moved out (requirements.md:262); the event names the resident.
