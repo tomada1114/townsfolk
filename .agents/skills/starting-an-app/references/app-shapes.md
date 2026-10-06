@@ -21,18 +21,19 @@ ports and adapters, the coverage floor, signing, and every gate.
 ## Windowed: read the shipped files, not a copy
 
 The template **is** the windowed reference, so it is not duplicated here — a copy would
-be the first thing to go stale. Read `App/TownsfolkApp.swift` (a `WindowGroup` holding
-`ContentView`) and `LaunchUITests/LaunchTests.swift` (wait for `app.windows.firstMatch`,
-then click through the counter). The app target needs no shape-specific `project.yml`
+be the first thing to go stale. Read `App/TownsfolkApp.swift` (a `Window` holding
+`RootView`, and a `Settings` scene holding `SettingsView`) and
+`LaunchUITests/LaunchTests.swift` (wait for the `Townsfolk` window, then for its
+`townWindow` root). The app target needs no shape-specific `project.yml`
 key: `GENERATE_INFOPLIST_FILE: YES` with no `LSUIElement` entry *is* the regular shape.
 
 ## Menu-bar agent
 
-Every block in this section was applied to a clone of this template and proven there:
-`just build`, `just uitest`, and `just smoke` pass with exactly this text, and
-`just lint` (SwiftFormat plus SwiftLint `--strict` with every opt-in rule) accepts it.
-Copy it verbatim; the `NSStatusItem` variant further down was proven by `just build`
-and `just lint` only.
+Every block in this section was applied to a clone of this template and checked there
+(`just build`, `just uitest`, `just smoke`, and `just lint` passed) when the template's
+example screen was the panel's content; the entry point has since been edited to hold
+`RootView()` and was not re-run, so run those gates after copying it. The
+`NSStatusItem` variant further down was checked by `just build` and `just lint` only.
 
 ### 1. `project.yml` — one key
 
@@ -54,8 +55,6 @@ Regenerate with `just generate` — `Townsfolk.xcodeproj` is generated output, n
 ### 2. `App/TownsfolkApp.swift` — the entry point
 
 ```swift
-import TownsfolkCore
-import TownsfolkPlatform
 import TownsfolkUI
 import SwiftUI
 
@@ -71,18 +70,16 @@ import SwiftUI
 struct TownsfolkApp: App {
     var body: some Scene {
         MenuBarExtra("Townsfolk", systemImage: "number.circle") {
-            ContentView(
-                frontmostApp: FrontmostAppViewModel(provider: WorkspaceFrontmostAppProvider()),
-            )
+            RootView()
         }
         .menuBarExtraStyle(.window)
     }
 }
 ```
 
-The shell still only wires: the scene type and the composition root line are the whole
-diff from the windowed entry point. The panel's content is a `TownsfolkUI` view — here the
-template's own `ContentView`, swapped for the app's real view later — and every
+The shell still only wires: the scene type is what sets it apart from the windowed
+entry point. The panel's content is a `TownsfolkUI` view — here the
+app's own `RootView`, swapped for the app's real view later — and every
 decision it renders stays in `TownsfolkCore`.
 
 ### 3. `LaunchUITests/LaunchTests.swift` — the replacement assertion

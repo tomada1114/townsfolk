@@ -54,7 +54,7 @@ Every part is there for a reason:
 - **`defaultValue`.** `swift test` (`just test`) builds with SwiftPM's native build
   system, which copies the `.xcstrings` into Core's bundle uncompiled, so the English a
   test sees comes from here. Without it a test would see the key.
-- **An explicit key**, `feature.purpose` (`counter.reset`, `frontmostApp.unavailable`),
+- **An explicit key**, `feature.purpose` (`frontmostApp.label`, `frontmostApp.unavailable`),
   not the English text: the English can be polished without re-keying every translation,
   and a key is something a test and a search can name.
 - **`comment`** is a translator's only context: where the text appears and what each
@@ -62,7 +62,7 @@ Every part is there for a reason:
 - **One whole sentence per state**, with arguments interpolated (`\(name)` becomes `%@`,
   an `Int` becomes `%lld`), never a fixed prefix glued to a swapped-in fragment: a
   translation must be free to reorder the sentence around its arguments.
-- **A computed property**, as `label` and `CounterViewModel.resetTitle` are: the
+- **A computed property**, as `FrontmostAppViewModel.label` is: the
   initializer's `locale` defaults to `.current` when the resource is built, so each read
   builds it afresh.
 - **No generated symbols.** `xcodebuild` runs `GenerateStringSymbols` over the catalog, but
@@ -74,11 +74,10 @@ Every part is there for a reason:
 - A view has no localizable literal. `Text("…")` and `Button("…")` take a
   `LocalizedStringKey` that is looked up in the app's main bundle, not the package's, and
   `-exportLocalizations` exports it under a `TownsfolkUI` strings file that has nowhere to
-  ship. Render a Core resource instead: `Text(frontmostApp.label)`,
-  `Button(CounterViewModel.resetTitle) { model.reset() }`.
+  ship. Render a Core resource instead: `Text(frontmostApp.label)`.
 - What is not language is `Text(verbatim:)`: a number (formatted in Core with an injected
-  `Locale` when formatting matters), a glyph such as `ContentView`'s "−" and "+" (whose
-  `.accessibilityLabel` is still a Core resource, `CounterViewModel.decrementLabel`), and a
+  `Locale` when formatting matters), a glyph (whose `.accessibilityLabel` is still a
+  Core resource), and a
   preview's note to the developer.
 - Accessibility identifiers are never localized (`building-swiftui-screens`).
 

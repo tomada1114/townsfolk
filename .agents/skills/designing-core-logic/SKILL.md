@@ -63,7 +63,7 @@ only when the answer really comes from an OS framework Core may not import.
   readable.
 - **"Now"** (a timestamp, "is this older than a day", a date to format): take
   `now: @Sendable () -> Date` defaulting to `{ Date.now }`, or accept the `Date` as an
-  argument to the method that needs it. A pure function over a value (`Counter`-style)
+  argument to the method that needs it. A pure function over a value type
   should take the `Date` as an argument; a long-lived view model takes the closure.
   Never call `Date()` or `Date.now` inside a branch.
 - **Calendar and time zone** travel with "now": take a `Calendar` (which carries its
@@ -109,8 +109,9 @@ only when the answer really comes from an OS framework Core may not import.
   passes a tiny delay or a low limit to reach a boundary quickly.
 - Durations are `Duration`, not `TimeInterval`; counts are `Int`. A doc comment on each
   property says why it has that value.
-- A domain *invariant* is not a tunable: `Counter`'s default `-100 ... 100` range is a
-  parameter of the model, validated by its throwing initializer, not a `Tuning` entry.
+- A domain *invariant* is not a tunable: a range that defines what a value type means
+  is a parameter or a constant of that type, validated by its throwing initializer, not
+  a `Tuning` entry.
   The test: would changing it be a product tweak (Tuning) or change what the type means
   (a parameter or a constant)?
 - Split `Tuning` into nested structs by feature once it grows past a screenful; keep it
@@ -119,18 +120,18 @@ only when the answer really comes from an OS framework Core may not import.
 ## Action-shaped view models
 
 - A view model is `@MainActor @Observable public final class`, importing `Observation`
-  and, for its wording, `Foundation` (`CounterViewModel`, `FrontmostAppViewModel`). It
+  and, for its wording, `Foundation` (`FrontmostAppViewModel`). It
   is the one place a view reads state from and sends intent to.
 - State is `public private(set) var`; derived state is a computed property
-  (`canIncrement`, `label`). A view never mutates state directly.
+  (`canPost`, `label`). A view never mutates state directly.
 - Entry points are **actions named for what the user did or the app saw**:
-  `increment()`, `reset()`, `refresh()`, `textChanged()` — not setters, and not a
+  `postSubmitted()`, `refresh()`, `textChanged()` — not setters, and not a
   generic `send(_ action:)` reducer. Each action is a method a test can call and then
   assert on the resulting state.
 - An action that waits is `async` and the view calls it from `.task` or `Task { }`;
   the view model does not spawn untracked tasks from an initializer. Construction has
   no side effects (see `FrontmostAppViewModel.init`).
-- Domain rules live in value types (`Counter`) that the view model holds and delegates
+- Domain rules live in value types (`YourPostText`, `DisplayName`) that the view model holds and delegates
   to; the view model translates between them and what the view shows.
 
 ## Deliberately not adopted
