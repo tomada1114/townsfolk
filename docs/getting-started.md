@@ -96,22 +96,11 @@ the pattern, never something the app must keep. Work through this list after
 `scripts/bootstrap.sh` (the paths below carry your app's name once it has run),
 then run `just check`.
 
-**The counter** (the app's single screen):
-
-- [ ] `Packages/TownsfolkKit/Sources/TownsfolkCore/Counter.swift` and
-      `CounterViewModel.swift` — replace with your domain model and view model
-- [ ] `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/CounterTests.swift` and
-      `CounterViewModelTests.swift` — replace with tests for your Core code, so
-      the 80% coverage floor still has something to measure
-- [ ] `Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift` — the counter text,
-      the three buttons, their accessibility identifiers, and both previews
-- [ ] `LaunchUITests/LaunchTests.swift` — `testAppLaunchesAndShowsCounter`
-      clicks `incrementButton` and reads `counterValue`; point it at an element
-      your first screen shows
-- [ ] `AGENTS.md` and `CONTRIBUTING.md` — the `just test-fast CounterTests`
-      examples; `.agents/skills/running-the-app/references/observing-behavior.md`
-      — the identifier list and the `-counterStart` snippets (edit the skill under
-      `.agents/skills/`, then `just agents-sync`)
+**The counter** (the template's single screen): done in this app. #7 removed
+`Counter`, its view model, their tests, and the counter screen, and replaced the
+screen with `RootView` and `SettingsView` in
+`Packages/TownsfolkKit/Sources/TownsfolkUI/`; `LaunchUITests/LaunchTests.swift`
+now waits for the `townWindow` root instead.
 
 **The `FrontmostApp` example** (the worked ports-and-adapters example — keep it
 until your first real port exists if you want a pattern to copy):
@@ -134,9 +123,8 @@ until your first real port exists if you want a pattern to copy):
 - [ ] `AppLog.frontmostApp` in `Packages/TownsfolkKit/Sources/TownsfolkCore/AppLog.swift`,
       plus the doc comment there that points at `FrontmostAppViewModel/refresh()`
       — add a `Logger` for your own concern instead
-- [ ] The `ContentView` row: the `frontmostApp` property, its `init` parameter,
-      the `Frontmost:` label (`frontmostAppLabel`), and the `scenePhase`
-      refresh in `Packages/TownsfolkKit/Sources/TownsfolkUI/ContentView.swift`
+- [x] The counter screen's row (the `frontmostApp` property, the `Frontmost:`
+      label, and the `scenePhase` refresh) — removed with that screen in #7
 - [ ] The composition root: the `FrontmostAppViewModel(provider:
       WorkspaceFrontmostAppProvider())` argument in `App/TownsfolkApp.swift`
 - [ ] The mentions that cite it as the worked example: `AGENTS.md` ›

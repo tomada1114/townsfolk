@@ -31,10 +31,11 @@ it under Open questions until it is decided.
 ## Sharing values between views
 
 The template keeps each view's metrics in a `private enum Layout` beside the view
-(`ContentView`), because `no_magic_numbers` — on through `.swiftlint.yml`'s
+(`RootView`, `SettingsView`), because `no_magic_numbers` — on through `.swiftlint.yml`'s
 `opt_in_rules: all` — rejects a bare number in a view body. That stays the rule while
 only one view uses a value. Once a second view needs the same spacing or radius, move
-the lock's values into one internal type in `TownsfolkUI` — the ADR names it — and have each
+the lock's values into one internal type in `TownsfolkUI` — the ADR names it; here it
+is `DesignLock` — and have each
 `Layout` enum refer to it. They never go in `TownsfolkCore`: they are presentation, and Core
 does not import SwiftUI.
 

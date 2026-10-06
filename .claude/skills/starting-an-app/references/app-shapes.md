@@ -21,9 +21,10 @@ ports and adapters, the coverage floor, signing, and every gate.
 ## Windowed: read the shipped files, not a copy
 
 The template **is** the windowed reference, so it is not duplicated here — a copy would
-be the first thing to go stale. Read `App/TownsfolkApp.swift` (a `WindowGroup` holding
-`ContentView`) and `LaunchUITests/LaunchTests.swift` (wait for `app.windows.firstMatch`,
-then click through the counter). The app target needs no shape-specific `project.yml`
+be the first thing to go stale. Read `App/TownsfolkApp.swift` (a `Window` holding
+`RootView`, and a `Settings` scene holding `SettingsView`) and
+`LaunchUITests/LaunchTests.swift` (wait for the `Townsfolk` window, then for its
+`townWindow` root). The app target needs no shape-specific `project.yml`
 key: `GENERATE_INFOPLIST_FILE: YES` with no `LSUIElement` entry *is* the regular shape.
 
 ## Menu-bar agent
@@ -71,9 +72,7 @@ import SwiftUI
 struct TownsfolkApp: App {
     var body: some Scene {
         MenuBarExtra("Townsfolk", systemImage: "number.circle") {
-            ContentView(
-                frontmostApp: FrontmostAppViewModel(provider: WorkspaceFrontmostAppProvider()),
-            )
+            RootView()
         }
         .menuBarExtraStyle(.window)
     }
@@ -82,7 +81,7 @@ struct TownsfolkApp: App {
 
 The shell still only wires: the scene type and the composition root line are the whole
 diff from the windowed entry point. The panel's content is a `TownsfolkUI` view — here the
-template's own `ContentView`, swapped for the app's real view later — and every
+app's own `RootView`, swapped for the app's real view later — and every
 decision it renders stays in `TownsfolkCore`.
 
 ### 3. `LaunchUITests/LaunchTests.swift` — the replacement assertion
