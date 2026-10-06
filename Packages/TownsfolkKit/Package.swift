@@ -13,7 +13,7 @@ let package = Package(
     // The language the String Catalog is written in, and the one a reader falls back to
     // when the catalog lacks theirs. The app ships English only (`localizing-the-app`).
     defaultLocalization: "en",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS("27.0")],
     products: [
         .library(name: "TownsfolkCore", targets: ["TownsfolkCore"]),
         .library(name: "TownsfolkUI", targets: ["TownsfolkUI"]),
