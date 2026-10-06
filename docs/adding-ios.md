@@ -12,7 +12,7 @@ way.
 1. **Add the platform to the package** — in `Packages/TownsfolkKit/Package.swift`:
 
    ```swift
-   platforms: [.macOS(.v14), .iOS(.v17)],
+   platforms: [.macOS("27.0"), .iOS(.v17)],
    ```
 
 2. **Add an iOS target in `project.yml`** — either a second thin shell:

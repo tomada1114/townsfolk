@@ -308,10 +308,15 @@ The floor is macOS 27.0, the OS the owner uses and the model the app is tuned ag
 `runs-on: xcode-27`. It states what is supported, not what an API needs: in the macOS
 26.5 SDK the Foundation Models types are macOS 26.0+ and `tokenCount(for:)` 26.4+.
 
-**Not applied yet.** `project.yml` still says `"14.0"`, `Package.swift` `.macOS(.v14)`,
-`.xcode-version` 26.5, and the macOS jobs `runs-on: macos-26`. Issue #6 tracks the one
-`ci:` pull request that moves them together, with `docs/getting-started.md`'s Xcode
-requirement; the owner installs Xcode 27 first.
+**CodeQL is paused.** No CodeQL workflow runs while the floor is macOS 27: CodeQL's
+published support stops at macOS 26 hosts and Swift 6.3, and Xcode 27.0 compiles Swift
+6.4. On `xcode-27` its build tracer cannot launch macOS 27's arm64e-only `sandbox-exec`,
+so analysis ran only with SwiftPM's and the compiler's sandboxes disabled; the owner
+declined to land that unsupported configuration (2026-10-06), and analyzing with a
+second, older Xcode was rejected too (2026-10-03). CodeQL is not a required check, the
+package has no external dependency, and the app makes no network call, so the pause
+costs little; issue #54 restores `.github/workflows/codeql.yml` once CodeQL supports
+both.
 
 `xcode-27` is the only hosted image on macOS 27, and it is in Preview, outside the
 Actions SLA; when GitHub ships a GA image on macOS 27, the `runs-on:` labels move to it.
@@ -330,6 +335,10 @@ launch and smoke tests see the model-unavailable state (ux-flows S7), never a to
 - <https://github.com/actions/runner-images> — the `xcode-27` image is Preview, and a
   beta image's workflows "do not fall under the customer SLA in place for Actions";
   `macos-26` carries no Xcode 27 — checked 2026-09-30
+- <https://codeql.github.com/docs/codeql-overview/system-requirements/> — supported
+  hosts macOS 14, 15, and 26 — checked 2026-10-06
+- <https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/> —
+  Swift 5.4–6.3 — checked 2026-10-06
 
 #### Persistence
 
@@ -527,12 +536,12 @@ the registration.
 
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) — passes:
   MIT; 3.1.0 released 2026-09-11; not archived; floor `.macOS(.v10_15)`, at or below
-  this package's `.macOS(.v14)`; one Swift target, no binary target, no build plugin,
+  this package's `.macOS("27.0")`; one Swift target, no binary target, no build plugin,
   no package dependencies. It ships AppKit and SwiftUI recorder views, so it belongs to
   `TownsfolkUI` and `TownsfolkPlatform` — its types must not reach Core.
 
 **Launch at login.** No package. `SMAppService.mainApp.register()` (ServiceManagement,
-macOS 13+, below this package's macOS 14 floor) is the entire API, with
+macOS 13+, below this package's macOS 27.0 floor) is the entire API, with
 `SMAppService.mainApp.status` to read it back; it lives in a `TownsfolkPlatform` adapter
 because `ServiceManagement` is also on Core's blocked-import list. Do not add
 `sindresorhus/LaunchAtLogin`: that repository now redirects to `LaunchAtLogin-Legacy`
