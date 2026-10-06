@@ -23,7 +23,8 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 - Declare every error a caller can observe in `TownsfolkCore`, next to the port or model
   that throws it — `SeedTablesError` sits beside `SeedTables`, and the on-device model's
   port (provisionally `LanguageModelProviding`, `docs/architecture.md` › The on-device
-  model) would sit beside a `LanguageModelError`. Core, `TownsfolkUI`, and `App/` switch
+  model) would sit beside a `ModelCallError` (not `LanguageModelError`, a type the
+  macOS 27 SDK declares and Core imports). Core, `TownsfolkUI`, and `App/` switch
   on it, and a Core test's fake throws it, so it cannot live in `TownsfolkPlatform`
   (Core never imports Platform).
 - One `enum` per failure domain, `Error, Equatable, Sendable`. Cases name what went
@@ -36,7 +37,7 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 ```swift
 /// Why a model call returned nothing usable — the engine recovers differently from each
 /// case, which is why this is an enum and not a message string.
-public enum LanguageModelError: Error, Equatable, Sendable {
+public enum ModelCallError: Error, Equatable, Sendable {
     /// A guardrail violation or a refusal; the engine retries with a new seed.
     case refused
     /// The prompt did not fit the context; the engine retries once with half the posts.
@@ -52,7 +53,7 @@ public enum LanguageModelError: Error, Equatable, Sendable {
 
 ## Typed throws or plain throws
 
-Typed throws (`throws(LanguageModelError)`, SE-0413) needs Swift 6; this package is
+Typed throws (`throws(ModelCallError)`, SE-0413) needs Swift 6; this package is
 `swift-tools-version: 6.2` in Swift 6 language mode, so it is available everywhere.
 
 - **Use `throws(E)`** when the caller switches over `E`'s cases: a port method, a
@@ -67,10 +68,10 @@ Typed throws (`throws(LanguageModelError)`, SE-0413) needs Swift 6; this package
 
 ```swift
 public protocol LanguageModelProviding: Sendable {
-    func respond(to prompt: String) async throws(LanguageModelError) -> GeneratedContent
+    func respond(to prompt: String) async throws(ModelCallError) -> GeneratedContent
 }
 
-// In the engine: the switch is exhaustive over LanguageModelError. `AppLog.model` is
+// In the engine: the switch is exhaustive over ModelCallError. `AppLog.model` is
 // the logger this port would add to `AppLog`.
 do {
     content = try await model.respond(to: prompt)
@@ -128,7 +129,7 @@ do {
 - Typed throws and cancellation: a function that awaits cancellable work and declares
   `throws(E)` cannot throw `CancellationError`. Keep such functions on plain `throws`,
   or give `E` an explicit `.cancelled` case the caller treats as a no-op, as
-  `LanguageModelError` above does — never drop the cancellation on the floor.
+  `ModelCallError` above does — never drop the cancellation on the floor.
 - A test asserts cancellation with `#expect(throws: CancellationError.self)`.
 
 ## Mapping OS errors in an adapter
@@ -151,7 +152,7 @@ error to a Core case is translation; choosing what the app does about it is Core
 import FoundationModels
 import TownsfolkCore
 
-extension LanguageModelError {
+extension ModelCallError {
     /// Translation only: which Core case a framework error means. The case names are
     /// those of the SDK the adapter builds with (`docs/architecture.md` › The on-device
     /// model).
