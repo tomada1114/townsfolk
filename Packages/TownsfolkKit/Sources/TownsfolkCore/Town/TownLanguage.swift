@@ -28,6 +28,13 @@ public enum TownLanguage: String, Sendable, CaseIterable {
         }
     }
 
+    /// The language's name in that language — "English", and Japanese written in
+    /// Japanese — as a language picker offers it, whatever the app's language is. From
+    /// Foundation rather than the String Catalog, since it is never translated.
+    public var nativeName: String {
+        locale.localizedString(forLanguageCode: rawValue) ?? rawValue
+    }
+
     /// `resource`, set to resolve in this language whatever the process's preferred
     /// languages are.
     ///
