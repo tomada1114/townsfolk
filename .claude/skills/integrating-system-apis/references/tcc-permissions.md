@@ -71,8 +71,9 @@ comes back. Nothing in the app was called. There are two workable answers, in th
 
 1. **Re-check on activation.** The app becoming active is the one signal that correlates
    with the user having just done something in System Settings. In SwiftUI, that is
-   `.onChange(of: scenePhase)` becoming `.active` — the same seam `FrontmostAppViewModel`
-   already refreshes on.
+   `.onChange(of: scenePhase)` becoming `.active`; behind a port, it is
+   `NSApplication.didBecomeActiveNotification`, which `WindowPresenceProvider` already
+   observes.
 2. **Poll, but only while blocked and only while visible.** A one-second timer running
    solely in the blocked state costs nothing and closes the case where the user grants the
    permission without leaving the app. Stop it the moment the answer turns true.
@@ -129,7 +130,7 @@ public final class AccessibilityGateViewModel {
 That is the whole point of the port: `state`, `hasPrompted`, "prompt at most once", "what
 the blocked screen says" are all decisions, they are all in `TownsfolkCore`, and a Core test
 drives them with a fake whose `isTrusted` the test sets. `.claude/rules/testing.md` ›
-"Fakes, not mocks" has the fake's shape; `FakeFrontmostAppProvider` in
+"Fakes, not mocks" has the fake's shape; `FakeWindowPresenceProvider` in
 `Tests/TownsfolkTestSupport` is the one to copy, and "One Contract Suite per Port" holds it
 and the adapter to the same promises.
 

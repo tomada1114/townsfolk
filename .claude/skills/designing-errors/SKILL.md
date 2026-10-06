@@ -21,9 +21,12 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 ## Where an error type lives
 
 - Declare every error a caller can observe in `TownsfolkCore`, next to the port or model
-  that throws it — `FrontmostAppProviding.swift` would hold a `FrontmostAppError`.
-  `TownsfolkUI` and `App/` switch on it, and a Core test's fake throws it, so it cannot
-  live in `TownsfolkPlatform` (Core never imports Platform).
+  that throws it — `SeedTablesError` sits beside `SeedTables`, and the on-device model's
+  port (provisionally `LanguageModelProviding`, `docs/architecture.md` › The on-device
+  model) would sit beside a `ModelCallError` (not `LanguageModelError`, a type the
+  macOS 27 SDK declares and Core imports). Core, `TownsfolkUI`, and `App/` switch
+  on it, and a Core test's fake throws it, so it cannot live in `TownsfolkPlatform`
+  (Core never imports Platform).
 - One `enum` per failure domain, `Error, Equatable, Sendable`. Cases name what went
   wrong for the caller (`.permissionDenied`, `.notRunning`), not which API failed.
 - Payloads carry only what a caller needs to decide, and are `Sendable` values:
@@ -32,19 +35,25 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
   the adapter's mechanism into Core.
 
 ```swift
-/// Why the frontmost application could not be read — a caller shows a different
-/// recovery for each case, which is why this is an enum and not a message string.
-public enum FrontmostAppError: Error, Equatable, Sendable {
-    /// Accessibility is not granted; the UI offers to open System Settings.
-    case permissionDenied
-    /// The OS reported a failure the app has no recovery for; `code` is for logs.
+/// Why a model call returned nothing usable — the engine recovers differently from each
+/// case, which is why this is an enum and not a message string.
+public enum ModelCallError: Error, Equatable, Sendable {
+    /// A guardrail violation or a refusal; the engine retries with a new seed.
+    case refused
+    /// The prompt did not fit the context; the engine retries once with half the posts.
+    case contextSizeExceeded
+    /// The model stopped being available; the town rests until it is back.
+    case unavailable
+    /// The caller stopped waiting (see Cancellation propagates); never a failure.
+    case cancelled
+    /// The framework reported a failure the app has no recovery for; `code` is for logs.
     case systemFailure(code: Int32)
 }
 ```
 
 ## Typed throws or plain throws
 
-Typed throws (`throws(FrontmostAppError)`, SE-0413) needs Swift 6; this package is
+Typed throws (`throws(ModelCallError)`, SE-0413) needs Swift 6; this package is
 `swift-tools-version: 6.2` in Swift 6 language mode, so it is available everywhere.
 
 - **Use `throws(E)`** when the caller switches over `E`'s cases: a port method, a
@@ -58,31 +67,37 @@ Typed throws (`throws(FrontmostAppError)`, SE-0413) needs Swift 6; this package 
   `.unknown(any Error)` to make a typed throw compile — map to a real case instead.
 
 ```swift
-public protocol FrontmostAppProviding: Sendable {
-    func currentFrontmostApp() throws(FrontmostAppError) -> FrontmostApp?
+public protocol LanguageModelProviding: Sendable {
+    func respond(to prompt: String) async throws(ModelCallError) -> GeneratedContent
 }
 
-// In a view model: the switch is exhaustive over FrontmostAppError.
+// In the engine: the switch is exhaustive over ModelCallError. `AppLog.model` is
+// the logger this port would add to `AppLog`.
 do {
-    app = try provider.currentFrontmostApp()
+    content = try await model.respond(to: prompt)
 } catch {
     switch error {
-    case .permissionDenied: state = .needsPermission
+    case .refused: next = .retryWithNewSeed
+    case .contextSizeExceeded: next = .retryWithHalfThePosts
+    case .unavailable: next = .rest
+    case .cancelled: return
     case let .systemFailure(code):
-        AppLog.frontmostApp.error("frontmost app read failed: \(code, privacy: .public)")
-        state = .unavailable
+        AppLog.model.error("scene call failed: \(code, privacy: .public)")
+        next = .skipTurn
     }
 }
 ```
 
-`nil` stays the answer for "there is none" (no frontmost app is not a failure); an
-error is for "could not find out". Do not turn an expected absence into a throw.
+An expected state stays an answer: the port reports availability as a value, so Apple
+Intelligence being off is a state the town shows, not a throw; an error is for "the call
+could not finish". Do not turn an expected absence into a throw.
 
 ## No user data in errors or logs
 
 - An error payload never holds user content: no app names, window titles, file paths,
-  typed text, URLs, or identifiers of the user's documents. Errors travel — into logs,
-  crash reports, test output, and `String(describing:)` in a view.
+  typed text, a prompt or what the model wrote, URLs, or identifiers of the user's
+  documents. Errors travel — into logs, crash reports, test output, and
+  `String(describing:)` in a view.
 - Log lines follow `.claude/rules/swift.md` › Logging: `AppLog`'s `os.Logger` only.
   Interpolate an OS status code or an enum case with `privacy: .public`; anything that
   came from the user or another app with `privacy: .private` — or leave it out.
@@ -101,11 +116,11 @@ to report.
 ```swift
 do {
     try await Task.sleep(for: .seconds(1))
-    try await refresh()
+    try await writeNextScene()
 } catch let error as CancellationError {
     throw error  // cancellation is not a failure: never log or map it
 } catch {
-    AppLog.frontmostApp.error("refresh failed")
+    AppLog.model.error("scene step failed")
 }
 ```
 
@@ -113,8 +128,8 @@ do {
   `Task.isCancelled` and returning a half result silently.
 - Typed throws and cancellation: a function that awaits cancellable work and declares
   `throws(E)` cannot throw `CancellationError`. Keep such functions on plain `throws`,
-  or give `E` an explicit `.cancelled` case the caller treats as a no-op — never drop
-  the cancellation on the floor.
+  or give `E` an explicit `.cancelled` case the caller treats as a no-op, as
+  `ModelCallError` above does — never drop the cancellation on the floor.
 - A test asserts cancellation with `#expect(throws: CancellationError.self)`.
 
 ## Mapping OS errors in an adapter
@@ -134,15 +149,20 @@ error to a Core case is translation; choosing what the app does about it is Core
 - Log the raw code in the adapter only if Core cannot, and with `privacy: .public`.
 
 ```swift
-import ApplicationServices
+import FoundationModels
 import TownsfolkCore
 
-extension FrontmostAppError {
-    /// Translation only: which Core case an Accessibility result means.
-    init(_ result: AXError) {
-        switch result {
-        case .apiDisabled: self = .permissionDenied
-        default: self = .systemFailure(code: result.rawValue)
+extension ModelCallError {
+    /// Translation only: which Core case a framework error means. The case names are
+    /// those of the SDK the adapter builds with (`docs/architecture.md` › The on-device
+    /// model).
+    init(_ error: LanguageModelSession.GenerationError) {
+        switch error {
+        case .guardrailViolation, .refusal: self = .refused
+        case .exceededContextWindowSize: self = .contextSizeExceeded
+        case .assetsUnavailable: self = .unavailable
+        default:
+            self = .systemFailure(code: Int32(truncatingIfNeeded: (error as NSError).code))
         }
     }
 }

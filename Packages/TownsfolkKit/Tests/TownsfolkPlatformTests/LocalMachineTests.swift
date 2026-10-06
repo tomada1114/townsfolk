@@ -37,7 +37,7 @@ enum LocalMachineTests {
     /// the failure into an instruction. A test that needs Accessibility, Input
     /// Monitoring, or Screen Recording says so here with `grant: true`, which adds the
     /// System Settings instruction; a requirement that is a session rather than a
-    /// permission (the worked example) passes `false`.
+    /// permission, such as a logged-in GUI session, passes `false`.
     static func require<Value>(
         _ value: Value?,
         requires requirement: String,

@@ -54,7 +54,7 @@ paths:
   (the `designing-core-logic` skill); a domain invariant is a parameter or a `static`
   on its type, not a `Tuning` entry
 - User-visible wording Core decides: computed `LocalizedStringResource`s on a Core type
-  (`SettingsWording`, `FrontmostAppViewModel.label`) that a view model returns and a view
+  (`SettingsWording`, `SettingsViewModel.nameError`) that a view model returns and a view
   renders with `Text(resource)`; the logging subsystem: `AppLog`, once
 - A type holding only `static` members is a caseless `enum` (SwiftLint's
   `convenience_type`). No global `let`, and no `Constants.swift` grab bag: a constant
@@ -86,7 +86,8 @@ paths:
   you mean rather than relying on the default
 - Level by intent: `.debug` for the development stream `just logs` shows, `.info` for a
   milestone worth keeping, `.error`/`.fault` for something that went wrong. See
-  `FrontmostAppViewModel.refresh()` for the worked example
+  `AppLog.presence` for the worked example: `App/TownsfolkApp.swift` logs each presence
+  value at `.debug`, its three flags `.public` because they are states, not the person
 
 ## Concurrency
 

@@ -39,14 +39,17 @@ Reminders").
 
 ## Declaring a string
 
-`FrontmostAppViewModel.label` is the worked example:
+`SettingsWording.nameError(length:)` is the worked example:
 
 ```swift
 LocalizedStringResource(
-    "frontmostApp.label",
-    defaultValue: "Frontmost: \(name)",
+    "settings.name.error",
+    defaultValue: "Use \(shortest)–\(longest) characters.",
     bundle: .module,
-    comment: "Footnote naming the application that is frontmost. The argument is that application's name.",
+    comment: """
+    Settings: shown under the name field when the submitted name is empty or too \
+    long. The arguments are the fewest and the most characters a name may have.
+    """,
 )
 ```
 
@@ -58,15 +61,16 @@ Every part is there for a reason:
 - **`defaultValue`.** `swift test` (`just test`) builds with SwiftPM's native build
   system, which copies the `.xcstrings` into Core's bundle uncompiled, so the English a
   test sees comes from here. Without it a test would see the key.
-- **An explicit key**, `feature.purpose` (`frontmostApp.label`, `frontmostApp.unavailable`),
+- **An explicit key**, `feature.purpose` (`settings.name.title`, `settings.name.error`),
   not the English text: the English can be polished without re-keying every translation,
   and a key is something a test and a search can name.
 - **`comment`** is a translator's only context: where the text appears and what each
   argument is.
-- **One whole sentence per state**, with arguments interpolated (`\(name)` becomes `%@`,
-  an `Int` becomes `%lld`), never a fixed prefix glued to a swapped-in fragment: a
-  translation must be free to reorder the sentence around its arguments.
-- **A computed property**, as `FrontmostAppViewModel.label` and
+- **One whole sentence per state**, with arguments interpolated (a `String` becomes `%@`,
+  an `Int` such as `\(shortest)` becomes `%lld`), never a fixed prefix glued to a
+  swapped-in fragment: a translation must be free to reorder the sentence around its
+  arguments.
+- **A computed property**, as `SettingsWording.nameTitle` and
   `SettingsViewModel.speedHint` are: the initializer's `locale` defaults to `.current`
   when the resource is built, so each read builds it afresh.
 - **No generated symbols.** `xcodebuild` runs `GenerateStringSymbols` over the catalog, but

@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 import TownsfolkCore
-import TownsfolkTestSupport
 
 /// The subset of the String Catalog format these tests read: its source language and,
 /// per key, each language's single string. A plural or device-varied entry has
@@ -70,16 +69,9 @@ struct LocalizationTests {
     /// arguments its English takes. Adding a key to Core means adding it here: the
     /// source-scan tests fail until this list names every key Core's sources declare.
     static func everyCase() -> [Case] {
-        let answered = FrontmostAppViewModel(
-            provider: FakeFrontmostAppProvider(answering: [FrontmostApp(name: "Finder")]),
-        )
-        answered.refresh()
-        let unanswered = FrontmostAppViewModel(provider: FakeFrontmostAppProvider(answering: [nil]))
         let nameLength = 1
         let nameLimit = 20
         return [
-            Case(resource: answered.label, arguments: ["Finder"]),
-            Case(resource: unanswered.label, arguments: []),
             Case(resource: SettingsWording.nameTitle, arguments: []),
             Case(
                 resource: SettingsWording.nameError(length: nameLength ... nameLimit),
