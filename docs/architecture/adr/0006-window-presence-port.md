@@ -1,6 +1,21 @@
 # ADR-0006: When the town runs — window presence behind a Core port
 
 - **Status:** Accepted 2026-09-30
+- **Amended:** 2026-10-06 — Open question settled: the adapter reaches the town window
+  by its `NSWindow.identifier`, which SwiftUI sets to the `Window` scene's `id`, so
+  `App/` hands `WindowPresenceProvider` the same `"town"` it gives the scene. In a
+  `just run` the presence stream reported `visible=false` before the window was on
+  screen and `visible=true` 17 ms later. The view-side hook was not taken: it needs an
+  `NSViewRepresentable` in `TownsfolkUI` and an `NSWindow` passed through `App/` to
+  `TownsfolkPlatform`, the sibling the UI never reaches, where a string the scene
+  already has does the same (#13).
+- **Amended:** 2026-10-06 — Open question settled by design rather than by measurement:
+  the adapter does not leave a sleeping display or a switched-away login session to
+  occlusion. It also observes `NSWorkspace`'s screens-did-sleep and screens-did-wake and
+  session-did-resign-active and session-did-become-active notifications, and reports
+  the window not visible while the screens sleep or the session is inactive. A locked
+  screen has no documented `NSWorkspace` notification, so it still reads through
+  occlusion alone; that case stays an open question below (#13).
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -70,12 +85,11 @@ resting instead (ux-flows S1).
 
 ## Open questions
 
-- Unverified: whether occlusion alone reports a locked screen and a sleeping display as
-  not visible, or the adapter also needs `NSWorkspace`'s screen-sleep and session
-  notifications. The adapter's local-machine test settles it.
-- Unverified: how the adapter reaches the `Window` scene's `NSWindow` — by its
-  identifier, or through a view-side hook that the composition root passes along.
-  Settled by the same issue.
+- Unverified: whether occlusion reports a locked screen (⌃⌘Q) as not visible. Settled
+  by a human run: lock the screen with the app running and a
+  `/usr/bin/log stream --level debug --predicate 'subsystem == "io.github.tomada1114.Townsfolk" AND category == "presence"'`
+  started first, and read `visible=` while locked. A sleeping display and a switched
+  session no longer depend on the answer (Amended 2026-10-06).
 
 ## Sources
 
@@ -87,6 +101,10 @@ resting instead (ux-flows S1).
 - <https://developer.apple.com/documentation/appkit/nswindow/occlusionstate-swift.struct/visible>
   — "If set, at least part of the window is visible; if not set, the entire window is
   occluded." — checked 2026-09-30
+- <https://developer.apple.com/library/archive/documentation/Performance/Conceptual/power_efficiency_guidelines_osx/WorkWhenVisible.html>
+  — Energy Efficiency Guide for Mac Apps (archived): occlusion covers windows of other
+  apps, the screen saver, and another Mission Control space; it names neither a
+  sleeping display nor a locked screen — checked 2026-10-06
 
 ## Related
 
