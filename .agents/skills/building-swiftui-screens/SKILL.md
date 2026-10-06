@@ -74,7 +74,7 @@ example of a view with no model. Both show the rest: a `private enum Layout` ove
 | `if let` on an optional model or value, to show or omit a part | Any rule, clamp, threshold, or comparison on domain values |
 | Calling an action from a `Button`, `.onSubmit`, a menu command | What the action does, and the state it leaves behind |
 | *When* to ask again — `.onChange(of: scenePhase)`, `.task` — as `App/TownsfolkApp.swift` reads window presence in a `.task` on `RootView` | *What* asking again means (`refresh()`) |
-| `Text(verbatim:)` for a glyph or an already-formatted number | Every word a person reads, as a `LocalizedStringResource` (`resetTitle`, `label`) — `localizing-the-app` |
+| `Text(verbatim:)` for every string — a Core-resolved one, a glyph, an already-formatted number — never `Text(resource)` (ADR-0007) | Every word a person reads, resolved in the app language and handed over as a `String` (`SettingsViewModel.languageTitle`, `speedHint`) — `localizing-the-app` |
 | `.disabled(!model.canPost)` | Formatting numbers and dates with an injected `Locale` |
 
 - An action that waits is `async`; call it from `.task { await model.load() }` so
@@ -91,8 +91,11 @@ example of a view with no model. Both show the rest: a `private enum Layout` ove
 
 - One `#Preview("Name")` per state worth seeing — the default and each boundary or empty
   state — built by injecting a Core view model already in that state; `RootView`'s
-  "Empty" and "Empty, dark" show the naming. A preview that has to reach a state by
-  calling actions is a sign the model wants an initializer that takes that state.
+  "Empty" and "Empty, dark" show the naming. A model whose state comes only from a store
+  it reads, as `SettingsViewModel` reads `UserDefaults`, is put in a state by building it
+  over a preview-only suite and calling its actions, as `SettingsView`'s previews do;
+  for any other model, a preview that has to reach a state by calling actions is a sign
+  the model wants an initializer that takes that state.
 - No `try!` or force unwrap in a preview either (`.claude/rules/swift.md` › Error
   Handling): unwrap with `if let` and render a `Text` explaining the failure.
 - Previews never construct a `TownsfolkPlatform` adapter; a port-backed model is left out.
