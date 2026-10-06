@@ -349,11 +349,17 @@ The town lives in one SQLite database, `town.sqlite`, in a `Town` directory unde
 app container's Application Support directory. `TownsfolkCore` owns it through
 `import SQLite3`, the SDK's system library, which links with no extra settings. A
 `TownStore` actor holds the connection and takes and returns Core value types; the
-composition root hands it its directory, so a test uses a temporary directory or an
-in-memory database. There is no port: the store runs the same under `swift test`.
+composition root hands it its directory, so a test hands it a temporary directory of
+its own. There is no port: the store runs the same under `swift test`.
 
 - **Tables** follow requirements §5, with an index on the posts' `happened_at` for
   newest-first paging past 100,000 posts.
+- **Format.** Dates are integer milliseconds since 1970 UTC, so keyset comparisons are
+  exact; ids are uppercase UUID text; a list inside a value is a child table ordered by
+  `position`; foreign keys are on and deferred to the commit; enum codes are text with no
+  `CHECK`, so a later version can add one without rebuilding a table; the journal is
+  SQLite's default rollback journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the
+  source of truth for the schema.
 - **One transaction per step of the town** — a scene's posts, tags, names, and next due
   time; a new resident with its move event; a founded town, written only after all of
   its generation succeeded — so a crash repeats or loses nothing.

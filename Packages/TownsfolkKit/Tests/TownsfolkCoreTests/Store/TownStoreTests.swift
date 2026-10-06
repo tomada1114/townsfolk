@@ -59,6 +59,34 @@ struct TownStoreTests {
     }
 
     @Test
+    func `each step announces one change naming the step, not one per effect`() async throws {
+        try await withFoundedStore { store, founding, _ in
+            let changes = await store.changes()
+            let speaker = try #require(founding.residents.first).id
+            let post = try ResidentPostDraft(author: speaker, time: StoreFixtures.minutes(2)).make()
+            try await store.storeScene(TownStore.SceneStep(
+                posts: [post],
+                nextOrdinarySceneDue: StoreFixtures.minutes(12),
+            ))
+            let newcomer = try ResidentDraft(name: "Sora", movedInAt: StoreFixtures.minutes(60))
+                .make()
+            let moveIn = try EventDraft(
+                kind: .moveIn,
+                time: StoreFixtures.minutes(60),
+                description: "Sora moved in.",
+                relatedResident: newcomer.id,
+            ).make()
+            try await store.recordMove(TownStore.MoveStep(resident: newcomer, event: moveIn))
+            try await store.setLastRan(StoreFixtures.minutes(61))
+
+            var iterator = changes.makeAsyncIterator()
+            #expect(await iterator.next() == .sceneStored(posts: [post.id]))
+            #expect(await iterator.next() == .moveRecorded(newcomer.id))
+            #expect(await iterator.next() == .lastRanChanged)
+        }
+    }
+
+    @Test
     func `a subscriber that stopped listening does not stop the others`() async throws {
         try await withStore { store, _ in
             _ = await store.changes()

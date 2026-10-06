@@ -3,12 +3,20 @@ import SQLite3
 
 /// Reads the current row's columns one after another, in the order the `SELECT` lists
 /// them, so no call site counts column indexes by hand.
+///
+/// It holds the statement, not its raw pointer, and reaches the pointer through it on
+/// every read: Swift may end a local's lifetime at its last use, so a row holding only
+/// the pointer could be read after the statement's `deinit` had finalized it.
 struct SQLiteRow {
-    private let pointer: OpaquePointer
+    private let statement: SQLiteStatement
     private var column: Int32 = 0
 
-    init(pointer: OpaquePointer) {
-        self.pointer = pointer
+    private var pointer: OpaquePointer {
+        statement.pointer
+    }
+
+    init(statement: SQLiteStatement) {
+        self.statement = statement
     }
 
     /// The next column as an integer, or `nil` when it is `NULL`.
@@ -104,7 +112,8 @@ final class SQLiteStatement {
     /// text before the call returns, so the Swift string may go away.
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-    private let pointer: OpaquePointer
+    /// The prepared statement; valid only while this object is alive.
+    let pointer: OpaquePointer
 
     init(pointer: OpaquePointer) {
         self.pointer = pointer
@@ -147,7 +156,7 @@ final class SQLiteStatement {
 
     /// A reader over the current row's columns, from the first.
     func row() -> SQLiteRow {
-        SQLiteRow(pointer: pointer)
+        SQLiteRow(statement: self)
     }
 
     deinit {

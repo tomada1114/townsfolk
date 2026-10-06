@@ -121,8 +121,10 @@ public actor TownStore {
     }
 
     /// A stream of every step committed from now on, for one subscriber; each call
-    /// returns a stream of its own, so every subscriber receives every change. It
-    /// finishes when everything is deleted, or at once if that already happened.
+    /// returns a stream of its own, so every subscriber receives every change. Each step
+    /// announces one change naming the step, not one per effect (``TownStoreChange``), so
+    /// a subscriber re-reads what it shows on any change. It finishes when everything is
+    /// deleted, or at once if that already happened.
     public func changes() -> AsyncStream<TownStoreChange> {
         let (stream, continuation) = AsyncStream.makeStream(of: TownStoreChange.self)
         if connection == nil {
