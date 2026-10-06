@@ -34,7 +34,7 @@ extension TownStore {
         try liveConnection().includedInterests()
     }
 
-    /// The schedule, or `nil` before founding.
+    /// The schedule, its pending responses soonest first, or `nil` before founding.
     public func schedule() throws(TownStoreError) -> Schedule? {
         try liveConnection().schedule()
     }

@@ -32,9 +32,11 @@ extension TownStore {
         }
         let connection = try liveConnection()
         let start = cursor ?? Self.newest
+        // One row past the page says whether an older entry remains.
+        let fetch = limit == .max ? Int64.max : Int64(limit + 1)
         var keys = try connection.rows(
             Self.pageQuery,
-            [.integer(start.time), .text(start.id), .integer(Int64(limit) + 1)],
+            [.integer(start.time), .text(start.id), .integer(fetch)],
         ) { row throws(TownStoreError) in
             try PageKey(isEvent: row.flag(), id: row.uuid(), time: row.integer())
         }

@@ -10,7 +10,7 @@ import SQLite3
 /// neither loses nor repeats a scene; each committed step is announced on ``changes()``.
 /// Every read and write takes and returns Core values, and every value reaches SQLite
 /// bound, never spliced into a statement. Time is always passed in: the store never
-/// reads the clock.
+/// reads the clock, and it keeps every date to the millisecond.
 ///
 /// There is no port in front of it — it runs the same under `swift test`, against a
 /// temporary directory.

@@ -6,11 +6,6 @@ enum SQLValue {
     case null
     case text(String)
 
-    /// A flag, stored as `0` or `1`.
-    static func flag(_ value: Bool) -> Self {
-        .integer(value ? 1 : 0)
-    }
-
     /// An id, stored as its uppercase UUID string.
     static func id(_ uuid: UUID) -> Self {
         .text(uuid.uuidString)
