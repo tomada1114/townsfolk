@@ -23,15 +23,20 @@ English-only rule and its one exception (`AGENTS.md`'s "Important Reminders").
 
 ## What the template decides
 
-- **English only.** `Package.swift` sets `defaultLocalization: "en"`, and the one catalog's
-  source language is `en`. Shipping a second language is an app's decision, recorded as
-  an ADR: every later string then owes a translation, and every translation owes a reviewer.
+- **English by default.** `Package.swift` sets `defaultLocalization: "en"`, and the one
+  catalog's source language is `en`. Shipping a second language is an app's decision,
+  recorded as an ADR: every later string then owes a translation, and every translation
+  owes a reviewer. This app made it: ADR-0007
+  (`docs/architecture/adr/0007-english-and-japanese.md`) ships English and Japanese,
+  switched inside the app.
 - **Core owns the wording.** A Core view model returns `LocalizedStringResource`
-  (Foundation, which Core may import) and a view renders it. The wording then sits under
+  (Foundation, which Core may import) and a view renders it (how, in
+  [In `TownsfolkUI`](#in-townsfolkui)). The wording then sits under
   the coverage floor, where a test asserts it; a Core API that handed out bare keys would
   leave the view to know the key, the bundle, and the fallback, none of it tested.
-- **One catalog, in Core.** `TownsfolkCore` declares `resources: [.process(...)]` for it;
-  `TownsfolkUI` has no catalog and no resources.
+- **One string catalog, in Core.** `TownsfolkCore` declares `resources: [.process(...)]`
+  for it; `TownsfolkUI` has no string catalog. It does carry other resources: this app's
+  custom Color Sets live in its `Resources/Colors.xcassets` (ADR-0008, `designing-ui`).
 
 ## Declaring a string
 
@@ -62,9 +67,10 @@ Every part is there for a reason:
 - **One whole sentence per state**, with arguments interpolated (`\(name)` becomes `%@`,
   an `Int` becomes `%lld`), never a fixed prefix glued to a swapped-in fragment: a
   translation must be free to reorder the sentence around its arguments.
-- **A computed property**, as `FrontmostAppViewModel.label` is: the
-  initializer's `locale` defaults to `.current` when the resource is built, so each read
-  builds it afresh.
+- **A computed property**, as `FrontmostAppViewModel.label` is, so each read builds the
+  resource afresh. Its `locale` defaults to `.current` when it is built; in an app that
+  switches language inside the app, as this one does, Core sets it to the app's language
+  with `TownLanguage.localized(_:)` before the view sees it (below).
 - **No generated symbols.** `xcodebuild` runs `GenerateStringSymbols` over the catalog, but
   SwiftPM's native build does not, so code that names one fails to compile under
   `just test`.
@@ -74,8 +80,17 @@ Every part is there for a reason:
 - A view has no localizable literal. `Text("…")` and `Button("…")` take a
   `LocalizedStringKey` that is looked up in the app's main bundle, not the package's, and
   `-exportLocalizations` exports it under a `TownsfolkUI` strings file that has nowhere to
-  ship. Render a Core resource instead: `Text(frontmostApp.label)`.
-- What is not language is `Text(verbatim:)`: a number (formatted in Core with an injected
+  ship. Render a Core resource instead.
+- **How a Core resource is rendered.** With English only, `Text(resource)` would do: the
+  process's language and the resource's agree. This app ships a second language, and
+  ADR-0007's 2026-10-06 amendment found that SwiftUI's `Text` ignores a resource's own
+  `locale` and uses the process's language. So the rule every view here follows: Core
+  sets the resource's locale with `TownLanguage.localized(_:)` and resolves it with
+  `String(localized:)`, and the view renders the string with
+  `Text(verbatim: String(localized: resource))` (or a Core-resolved `String` passed to
+  `Text(verbatim:)`), never `Text(resource)`. `Text(resource)` shows the process's
+  language when the app's setting is another.
+- What is not language is also `Text(verbatim:)`: a number (formatted in Core with an injected
   `Locale` when formatting matters), a glyph (whose `.accessibilityLabel` is still a
   Core resource), and a
   preview's note to the developer.
