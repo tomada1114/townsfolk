@@ -57,23 +57,25 @@ Apple-only frameworks such as Combine stay allowed, and so does Foundation — a
 
 Code that talks to the OS — `NSWorkspace`, accessibility, a Carbon hotkey, an event tap,
 an `NSPanel` overlay, a login item — lives in `TownsfolkPlatform`, never in Core, a view, or
-the shell. It is always the same five pieces, and the template ships one worked example
-of them to copy:
+the shell. It is always the same five pieces, and the window-presence port
+([Window presence](#window-presence)) is the worked example of them to copy:
 
 1. **The port**, in Core — a `Sendable` protocol taking and returning value types Core
-   owns: `FrontmostAppProviding` in
-   `Packages/TownsfolkKit/Sources/TownsfolkCore/FrontmostAppProviding.swift`.
+   owns: `WindowPresenceProviding` in
+   `Packages/TownsfolkKit/Sources/TownsfolkCore/Presence/WindowPresenceProviding.swift`,
+   reporting the `WindowPresence` value beside it.
 2. **The adapter**, in Platform — the OS framework import, translating the OS type into
-   the Core value and doing nothing else: `WorkspaceFrontmostAppProvider` in
-   `Packages/TownsfolkKit/Sources/TownsfolkPlatform/WorkspaceFrontmostAppProvider.swift`.
+   the Core value and doing nothing else: `WindowPresenceProvider` in
+   `Packages/TownsfolkKit/Sources/TownsfolkPlatform/WindowPresenceProvider.swift`.
 3. **The fake**, in `TownsfolkTestSupport` — a real implementation answering from data the
    test hands it, used by the Core tests of whatever consumes the port
-   (`.claude/rules/testing.md` › Fakes, not mocks): `FakeFrontmostAppProvider` in
-   `Packages/TownsfolkKit/Tests/TownsfolkTestSupport/FakeFrontmostAppProvider.swift`.
+   (`.claude/rules/testing.md` › Fakes, not mocks): `FakeWindowPresenceProvider` in
+   `Packages/TownsfolkKit/Tests/TownsfolkTestSupport/FakeWindowPresenceProvider.swift`.
 4. **The local-machine test**, in `Packages/TownsfolkKit/Tests/TownsfolkPlatformTests` — the
    adapter against the *real* OS, which the fake by construction cannot check:
-   `WorkspaceFrontmostAppProviderTests` asks the live `NSWorkspace`. Every suite there
-   carries the `.requiresLocalMachine` trait, so it runs only with
+   `WindowPresenceProviderTests` puts a real `NSWindow` on screen and watches the live
+   window server and notification centers. Every suite there carries the
+   `.requiresLocalMachine` trait, so it runs only with
    `RUN_LOCAL_MACHINE_TESTS=1` — what `just test-local` sets — and is reported as
    *skipped* under `just test` and in CI. It has to be: a runner has no logged-in GUI
    session and cannot be granted Accessibility, Input Monitoring, or Screen Recording,
@@ -82,10 +84,10 @@ of them to copy:
    request (`.claude/rules/testing.md` › Where a Test Goes).
 5. **The contract suite**, in `TownsfolkTestSupport` — one function over the protocol that
    checks every promise the port's `///` states, so the fake cannot quietly promise
-   something the adapter does not: `FrontmostAppProvidingContract` in
-   `Packages/TownsfolkKit/Tests/TownsfolkTestSupport/FrontmostAppProvidingContract.swift`.
-   `FrontmostAppProvidingContractTests` in `TownsfolkCoreTests` runs it against the fake on
-   every `just test` and in CI, and `WorkspaceFrontmostAppProviderTests` runs the same
+   something the adapter does not: `WindowPresenceProvidingContract` in
+   `Packages/TownsfolkKit/Tests/TownsfolkTestSupport/WindowPresenceProvidingContract.swift`.
+   `WindowPresenceProvidingContractTests` in `TownsfolkCoreTests` runs it against the fake on
+   every `just test` and in CI, and `WindowPresenceProviderTests` runs the same
    function against the adapter under `.requiresLocalMachine` (`just test-local`)
    (`.claude/rules/testing.md` › One Contract Suite per Port).
 
@@ -125,9 +127,10 @@ through the same loggers, which they already see by importing `TownsfolkCore`, s
 The conventions that go with it — one category per concern, a privacy annotation on
 anything user-derived, and never `print`/`debugPrint`/`NSLog` under `Sources/` or `App/`
 (`.swiftlint.yml`'s `no_print_in_sources` rejects them) — are in
-`.claude/rules/swift.md` › Logging. `FrontmostAppViewModel.refresh()` is the worked
-example: it logs that a refresh happened `.public` and the other application's name
-`.private`.
+`.claude/rules/swift.md` › Logging. `AppLog.presence` is the worked example: `App/`
+logs every value `WindowPresenceProviding` reports, its three flags `.public` because
+they are states that say nothing about the person. `AppLog.settings` shows the other
+side: `SettingsViewModel` logs whether a submitted name was taken, never the name.
 
 ## Where new code goes
 

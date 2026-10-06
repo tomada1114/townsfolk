@@ -27,8 +27,8 @@ boundaries and import rules (`AGENTS.md` › Architecture, `.claude/rules/swift.
 The 80% coverage floor on `TownsfolkCore` only means something if a test can reach every
 branch without waiting, without depending on the machine's clock, language, or luck.
 Anything Core would read from the world — the time, the locale, a random number — is
-therefore an input, the same way `FrontmostAppViewModel` is handed an
-`any FrontmostAppProviding` instead of asking `NSWorkspace`.
+therefore an input, the same way window presence reaches Core as values from an
+`any WindowPresenceProviding` instead of Core watching `NSWindow` itself.
 
 These are standard-library and Foundation values, not OS integrations, so they are
 injected as plain parameters. They do not need a port in `TownsfolkPlatform`; add a port
@@ -82,7 +82,7 @@ only when the answer really comes from an OS framework Core may not import.
   composition root or the initializer's default argument), and passes it on explicitly:
   `value.formatted(.number.locale(locale))`, `date.formatted(.dateTime.locale(locale))`.
 - Keep the user-visible *wording* in Core where the coverage floor sees it, as a
-  `LocalizedStringResource` like `FrontmostAppViewModel.label`; the view only renders it.
+  `LocalizedStringResource` like `SettingsViewModel.nameError`; the view only renders it.
   How one is declared and kept in the String Catalog is `localizing-the-app`.
 - **Tests:** `Locale(identifier: "en_US_POSIX")` for a stable expected string, plus a
   second locale (`"de_DE"`, `"ja_JP"`) when the behavior under test *is* the
@@ -121,17 +121,18 @@ only when the answer really comes from an OS framework Core may not import.
 ## Action-shaped view models
 
 - A view model is `@MainActor @Observable public final class`, importing `Observation`
-  and, for its wording, `Foundation` (`FrontmostAppViewModel`). It
+  and, for its wording, `Foundation` (`SettingsViewModel`). It
   is the one place a view reads state from and sends intent to.
 - State is `public private(set) var`; derived state is a computed property
-  (`canPost`, `label`). A view never mutates state directly.
+  (`canPost`, `nameError`). A view never mutates state directly.
 - Entry points are **actions named for what the user did or the app saw**:
-  `postSubmitted()`, `refresh()`, `textChanged()` — not setters, and not a
+  `postSubmitted()`, `nameSubmitted(_:)`, `speedChosen(_:)` — not setters, and not a
   generic `send(_ action:)` reducer. Each action is a method a test can call and then
   assert on the resulting state.
 - An action that waits is `async` and the view calls it from `.task` or `Task { }`;
   the view model does not spawn untracked tasks from an initializer. Construction has
-  no side effects (see `FrontmostAppViewModel.init`).
+  no side effects (see `SettingsViewModel.init`, which reads its settings and writes
+  nothing).
 - Domain rules live in value types (`YourPostText`, `DisplayName`) that the view model holds and delegates
   to; the view model translates between them and what the view shows.
 
@@ -148,7 +149,7 @@ reasoning lives in `README.md` › Design Philosophy.
 | A repository or protocol per type "for testability" | A port exists only where an OS or I/O boundary does; a pure rule is tested directly | `docs/architecture.md` › Ports and adapters |
 | A dependency-injection container or service locator | `App/` is the composition root; initializer parameters with defaults are enough | `README.md` › "Why the Core/UI/Platform split…" |
 | Coordinators / routers as separate objects | SwiftUI's own navigation state, owned by a view model, suffices at this size | this skill |
-| An event bus or `NotificationCenter` between Core types | Direct calls; an OS notification is observed through a port instead | `FrontmostAppViewModel.refresh()`'s doc comment |
+| An event bus or `NotificationCenter` between Core types | Direct calls; an OS notification is observed through a port instead | `WindowPresenceProviding`'s doc comment |
 
 Adopting one of these is the owner's decision, recorded in `docs/architecture.md` ›
 Townsfolk on these layers with the problem the current shape cannot solve.

@@ -24,16 +24,16 @@ coverage floor that pushes work into Core (`changing-gates`).
 
 ## The shape, before any OS code
 
-Every integration is the same five pieces, and the template already ships one of each to
+Every integration is the same five pieces, and the window-presence port is one of each to
 copy — `docs/architecture.md` › "Ports and adapters" is the full description:
 
 | Piece | Where | Worked example |
 |---|---|---|
-| Port: a `Sendable` protocol, value types in and out | `Packages/TownsfolkKit/Sources/TownsfolkCore/` | `FrontmostAppProviding.swift` |
-| Adapter: the OS framework import, translation only | `Packages/TownsfolkKit/Sources/TownsfolkPlatform/` | `WorkspaceFrontmostAppProvider.swift` |
-| Fake: a real implementation answering from test data | `Tests/TownsfolkTestSupport/` | `FakeFrontmostAppProvider.swift` |
-| Local-machine test: the adapter against the real OS | `Tests/TownsfolkPlatformTests/` | `WorkspaceFrontmostAppProviderTests.swift` |
-| Contract: the port's promises, run against the fake and the adapter | `Tests/TownsfolkTestSupport/` | `FrontmostAppProvidingContract.swift` |
+| Port: a `Sendable` protocol, value types in and out | `Packages/TownsfolkKit/Sources/TownsfolkCore/` | `Presence/WindowPresenceProviding.swift` |
+| Adapter: the OS framework import, translation only | `Packages/TownsfolkKit/Sources/TownsfolkPlatform/` | `WindowPresenceProvider.swift` |
+| Fake: a real implementation answering from test data | `Tests/TownsfolkTestSupport/` | `FakeWindowPresenceProvider.swift` |
+| Local-machine test: the adapter against the real OS | `Tests/TownsfolkPlatformTests/` | `WindowPresenceProviderTests.swift` |
+| Contract: the port's promises, run against the fake and the adapter | `Tests/TownsfolkTestSupport/` | `WindowPresenceProvidingContract.swift` |
 
 Write the port first. Its signature is where you decide what the OS type collapses into,
 and an adapter written before its port almost always leaks one: `CGEvent`, `AXUIElement`,

@@ -77,12 +77,12 @@ working implementation of the protocol that lives in `Tests/TownsfolkTestSupport
 from data the test hands it, and records what it was asked in a plain value — a call
 count, or the arguments it received — which the test reads afterwards with `#expect`.
 It declares no expectations up front, verifies nothing itself, and needs no framework:
-`FakeFrontmostAppProvider.swift` there is the worked example to copy. It is `package`,
+`FakeWindowPresenceProvider.swift` there is the worked example to copy. It is `package`,
 not `public`, and `Sendable` the honest way — a lock around what it records, never
 `@unchecked Sendable`. Every test of a given port uses that one fake, so the port's test-time
 behavior is defined in one place rather than re-stubbed per test. Asserting on the
-recorded calls is for the cases where *asking* is the behavior (asking again on each
-refresh, not asking at all during `init`); otherwise assert on the state the answer
+recorded calls is for the cases where *asking* is the behavior (one observation per
+consumer, an observer released once it stops); otherwise assert on the state the answer
 produced, not on the interaction that produced it.
 
 ## One Contract Suite per Port
@@ -90,22 +90,23 @@ produced, not on the interaction that produced it.
 A fake stands in for the adapter only while both keep the port's promises, so those
 promises are asserted once, against both. The contract suite is a function over the
 protocol, not over either implementation, and every clause it checks is one the port's
-`///` states (add the clause there first). `FrontmostAppProviding` is the worked example:
+`///` states (add the clause there first). `WindowPresenceProviding` is the worked example:
 
 - The fakes and one contract function per port live in the `TownsfolkTestSupport` target
   (`Tests/TownsfolkTestSupport`), which both test targets depend on — never one test target
   depending on another. It is test code: no product exports it, and
   `ArchitectureBoundaryTests` fails if a shipped module imports it.
-- `FrontmostAppProvidingContract.check(_:)` takes `some FrontmostAppProviding` and
-  asserts with `#expect` that every non-`nil` answer carries a non-empty `name`, asking
-  more than once. Its `violations(of:)` returns what `check(_:)` asserts on, so a Core
-  test hands it a provider that breaks a clause and sees the contract report it — the
-  proof the contract is not vacuous.
-- `FrontmostAppProvidingContractTests` in `TownsfolkCoreTests` runs it against the fake:
+- `WindowPresenceProvidingContract.check(_:)` takes `some WindowPresenceProviding` and
+  asserts with `#expect` that observing yields the current presence without waiting for
+  a change, and that a second observer gets a first value of its own while the first
+  still observes. Its `violations(of:within:)` returns what `check(_:)` asserts on, so a
+  Core test hands it a provider that breaks a clause and sees the contract report it —
+  the proof the contract is not vacuous.
+- `WindowPresenceProvidingContractTests` in `TownsfolkCoreTests` runs it against the fake:
   CI runs it, so the fake cannot drift from the port.
-- `WorkspaceFrontmostAppProviderTests` in `TownsfolkPlatformTests`, a `.requiresLocalMachine`
-  suite, runs the same function against `WorkspaceFrontmostAppProvider` beside its
-  translation test (`just test-local`).
+- `WindowPresenceProviderTests` in `TownsfolkPlatformTests`, a `.requiresLocalMachine`
+  suite, runs the same function against `WindowPresenceProvider` beside its translation
+  tests (`just test-local`).
 
 ## Edge Cases (always consider these)
 
