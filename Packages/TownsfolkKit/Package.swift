@@ -23,9 +23,11 @@ let package = Package(
         // Core owns the user-facing wording (it returns `LocalizedStringResource`), so the
         // one String Catalog lives here. xcodebuild compiles it into Core's resource
         // bundle; `swift build` only copies it, so tests read English from `defaultValue`.
+        // The seed tables, one JSON file per language, are copied beside it (ADR-0007);
+        // `.process` flattens them into the bundle's top level, where `SeedTables` looks.
         .target(
             name: "TownsfolkCore",
-            resources: [.process("Resources/Localizable.xcstrings")],
+            resources: [.process("Resources/Localizable.xcstrings"), .process("Resources/Seeds")],
             swiftSettings: strictSettings,
         ),
         .target(
