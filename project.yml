@@ -34,6 +34,20 @@ targets:
     # local file can reach `just smoke` or the release workflow.
     configFiles:
       Debug: Config/Debug.xcconfig
+    # Japanese is declared here, on the app, because its strings ship in TownsfolkCore's
+    # resource bundle: the app bundle holds no `ja.lproj` for macOS to count, and the
+    # menus macOS provides follow `AppleLanguages` only into a language the app declares
+    # (ADR-0007). XcodeGen writes the gitignored App/Info.plist from this block on every
+    # generate, and Xcode merges in the keys GENERATE_INFOPLIST_FILE adds. XcodeGen would
+    # otherwise write a fixed "1.0" and "1" for the two versions, so they point back at
+    # the build settings `just release-prep` sets.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ja]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.tomada1114.Townsfolk
