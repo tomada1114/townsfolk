@@ -9,6 +9,12 @@
   `App/Assets.xcassets`, where the running app resolves them; moving them to a
   `TownsfolkUI` resource catalog, which changes `Package.swift`, is proposed as a
   follow-up (#7).
+- **Amended:** 2026-10-06 — The follow-up landed (#37): both Color Sets moved to
+  `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets`, the
+  `TownsfolkUI` target gained `resources: [.process("Resources")]`, and `DesignLock`
+  reads them with `Color(_:bundle: .module)`, so they resolve in a `#Preview` as well as
+  in the app. The owner signed off on the `Package.swift` change on 2026-10-06; it adds
+  no dependency.
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -47,7 +53,7 @@ ring — and the window's shape is ADR-0001.
 - **Accent color:** system default; `AccentColor.colorset` keeps no value. It appears
   only where system controls put it (the default button, text selection, Settings'
   controls, the focus ring); no custom view uses it, and nothing depends on its hue.
-- **Custom colors:** two Color Sets in `App/Assets.xcassets`.
+- **Custom colors:** two Color Sets in `TownsfolkUI`'s `Resources/Colors.xcassets`.
   - `SecondaryText` — Any #666666, Dark #A3A3A3, Any High Contrast #4D4D4D, Dark High
     Contrast #C2C2C2. Metadata text and the symbols beside it: post times, "(you)", quote
     lines, event rows, labeled dividers, the resting line, the replying chip, the counter

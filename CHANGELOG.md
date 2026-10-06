@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
+- Japanese is available alongside English: every string the app shows has a Japanese
+  translation, and the app declares Japanese, so the menus macOS provides (Quit, Edit, …)
+  appear in Japanese when the app's language is Japanese
 
 ### Changed
 
