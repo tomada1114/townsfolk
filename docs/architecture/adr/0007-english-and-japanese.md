@@ -4,6 +4,33 @@
   of truth; Core's strings resolved in the app's language; per-language seed tables;
   translation by the implementing agent. Proposed: how the menus macOS provides follow
   the setting at the next launch, until the running app confirms it.
+- **Amended:** 2026-10-06 — The Proposed part checked in the running app (#9): with
+  Japanese declared as `CFBundleLocalizations` `[en, ja]` through `project.yml`'s `info:`
+  block — the app bundle has no `ja.lproj` of its own, since Core's bundle holds the
+  strings — and `AppleLanguages` `["ja"]` in the app's container domain, the menus macOS
+  provides (the app menu's Quit, Edit) launched in Japanese, and in English after
+  `["en"]`, on a Mac whose own languages are Japanese then English. `SettingsStore`'s
+  write from inside the sandboxed app lands in the same container domain; the running
+  app's menus keep their launch language until the next launch, while
+  `Locale.preferredLanguages` follows the write at once. Accepting this part is the
+  owner's.
+- **Amended:** 2026-10-06 — The per-app language in System Settings, partly settled (#9):
+  Apple's guide puts it under System Settings › General › Language & Region ›
+  Applications and says an open app may need to be quit and reopened to show it. Verified
+  here: macOS takes the menus' language at launch from `AppleLanguages` in the app's
+  container domain, the key `SettingsStore` writes on every language write. Not verified,
+  because System Settings was left unchanged: whether choosing a language there writes
+  that same key, which would make the later of the two writes win at the next launch and
+  leave the in-app setting unchanged; it stays an open question below.
+- **Amended:** 2026-10-06 — Open question settled (#9): SwiftUI's `Text` does not resolve
+  a `LocalizedStringResource` in the resource's own `locale`; it uses the process's
+  language. In the running app with the process in English, `Text(resource)` for a
+  resource set to Japanese showed "Frontmost: —", while
+  `Text(verbatim: String(localized: resource))` showed "最前面: —"; with the process in
+  Japanese, a resource set to English showed the Japanese. The rule every view follows:
+  Core sets the resource's locale with `TownLanguage.localized(_:)` and resolves it with
+  `String(localized:)`, and the view renders the string with `Text(verbatim:)`, never
+  `Text(resource)`.
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -105,16 +132,11 @@ writes it.
 
 ## Open questions
 
-- Unverified: whether SwiftUI's `Text` resolves a `LocalizedStringResource` with the
-  resource's own `locale`. If it does not, Core hands the view the resolved string and the
-  view uses `Text(verbatim:)`. The first screen's issue settles it.
-- Unverified: that the app's `AppleLanguages` default and an app-level declaration of
-  Japanese are what make the menus macOS provides follow the setting at the next launch
-  (the Proposed part above).
-- Unverified: macOS also offers a per-app language in System Settings (Apple's Mac User
-  Guide, <https://support.apple.com/guide/mac-help/mchlddb13d65/mac>, seen in search
-  results, not read). How it and the in-app setting interact is left to the settings
-  issue.
+- Unverified: whether choosing a language for Townsfolk in System Settings › General ›
+  Language & Region › Applications writes the app's `AppleLanguages` default, the key
+  the in-app setting writes, or keeps the choice elsewhere — and so which of the two the
+  menus follow when both are set (Amended 2026-10-06). Checking it means changing that
+  setting by hand and reading the app's defaults before and after.
 - Unverified: how `typos` (`just lint`) treats the Japanese values in `ja.json`; checked
   when the file lands.
 
@@ -128,6 +150,16 @@ writes it.
   Japanese string, while `String(localized:defaultValue:table:bundle:locale:comment:)`
   with the same locale returned the English one. It used `.strings` files, not a
   compiled String Catalog.
+- Running app on this repository's toolchain (Xcode 27.0, macOS 27.0), 2026-10-06 (#9):
+  `defaults write io.github.tomada1114.Townsfolk AppleLanguages -array ja` (and
+  `-array en`), each followed by a launch; the main menu's item titles read from
+  `NSApp.mainMenu`, and a throwaway view rendering one Core resource as `Text(resource)`
+  and as `Text(verbatim: String(localized: resource))`. The experiment's code and
+  screenshots are in the pull request; none of it is committed.
+- <https://support.apple.com/guide/mac-help/change-the-system-language-mh26684/mac> —
+  "Change the language your Mac uses" (macOS 27): per-app languages under Language &
+  Region › Applications, and an open app may need to be quit and reopened — checked
+  2026-10-06
 - <https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md> —
   `developmentLanguage` "Defaults to `en`"; known regions come from the project's
   resources — checked 2026-09-30
