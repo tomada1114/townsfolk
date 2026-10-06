@@ -53,8 +53,9 @@ paths:
 - A number someone might tune (a delay, a threshold, a limit): Core's one `Tuning` type
   (the `designing-core-logic` skill); a domain invariant is a parameter or a `static`
   on its type, not a `Tuning` entry
-- User-visible wording Core decides: a `static let` on the view model
-  (`FrontmostAppViewModel.unavailableDisplayName`); the logging subsystem: `AppLog`, once
+- User-visible wording Core decides: computed `LocalizedStringResource`s on a Core type
+  (`SettingsWording`), which the view model resolves in the app language
+  (`SettingsViewModel`, ADR-0007); the logging subsystem: `AppLog`, once
 - A type holding only `static` members is a caseless `enum` (SwiftLint's
   `convenience_type`). No global `let`, and no `Constants.swift` grab bag: a constant
   lives beside the one concern that uses it
