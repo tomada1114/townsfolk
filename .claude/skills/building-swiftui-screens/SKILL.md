@@ -107,10 +107,11 @@ are the shape to follow; those two show the rest (a `private enum Layout` over
   never localized, never shown to a person. Renaming one breaks `just uitest`, so rename
   the test in the same change (`LaunchTests` reads `townWindow`).
 - **Labels are what VoiceOver says**, and an identifier is not one. Give every control a
-  text label from a Core `LocalizedStringResource` (`localizing-the-app`):
-  `Button(model.addTitle, systemImage: "plus")` or `Label` rather than a bare `Image`,
-  and `.accessibilityLabel(model.replyLabel)` where the visible text is a glyph or a
-  number without context. A decorative image is `Image(decorative:)` or `.accessibilityHidden(true)`.
+  text label from a Core `LocalizedStringResource`, resolved as `localizing-the-app`'s
+  rendering rule says (ADR-0007: never pass the resource itself):
+  `Button(String(localized: model.addTitle), systemImage: "plus")` or `Label` rather than
+  a bare `Image`, and `.accessibilityLabel(Text(verbatim: String(localized: model.replyLabel)))`
+  where the visible text is a glyph or a number without context. A decorative image is `Image(decorative:)` or `.accessibilityHidden(true)`.
   Enforced by: `accessibility_label_for_image` (a labelless image) and
   `accessibility_trait_for_button` (an `.onTapGesture` without `.isButton`), both on
   through `opt_in_rules: all`. Neither sees a glyph-only text button — review does.

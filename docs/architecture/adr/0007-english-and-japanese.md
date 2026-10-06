@@ -31,6 +31,14 @@
   Core sets the resource's locale with `TownLanguage.localized(_:)` and resolves it with
   `String(localized:)`, and the view renders the string with `Text(verbatim:)`, never
   `Text(resource)`.
+- **Amended:** 2026-10-06 — Open question settled (#10): `typos` (`just lint`) checks the
+  seed files as they are, with no exclusion and no change to `_typos.toml`. It lists
+  `en.json` and `ja.json` among the files it checks, reads the Japanese values in
+  `ja.json` as words (105 of them), and flags none, while a known misspelling written
+  after Japanese text on the same line is still flagged. The seed files landed with
+  English ids and keys in both and their own resident axes per language; their parity and
+  completeness are checked by `SeedTablesTests` rather than by extending
+  `LocalizationTests`.
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -137,8 +145,6 @@ writes it.
   the in-app setting writes, or keeps the choice elsewhere — and so which of the two the
   menus follow when both are set (Amended 2026-10-06). Checking it means changing that
   setting by hand and reading the app's defaults before and after.
-- Unverified: how `typos` (`just lint`) treats the Japanese values in `ja.json`; checked
-  when the file lands.
 
 ## Sources
 
@@ -156,6 +162,11 @@ writes it.
   `NSApp.mainMenu`, and a throwaway view rendering one Core resource as `Text(resource)`
   and as `Text(verbatim: String(localized: resource))`. The experiment's code and
   screenshots are in the pull request; none of it is committed.
+- Run on this repository's toolchain (typos-cli 1.50.2, as `mise.toml` pins it),
+  2026-10-06 (#10): `typos --files` on `Resources/Seeds/` listed both files, `typos` on
+  them exited 0, `typos --identifiers` on `ja.json` printed 105 Japanese words, and a
+  line of Japanese followed by a common English misspelling, given on stdin, had the
+  misspelling flagged. The output is in the pull request.
 - <https://support.apple.com/guide/mac-help/change-the-system-language-mh26684/mac> —
   "Change the language your Mac uses" (macOS 27): per-app languages under Language &
   Region › Applications, and an open app may need to be quit and reopened — checked

@@ -15,6 +15,18 @@
   reads them with `Color(_:bundle: .module)`, so they resolve in a `#Preview` as well as
   in the app. The owner signed off on the `Package.swift` change on 2026-10-06; it adds
   no dependency.
+- **Amended:** 2026-10-06 — Open question settled (#10): each event kind's symbol, the
+  same in `en.json` and `ja.json` — `weather-turns` `cloud.sun.rain`, `shop-opens`
+  `storefront`, `festival` `party.popper`, `lost-pet` `pawprint`, `road-works` `cone`,
+  `visitor` `suitcase.rolling`, `power-cut` `bolt.slash`, `market-day` `basket`,
+  `snowfall` `snowflake`, `thick-fog` `cloud.fog`, `concert` `music.note`, `fireworks`
+  `fireworks`, `sports-day` `figure.run`, `book-fair` `books.vertical` — and the fixed
+  kinds `move-in` `house`, `move-out` `figure.walk`, and `founding` `house`, chosen for
+  the "You moved to {town}." row. Every name was checked on macOS 27.0 with a throwaway,
+  uncommitted Swift script calling `NSImage(systemSymbolName:accessibilityDescription:)`
+  for each of the 16 distinct names: all were found, and a made-up name was not. They
+  were not opened in the SF Symbols app; how each reads beside an event row is seen once
+  the timeline shows one.
 - **Date:** 2026-09-30
 - **Deciders:** the owner
 
@@ -149,14 +161,17 @@ private `Layout` enum refers to it. None of it goes in `TownsfolkCore`.
   raised to meet AA rather than shipped in the system's gray.
 - Whether the wash is visible enough at a glance from a second display is settled in
   use.
-- Each event kind's symbol is chosen when the tables are written and checked in the SF
-  Symbols app.
 
 ## Sources
 
 - [`docs/design/design-direction.md`](../../design/design-direction.md) — the research,
   the decision ledger, the token values, and the measured contrast, with its own sources
   (Refero styles and screens, and the macOS 27 system colors measured on 2026-09-30).
+- Run on this repository's toolchain (macOS 27.0, build 26A428), 2026-10-06 (#10): a
+  Swift script passing each symbol name in the seed files to
+  `NSImage(systemSymbolName:accessibilityDescription:)` printed "found" for all 16 and
+  "MISSING" for `not.a.real.symbol`. The script and its output are in the pull request;
+  neither is committed.
 - <https://developer.apple.com/documentation/swiftui/primitivebuttonstyle/glass> — the
   glass button style, macOS 26.0+ — checked 2026-09-30
 - <https://developer.apple.com/documentation/swiftui/shapestyle/separator> — "a style

@@ -40,8 +40,12 @@ per-screen one.
 - **Color:** use semantic colors — `.primary`, `.secondary`, `Color.accentColor`, the
   dynamic system colors — for their stated purpose. Never hard-code a system color's
   value, and never repurpose one (a separator color as text). A custom color is a Color
-  Set in `App/Assets.xcassets` with both an Any and a Dark appearance variant; a literal
-  RGB value in a view is a review finding.
+  Set with both an Any and a Dark appearance variant; a literal RGB value in a view is a
+  review finding. In this app it lives in `TownsfolkUI`'s
+  `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets` and is read with
+  `Color(_:bundle: .module)` (ADR-0008's 2026-10-06 amendment): a Color Set in the app's
+  main-bundle catalog resolves to clear in a `TownsfolkUI` `#Preview`. Only the accent
+  stays in `App/Assets.xcassets`.
 - **Accent:** `App/Assets.xcassets/AccentColor.colorset` is the one place the app's
   accent is set (`project.yml`'s `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`), and
   the template ships it with no color value. On macOS the app's accent shows only while
