@@ -103,8 +103,8 @@ private final class PresenceObservation {
 /// The AppKit adapter for ``TownsfolkCore/WindowPresenceProviding``: it watches one window,
 /// the app, and the Mac, and reports what it sees.
 ///
-/// Observation only, like `WorkspaceFrontmostAppProvider`: whether the town runs is the
-/// engine's decision in Core. The window is found by its
+/// Observation only, deciding nothing: whether the town runs is the engine's decision in
+/// Core. The window is found by its
 /// `NSWindow.identifier`, which a SwiftUI `Window` scene sets to the scene's `id`, so
 /// `App/` hands over the same string it gives the scene and no view has to reach for its
 /// `NSWindow`.

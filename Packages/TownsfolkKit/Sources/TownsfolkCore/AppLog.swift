@@ -14,7 +14,7 @@ import os
 /// the way users launch it has nowhere to send stdout, so those lines vanish exactly
 /// when they would matter. `.swiftlint.yml`'s `no_print_in_sources` rejects them.
 /// Anything user-derived that reaches a log message carries a privacy annotation —
-/// see ``FrontmostAppViewModel/refresh()`` for the worked example.
+/// `.claude/rules/swift.md` › Logging says which values are `.private` and which `.public`.
 public enum AppLog {
     /// The subsystem every logger below is created with: this app's bundle identifier,
     /// and the value `just logs` filters the stream on.
@@ -27,15 +27,12 @@ public enum AppLog {
     /// the two ever disagree.
     public static let subsystem = "io.github.tomada1114.Townsfolk"
 
-    /// The frontmost-application concern: ``FrontmostAppProviding`` and its view model.
-    ///
-    /// One category per concern, named for the concern rather than for a type, so
-    /// `log stream --predicate 'category == "frontmost-app"'` narrows the stream to one
-    /// story. A new concern adds a `Logger` here instead of building one inline.
-    public static let frontmostApp = Logger(subsystem: subsystem, category: "frontmost-app")
-
     /// The window-presence concern: every value ``WindowPresenceProviding`` reports. Its
     /// three flags say nothing about the person, so they are logged `.public`.
+    ///
+    /// One category per concern, named for the concern rather than for a type, so
+    /// `log stream --predicate 'category == "presence"'` narrows the stream to one story.
+    /// A new concern adds a `Logger` here instead of building one inline.
     public static let presence = Logger(subsystem: subsystem, category: "presence")
 
     /// The settings concern: each change ``SettingsViewModel`` stores. Your name is never
