@@ -16,7 +16,7 @@ it under Open questions until it is decided.
 | Field | What "decided" looks like | Where it lands in code |
 |---|---|---|
 | Accent color | "System default", or one color with its Any and Dark variants given as sRGB values, and what it is used for (prominent buttons, selection) | `App/Assets.xcassets/AccentColor.colorset` |
-| Custom colors | Each named color, its purpose, and its Any and Dark variants — or "none; semantic system colors only" | One Color Set each in `App/Assets.xcassets` |
+| Custom colors | Each named color, its purpose, and its Any and Dark variants — or "none; semantic system colors only" | One Color Set each in `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets`, read with `Color(_:bundle: .module)` so a `#Preview` resolves it (ADR-0008) |
 | Type | The text styles the app uses and for what (`.title` for a window's heading, `.body` for content, `.footnote` for secondary facts); any fixed-size display style and why; a custom font and its license, or "system font only" | `.font(...)` at the call site; a fixed display size in the view's `Layout` enum |
 | Spacing scale | A short list of spacing values (for example 4, 8, 16, 32 points) and which one separates what — control from control, group from group, content from window edge | Each view's private `Layout` enum draws only from this scale |
 | Density | Regular or compact; `.controlSize` and list row style if not the default | A modifier on the scene's root view, so every screen inherits it |
