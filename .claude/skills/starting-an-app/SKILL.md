@@ -38,8 +38,7 @@ runs it on a pristine clone on every push, so it cannot silently rot.
 Rename first, so nothing downstream is written against the template's identity. Then
 write the one thing no literal replace can write — `AGENTS.md`'s `## Product` section —
 then verify, then hand-edit the rest of what a replace cannot decide, then set up the
-new repository on GitHub. `README.md`'s "Using This Template" section is the reader-facing
-list of those steps; the script prints the same list when it finishes.
+new repository on GitHub. The script prints the list of those steps when it finishes.
 
 ## The rename
 
@@ -62,8 +61,8 @@ scripts/bootstrap.sh CoolApp --bundle-id-prefix io.example --github-user janedoe
   outside a git checkout (**BACKGROUND:** `writing-repo-scripts`).
 - **Keep markers:** a line containing the keep-begin marker (the text `bootstrap:keep-`
   followed by `begin`) through the next line containing the keep-end marker is never
-  rewritten. The passages that explain the placeholders — the script's header,
-  `README.md`'s "Using This Template" paragraph, and this skill's opening and
+  rewritten. The passages that explain the placeholders — the script's header and this
+  skill's opening and
   path-rename bullet — are wrapped in them (an HTML comment in Markdown, a `#` comment
   in shell), so they still name the placeholders after the rename. CI's
   `bootstrap-smoke` asserts they survive, and its leftover check ignores kept lines.
