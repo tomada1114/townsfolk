@@ -5,7 +5,7 @@ import Foundation
 /// system event.
 public struct TownEvent: Identifiable, Sendable, Equatable {
     /// Whether the event is still going on; an ended event stays in the log as the town's
-    /// history (requirements.md:258).
+    /// history (requirements.md:257).
     public enum Status: Sendable, Equatable {
         /// Over.
         case ended
@@ -13,14 +13,14 @@ public struct TownEvent: Identifiable, Sendable, Equatable {
         case ongoing
     }
 
-    /// The longest description, in characters (requirements.md:398).
+    /// The longest description, in characters (requirements.md:396).
     public static let descriptionMaxLength = 120
 
     /// The event's id.
     public let id: EntityID<Self>
     /// Which kind of event this is, from the seed tables.
     public let kind: EventKindID
-    /// One line in the town's language, shown as the event row.
+    /// One line, shown as the event row.
     public let description: String
     /// When it starts, in town time.
     public let startsAt: Date

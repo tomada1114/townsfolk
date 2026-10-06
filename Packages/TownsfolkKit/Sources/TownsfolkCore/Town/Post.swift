@@ -8,11 +8,11 @@ public struct Post: Identifiable, Sendable, Equatable {
         /// A resident, by id.
         case resident(EntityID<Resident>)
         /// You. No name is stored: a display-name change shows everywhere
-        /// (requirements.md:334).
+        /// (requirements.md:332).
         case you
     }
 
-    /// Why a resident's post was written (requirements.md:397).
+    /// Why a resident's post was written (requirements.md:395).
     public enum Origin: Sendable, Equatable, CaseIterable {
         /// A scene written after a pause (§3.7).
         case catchUp
@@ -24,9 +24,9 @@ public struct Post: Identifiable, Sendable, Equatable {
         case response
     }
 
-    /// The most topic tags on one post (requirements.md:397).
+    /// The most topic tags on one post (requirements.md:395).
     public static let maxTopicTags = 3
-    /// The longest topic tag, in characters (requirements.md:397).
+    /// The longest topic tag, in characters (requirements.md:395).
     public static let topicTagMaxLength = 40
 
     /// The post's id — minted before storing, so a scene's replies can point at it.
@@ -37,9 +37,6 @@ public struct Post: Identifiable, Sendable, Equatable {
     public let text: String
     /// When it happened in town time — spread across a pause for catch-up posts.
     public let happenedAt: Date
-    /// The language the text is written in; earlier posts keep theirs when the setting
-    /// changes (requirements.md:333).
-    public let language: TownLanguage
     /// The post this one replies to, if any.
     public let replyTarget: EntityID<Self>?
     /// What the post is about, feeding the status line (§3.3).
@@ -52,7 +49,7 @@ public struct Post: Identifiable, Sendable, Equatable {
 
     /// Creates a post, trimming its text and tags at both ends.
     ///
-    /// A resident's text is 1 to `tuning.timeline.residentPostMaxLength[language]`
+    /// A resident's text is 1 to `tuning.timeline.residentPostMaxLength`
     /// characters; yours follows ``YourPostText``. A resident's post needs an `origin` and
     /// a `sceneID`; yours takes neither.
     /// - Throws: ``TownValueError`` for text or tags outside their limits, or an origin or
@@ -62,7 +59,6 @@ public struct Post: Identifiable, Sendable, Equatable {
         author: Author,
         text: String,
         happenedAt: Date,
-        language: TownLanguage,
         replyTarget: EntityID<Self>? = nil,
         topicTags: [String] = [],
         origin: Origin? = nil,
@@ -80,7 +76,7 @@ public struct Post: Identifiable, Sendable, Equatable {
             self.text = try TextRule.validated(
                 text,
                 .postText,
-                length: 1 ... tuning.timeline.residentPostMaxLength[language],
+                length: 1 ... tuning.timeline.residentPostMaxLength,
                 singleLine: false,
             )
 
@@ -97,7 +93,6 @@ public struct Post: Identifiable, Sendable, Equatable {
         self.id = id
         self.author = author
         self.happenedAt = happenedAt
-        self.language = language
         self.replyTarget = replyTarget
         self.origin = origin
         self.sceneID = sceneID

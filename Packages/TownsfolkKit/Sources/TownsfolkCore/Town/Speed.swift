@@ -1,7 +1,7 @@
 /// How often the town writes a scene — the one lever that trades liveliness for heat and
 /// battery (requirements §3.4).
 ///
-/// The raw values are what `settings.speed` stores (ADR-0004), so they are contract:
+/// The raw values are what `settings.speed` stores, so they are contract:
 /// renaming one resets every user's choice.
 public enum Speed: String, Sendable, CaseIterable {
     /// A scene about every minute.

@@ -88,8 +88,7 @@ private final class PresenceObservation {
 
     /// Yields the three facts as they stand now. The window counts as visible only while
     /// some part of it is on screen and the screens are awake for this login session —
-    /// occlusion alone is not relied on for a sleeping display or a switched-away session
-    /// (ADR-0006 › Amended).
+    /// occlusion alone is not relied on for a sleeping display or a switched-away session.
     private func report() {
         let window = NSApplication.shared.windows.first { $0.identifier == windowIdentifier }
         let isOnScreen = window?.occlusionState.contains(.visible) ?? false
@@ -105,10 +104,10 @@ private final class PresenceObservation {
 /// the app, and the Mac, and reports what it sees.
 ///
 /// Observation only, like `WorkspaceFrontmostAppProvider`: whether the town runs is the
-/// engine's decision in Core (ADR-0006). The window is found by its
+/// engine's decision in Core. The window is found by its
 /// `NSWindow.identifier`, which a SwiftUI `Window` scene sets to the scene's `id`, so
 /// `App/` hands over the same string it gives the scene and no view has to reach for its
-/// `NSWindow` (ADR-0006 › Amended).
+/// `NSWindow`.
 ///
 /// Each call to ``presenceUpdates()`` registers its own observers and removes them when its
 /// consumer stops; ``liveObservationCount`` is what the local-machine test reads to see

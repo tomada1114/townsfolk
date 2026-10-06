@@ -19,7 +19,7 @@ struct TuningTests {
     @Test
     func `the timeline starts at the requirements' values`() {
         #expect(tuning.timeline.revealSpacing == 0.10 ... 0.30)
-        #expect(tuning.timeline.residentPostMaxLength == PerLanguage(english: 280, japanese: 140))
+        #expect(tuning.timeline.residentPostMaxLength == 280)
         #expect(tuning.timeline.statusLineLineLimit == 1)
     }
 
@@ -84,13 +84,6 @@ struct TuningTests {
         #expect(intervals[.slow] == .seconds(1_800))
         #expect(intervals[.normal] == .seconds(360))
         #expect(intervals[.fast] == .seconds(60))
-    }
-
-    @Test
-    func `a per-language value reads the entry for each language`() {
-        let limits = tuning.timeline.residentPostMaxLength
-        #expect(limits[.english] == 280)
-        #expect(limits[.japanese] == 140)
     }
 
     @Test

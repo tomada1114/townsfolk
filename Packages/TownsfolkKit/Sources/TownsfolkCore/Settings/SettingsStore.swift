@@ -1,8 +1,7 @@
 import Foundation
 
-/// The four settings ADR-0004 keeps in `UserDefaults` (requirements §3.10), and the
-/// `AppleLanguages` default ADR-0007 writes beside the language so the menus macOS
-/// provides follow it at the next launch.
+/// The three settings kept in `UserDefaults` (requirements §3.10), outside the town's
+/// store so that moving to another town keeps them.
 ///
 /// It reads and writes the `UserDefaults` it is handed, so `App/` passes `.standard` and a
 /// test its own suite. Reads are tolerant: a key that is absent, of the wrong type, or
@@ -15,11 +14,8 @@ import Foundation
 public struct SettingsStore {
     private enum Key {
         static let displayName = "settings.displayName"
-        static let language = "settings.language"
         static let speed = "settings.speed"
         static let keepsMovingInOtherApps = "settings.keepsMovingInOtherApps"
-        /// The one key macOS itself reads: the app's preferred languages.
-        static let appleLanguages = "AppleLanguages"
     }
 
     private let defaults: UserDefaults
@@ -44,24 +40,6 @@ public struct SettingsStore {
         }
     }
 
-    /// The language the app speaks and the town writes in; ``TownLanguage/default`` until
-    /// one is chosen.
-    ///
-    /// Every write also stores `AppleLanguages` as that one language, even when it is
-    /// unchanged: that default, not this key, is what macOS reads at launch to pick the
-    /// language of the menus it provides (ADR-0007), and writing it each time repairs a
-    /// value something else changed in between.
-    public var language: TownLanguage {
-        get {
-            (defaults.object(forKey: Key.language) as? String).flatMap(TownLanguage.init(rawValue:))
-                ?? .default
-        }
-        nonmutating set {
-            defaults.set(newValue.rawValue, forKey: Key.language)
-            defaults.set([newValue.rawValue], forKey: Key.appleLanguages)
-        }
-    }
-
     /// How often the town writes a scene; ``Speed/default`` until one is chosen.
     public var speed: Speed {
         get {
@@ -83,12 +61,6 @@ public struct SettingsStore {
         nonmutating set {
             defaults.set(newValue, forKey: Key.keepsMovingInOtherApps)
         }
-    }
-
-    /// The app language's `Locale`, for every formatter — dates, relative times, numbers
-    /// follow the app's language, never the Mac's (`designing-core-logic` › Inject locale).
-    public var locale: Locale {
-        language.locale
     }
 
     /// Creates a store over `defaults`; a stored name is checked against `tuning`'s

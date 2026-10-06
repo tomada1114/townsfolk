@@ -6,10 +6,8 @@ import TownsfolkCore
 /// store, so a renamed key — a contract change that resets every user's value — fails.
 enum StoredKey {
     static let displayName = "settings.displayName"
-    static let language = "settings.language"
     static let speed = "settings.speed"
     static let keepsMovingInOtherApps = "settings.keepsMovingInOtherApps"
-    static let appleLanguages = "AppleLanguages"
 }
 
 /// A value written by hand where the store expects another — a property-list value of
@@ -47,7 +45,7 @@ struct FreshSuite {
     let defaults: UserDefaults
 
     /// What the suite itself holds for `key`. `object(forKey:)` would also answer from
-    /// the global domain, which always holds an `AppleLanguages` of its own.
+    /// the global domain.
     func stored(_ key: String) -> Any? {
         defaults.persistentDomain(forName: name)?[key]
     }
@@ -72,10 +70,8 @@ struct SettingsStoreTests {
             let defaults = suite.defaults
             let store = SettingsStore(defaults: defaults)
             #expect(store.displayName == nil)
-            #expect(store.language == .english)
             #expect(store.speed == .normal)
             #expect(store.keepsMovingInOtherApps == true)
-            #expect(store.locale == Locale(identifier: "en"))
         }
     }
 
@@ -84,92 +80,10 @@ struct SettingsStoreTests {
         try withFreshDefaults { suite in
             let defaults = suite.defaults
             let store = SettingsStore(defaults: defaults)
-            _ = (store.displayName, store.language, store.speed, store.keepsMovingInOtherApps)
-            for key in [
-                StoredKey.displayName, StoredKey.language, StoredKey.speed,
-                StoredKey.keepsMovingInOtherApps, StoredKey.appleLanguages,
-            ] {
+            _ = (store.displayName, store.speed, store.keepsMovingInOtherApps)
+            for key in [StoredKey.displayName, StoredKey.speed, StoredKey.keepsMovingInOtherApps] {
                 #expect(suite.stored(key) == nil, "\(key)")
             }
-        }
-    }
-
-    // MARK: Language
-
-    @Test(arguments: [
-        (TownLanguage.english, "en"),
-        (TownLanguage.japanese, "ja"),
-    ])
-    func `writing the language stores its code and AppleLanguages`(
-        language: TownLanguage,
-        code: String,
-    ) throws {
-        try withFreshDefaults { suite in
-            let defaults = suite.defaults
-            let store = SettingsStore(defaults: defaults)
-            store.language = language
-            #expect(suite.stored(StoredKey.language) as? String == code)
-            #expect(suite.stored(StoredKey.appleLanguages) as? [String] == [code])
-            #expect(SettingsStore(defaults: defaults).language == language)
-            #expect(store.locale == Locale(identifier: code))
-        }
-    }
-
-    @Test
-    func `writing the same language again still writes AppleLanguages`() throws {
-        try withFreshDefaults { suite in
-            let defaults = suite.defaults
-            let store = SettingsStore(defaults: defaults)
-            store.language = .japanese
-            defaults.set(["en"], forKey: StoredKey.appleLanguages)
-            store.language = .japanese
-            #expect(suite.stored(StoredKey.appleLanguages) as? [String] == ["ja"])
-            #expect(store.language == .japanese)
-        }
-    }
-
-    @Test
-    func `switching language back replaces AppleLanguages rather than appending`() throws {
-        try withFreshDefaults { suite in
-            let defaults = suite.defaults
-            let store = SettingsStore(defaults: defaults)
-            store.language = .japanese
-            store.language = .english
-            #expect(suite.stored(StoredKey.appleLanguages) as? [String] == ["en"])
-            #expect(store.locale == Locale(identifier: "en"))
-        }
-    }
-
-    @Test(arguments: [
-        .string("fr"),
-        .string(""),
-        .string("JA"),
-        .int(1),
-        .strings(["ja"]),
-    ] as [HandWritten])
-    func `an unknown or mistyped stored language answers English and stays stored`(
-        stored: HandWritten,
-    ) throws {
-        try withFreshDefaults { suite in
-            let defaults = suite.defaults
-            defaults.set(stored.object, forKey: StoredKey.language)
-            let store = SettingsStore(defaults: defaults)
-            #expect(store.language == .english)
-            #expect(store.locale == Locale(identifier: "en"))
-            #expect(suite.stored(StoredKey.language) != nil)
-            #expect(suite.stored(StoredKey.appleLanguages) == nil)
-        }
-    }
-
-    @Test
-    func `an unknown stored language is replaced by the next write`() throws {
-        try withFreshDefaults { suite in
-            let defaults = suite.defaults
-            defaults.set("fr", forKey: StoredKey.language)
-            let store = SettingsStore(defaults: defaults)
-            #expect(suite.stored(StoredKey.language) as? String == "fr")
-            store.language = .japanese
-            #expect(suite.stored(StoredKey.language) as? String == "ja")
         }
     }
 

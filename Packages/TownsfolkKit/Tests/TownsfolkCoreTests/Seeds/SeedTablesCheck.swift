@@ -15,18 +15,12 @@ struct SeedList {
     let texts: [String]
 }
 
-/// The rules the shipped seed files are held to, each returning one line per problem
+/// The rules the shipped seed file is held to, each returning one line per problem
 /// that names what broke it — the list or the id, and the file — so a failing `#expect`
 /// reads as the fix. Nothing here is read at run time: the engine trusts the shipped
-/// files because these checks pass on them.
+/// file because these checks pass on it.
 enum SeedTablesCheck {
-    /// What must match between files for one event or fixed kind id.
-    private struct Shape: Equatable {
-        let symbol: String
-        let hours: ClosedRange<Int>?
-    }
-
-    /// The smallest each list may be, per file — starting values settled in use
+    /// The smallest each list may be — starting values settled in use
     /// (requirements §6), chosen in issue #10.
     enum Minimum {
         static let occupations = 30
@@ -106,72 +100,8 @@ enum SeedTablesCheck {
             }
     }
 
-    /// Every way the event kinds and fixed kinds of two files disagree: an id in one and
-    /// not the other, or the same id with a different symbol or range. Resident axes are
-    /// each file's own and are not compared.
-    static func parityProblems(_ first: SeedFile, _ second: SeedFile) -> [String] {
-        let names = (first: first.name, second: second.name)
-        return compare("eventKinds", (kindShapes(first), kindShapes(second)), names: names)
-            + compare("fixedEventKinds", (fixedShapes(first), fixedShapes(second)), names: names)
-    }
-
     private static func list(_ name: String, _ entries: [SeedTables.Entry]) -> SeedList {
         SeedList(name: name, ids: entries.map(\.id), texts: entries.map(\.text))
-    }
-
-    private static func kindShapes(_ file: SeedFile) -> [(id: String, shape: Shape)] {
-        file.tables.eventKinds.map { kind in
-            (id: kind.id.rawValue, shape: Shape(symbol: kind.symbol, hours: kind.hours))
-        }
-    }
-
-    private static func fixedShapes(_ file: SeedFile) -> [(id: String, shape: Shape)] {
-        file.tables.fixedEventKinds.map { kind in
-            (id: kind.id.rawValue, shape: Shape(symbol: kind.symbol, hours: nil))
-        }
-    }
-
-    private static func compare(
-        _ list: String,
-        _ files: (first: [(id: String, shape: Shape)], second: [(id: String, shape: Shape)]),
-        names: (first: String, second: String),
-    ) -> [String] {
-        let firstShapes = Dictionary(files.first.map { ($0.id, $0.shape) }) { kept, _ in kept }
-        let secondShapes = Dictionary(files.second.map { ($0.id, $0.shape) }) { kept, _ in kept }
-        let missingFromSecond = files.first
-            .filter { secondShapes[$0.id] == nil }
-            .map { "\(list): \($0.id) missing from \(names.second)" }
-        let missingFromFirst = files.second
-            .filter { firstShapes[$0.id] == nil }
-            .map { "\(list): \($0.id) missing from \(names.first)" }
-        let differing = files.first.flatMap { entry in
-            guard let theirs = secondShapes[entry.id] else {
-                return [String]()
-            }
-            return differences("\(list): \(entry.id)", (entry.shape, theirs), names: names)
-        }
-        return missingFromSecond + missingFromFirst + differing
-    }
-
-    private static func differences(
-        _ subject: String,
-        _ shapes: (first: Shape, second: Shape),
-        names: (first: String, second: String),
-    ) -> [String] {
-        var problems: [String] = []
-        if shapes.first.symbol != shapes.second.symbol {
-            problems.append(
-                "\(subject) symbol \(shapes.first.symbol) in \(names.first), "
-                    + "\(shapes.second.symbol) in \(names.second)",
-            )
-        }
-        if shapes.first.hours != shapes.second.hours {
-            problems.append(
-                "\(subject) hours \(describe(shapes.first.hours)) in \(names.first), "
-                    + "\(describe(shapes.second.hours)) in \(names.second)",
-            )
-        }
-        return problems
     }
 
     private static func repeated(_ values: [String]) -> [String] {
@@ -183,10 +113,7 @@ enum SeedTablesCheck {
         return repeats
     }
 
-    private static func describe(_ range: ClosedRange<Int>?) -> String {
-        guard let range else {
-            return "none"
-        }
-        return "\(range.lowerBound)...\(range.upperBound)"
+    private static func describe(_ range: ClosedRange<Int>) -> String {
+        "\(range.lowerBound)...\(range.upperBound)"
     }
 }

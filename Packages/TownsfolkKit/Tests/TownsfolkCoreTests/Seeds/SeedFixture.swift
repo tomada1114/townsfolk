@@ -53,7 +53,7 @@ struct SeedFixture {
         id.replacing("-", with: " ")
     }
 
-    /// The fixture as JSON, laid out as `Resources/Seeds/<language>.json` is.
+    /// The fixture as JSON, laid out as `Resources/SeedTables.json` is.
     func data() throws -> Data {
         let file: [String: Any] = [
             "version": version,
@@ -69,13 +69,8 @@ struct SeedFixture {
         return try JSONSerialization.data(withJSONObject: file, options: [.sortedKeys])
     }
 
-    /// The fixture decoded the way the shipped files are, as `en.json`.
+    /// The fixture decoded the way the shipped file is.
     func file() throws -> SeedFile {
-        try file(named: "en.json")
-    }
-
-    /// The fixture decoded the way the shipped files are, as a file called `name`.
-    func file(named name: String) throws -> SeedFile {
-        try SeedFile(name: name, tables: SeedTables.decode(data(), for: .english))
+        try SeedFile(name: "SeedTables.json", tables: SeedTables.decode(data()))
     }
 }

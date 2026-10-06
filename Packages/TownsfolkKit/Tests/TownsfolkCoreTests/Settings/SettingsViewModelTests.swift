@@ -36,7 +36,7 @@ struct SettingsViewModelClosingTests {
             model.nameEdited("")
             model.paneClosed()
             #expect(suite.stored(StoredKey.displayName) as? String == "Tomo")
-            #expect(model.nameError == "Use 1–20 characters.")
+            #expect(model.nameError?.resolved(in: .english) == "Use 1–20 characters.")
             #expect(model.nameField.isEmpty)
         }
     }
@@ -84,13 +84,13 @@ struct SettingsViewModelClosingTests {
             tuning.founding.displayNameLength = 2 ... 3
             let model = SettingsViewModel(defaults: suite.defaults, tuning: tuning)
             model.nameSubmitted("A")
-            #expect(model.nameError == "Use 2–3 characters.")
+            #expect(model.nameError?.resolved(in: .english) == "Use 2–3 characters.")
             #expect(model.displayName == nil)
             model.nameSubmitted("Abc")
             #expect(model.nameError == nil)
             #expect(model.displayName?.value == "Abc")
             model.nameSubmitted("Abcd")
-            #expect(model.nameError == "Use 2–3 characters.")
+            #expect(model.nameError?.resolved(in: .english) == "Use 2–3 characters.")
             #expect(model.displayName?.value == "Abc")
         }
     }
@@ -102,15 +102,14 @@ struct SettingsViewModelTests {
     // MARK: Reading
 
     @Test
-    func `a first open shows English, no name, Normal, and keeps moving on`() throws {
+    func `a first open shows no name, Normal, and keeps moving on`() throws {
         try withFreshDefaults { suite in
             let model = SettingsViewModel(defaults: suite.defaults)
-            #expect(model.language == .english)
             #expect(model.displayName == nil)
             #expect(model.nameField.isEmpty)
             #expect(model.nameError == nil)
             #expect(model.speed == .normal)
-            #expect(model.speedHint == "About one new post every 3 minutes.")
+            #expect(model.speedHint.resolved(in: .english) == "About one new post every 3 minutes.")
             #expect(model.keepsMovingInOtherApps == true)
         }
     }
@@ -119,62 +118,15 @@ struct SettingsViewModelTests {
     func `opening reads every stored setting, and writes none`() throws {
         try withFreshDefaults { suite in
             let defaults = suite.defaults
-            defaults.set("ja", forKey: StoredKey.language)
             defaults.set("Tomo", forKey: StoredKey.displayName)
             defaults.set("fast", forKey: StoredKey.speed)
             defaults.set(false, forKey: StoredKey.keepsMovingInOtherApps)
             let model = SettingsViewModel(defaults: defaults)
-            #expect(model.language == .japanese)
             #expect(model.displayName?.value == "Tomo")
             #expect(model.nameField == "Tomo")
             #expect(model.speed == .fast)
             #expect(model.keepsMovingInOtherApps == false)
-            #expect(suite.stored(StoredKey.appleLanguages) == nil)
         }
-    }
-
-    // MARK: Language
-
-    @Test(arguments: [
-        (TownLanguage.japanese, "ja"),
-        (TownLanguage.english, "en"),
-    ])
-    func `choosing a language stores it at once`(language: TownLanguage, code: String) throws {
-        try withFreshDefaults { suite in
-            let model = SettingsViewModel(defaults: suite.defaults)
-            model.languageChosen(language)
-            #expect(model.language == language)
-            #expect(suite.stored(StoredKey.language) as? String == code)
-            #expect(suite.stored(StoredKey.appleLanguages) as? [String] == [code])
-        }
-    }
-
-    @Test
-    func `after choosing Japanese, every string of the pane is set to Japanese`() throws {
-        try withFreshDefaults { suite in
-            let model = SettingsViewModel(defaults: suite.defaults)
-            let paneCases = LocalizationTests.everyCase().filter { testCase in
-                testCase.resource.key.hasPrefix("settings.")
-            }
-            try #require(!paneCases.isEmpty)
-            for testCase in paneCases {
-                #expect(model.localized(testCase.resource).locale == Locale(identifier: "en"))
-            }
-            model.languageChosen(.japanese)
-            for testCase in paneCases {
-                let localized = model.localized(testCase.resource)
-                #expect(localized.locale == Locale(identifier: "ja"), "\(testCase.resource.key)")
-                #expect(localized.key == testCase.resource.key)
-            }
-        }
-    }
-
-    @Test
-    func `the languages are offered in order, each named in its own language`() {
-        #expect(SettingsViewModel.languageChoices == [.english, .japanese])
-        #expect(TownLanguage.english.nativeName == "English")
-        // "日本語", spelled as escapes: Swift source stays English (AGENTS.md).
-        #expect(TownLanguage.japanese.nativeName == "\u{65E5}\u{672C}\u{8A9E}")
     }
 
     // MARK: Your name
@@ -212,7 +164,7 @@ struct SettingsViewModelTests {
             let model = SettingsViewModel(defaults: suite.defaults)
             model.nameEdited(input)
             model.nameSubmitted(input)
-            #expect(model.nameError == "Use 1–20 characters.")
+            #expect(model.nameError?.resolved(in: .english) == "Use 1–20 characters.")
             #expect(suite.stored(StoredKey.displayName) as? String == "Tomo")
             #expect(model.displayName?.value == "Tomo")
             #expect(model.nameField == input)
@@ -288,7 +240,7 @@ struct SettingsViewModelTests {
             model.speedChosen(speed)
             #expect(model.speed == speed)
             #expect(suite.stored(StoredKey.speed) as? String == stored)
-            #expect(model.speedHint == hint)
+            #expect(model.speedHint.resolved(in: .english) == hint)
         }
     }
 
@@ -297,11 +249,12 @@ struct SettingsViewModelTests {
         try withFreshDefaults { suite in
             let model = SettingsViewModel(defaults: suite.defaults)
             #expect(SettingsViewModel.speedChoices == [.slow, .normal, .fast])
-            #expect(SettingsViewModel.speedChoices.map(model.speedName) == [
-                "Slow",
-                "Normal",
-                "Fast",
-            ])
+            #expect(SettingsViewModel.speedChoices
+                .map { model.speedName($0).resolved(in: .english) } == [
+                    "Slow",
+                    "Normal",
+                    "Fast",
+                ])
         }
     }
 
@@ -323,16 +276,15 @@ struct SettingsViewModelTests {
     // MARK: Wording
 
     @Test
-    func `every label and helper reads as the pane shows it in English`() throws {
+    func `every label and helper reads as the pane shows it`() throws {
         try withFreshDefaults { suite in
             let model = SettingsViewModel(defaults: suite.defaults)
-            #expect(model.languageTitle == "Language")
-            #expect(model.languageHelp == "Menus switch the next time Townsfolk opens.")
-            #expect(model.nameTitle == "Your name")
-            #expect(model.speedTitle == "Speed")
-            #expect(model.keepsMovingTitle == "Keep the town moving while I use other apps")
-            #expect(model
-                .keepsMovingHelp == "When off, the town rests unless its window is active.")
+            #expect(model.nameTitle.resolved(in: .english) == "Your name")
+            #expect(model.speedTitle.resolved(in: .english) == "Speed")
+            #expect(model.keepsMovingTitle.resolved(in: .english)
+                == "Keep the town moving while I use other apps")
+            #expect(model.keepsMovingHelp.resolved(in: .english)
+                == "When off, the town rests unless its window is active.")
         }
     }
 }

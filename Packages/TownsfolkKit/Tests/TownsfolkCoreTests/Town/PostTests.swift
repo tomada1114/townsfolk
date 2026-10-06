@@ -8,7 +8,6 @@ struct PostTests {
 
     private func residentPost(
         _ text: String,
-        language: TownLanguage = .english,
         topicTags: [String] = [],
         tuning: Tuning = .default,
     ) throws(TownValueError) -> Post {
@@ -17,7 +16,6 @@ struct PostTests {
             author: .resident(june),
             text: text,
             happenedAt: TownFixtures.movedIn,
-            language: language,
             topicTags: topicTags,
             origin: .ordinary,
             sceneID: scene,
@@ -31,7 +29,6 @@ struct PostTests {
             author: .you,
             text: text,
             happenedAt: TownFixtures.movedIn,
-            language: .english,
         )
     }
 
@@ -46,7 +43,6 @@ struct PostTests {
             author: .resident(june),
             text: "  Told you. Get there before eight. ",
             happenedAt: TownFixtures.movedIn,
-            language: .english,
             replyTarget: earlier,
             topicTags: ["bakery", " bread "],
             origin: .response,
@@ -56,7 +52,6 @@ struct PostTests {
         #expect(post.author == .resident(june))
         #expect(post.text == "Told you. Get there before eight.")
         #expect(post.happenedAt == TownFixtures.movedIn)
-        #expect(post.language == .english)
         #expect(post.replyTarget == earlier)
         #expect(post.topicTags == ["bakery", "bread"])
         #expect(post.origin == .response)
@@ -78,31 +73,18 @@ struct PostTests {
         #expect(Post.Origin.allCases == [.catchUp, .event, .ordinary, .response])
     }
 
-    // MARK: - A resident's text, per language
+    // MARK: - A resident's text
 
-    @Test(arguments: [(TownLanguage.english, 280), (.japanese, 140)])
-    func `a resident's post at its language's limit is accepted`(
-        language: TownLanguage,
-        limit: Int,
-    ) throws {
-        let post = try residentPost(TownFixtures.text(limit), language: language)
-        #expect(post.text.count == limit)
-    }
-
-    @Test(arguments: [(TownLanguage.english, 280), (.japanese, 140)])
-    func `a resident's post one past its language's limit is too long`(
-        language: TownLanguage,
-        limit: Int,
-    ) {
-        #expect(throws: TownValueError.tooLong(.postText, limit: limit)) {
-            try residentPost(TownFixtures.text(limit + 1), language: language)
-        }
+    @Test
+    func `a resident's post of 280 characters is accepted`() throws {
+        let post = try residentPost(TownFixtures.text(280))
+        #expect(post.text.count == 280)
     }
 
     @Test
-    func `a Japanese post of 280 characters is too long`() {
-        #expect(throws: TownValueError.tooLong(.postText, limit: 140)) {
-            try residentPost(TownFixtures.text(280), language: .japanese)
+    func `a resident's post of 281 characters is too long`() {
+        #expect(throws: TownValueError.tooLong(.postText, limit: 280)) {
+            try residentPost(TownFixtures.text(281))
         }
     }
 
@@ -115,16 +97,16 @@ struct PostTests {
 
     @Test
     func `a resident's post of one character is accepted`() throws {
-        #expect(try residentPost(TownFixtures.hiragana, language: .japanese).text.count == 1)
+        #expect(try residentPost(TownFixtures.hiragana).text.count == 1)
     }
 
     @Test
     func `a resident's limit comes from the Tuning`() throws {
         var tuning = Tuning.default
-        tuning.timeline.residentPostMaxLength = PerLanguage(english: 5, japanese: 2)
+        tuning.timeline.residentPostMaxLength = 5
         #expect(try residentPost("abcde", tuning: tuning).text == "abcde")
-        #expect(throws: TownValueError.tooLong(.postText, limit: 2)) {
-            try residentPost("abc", language: .japanese, tuning: tuning)
+        #expect(throws: TownValueError.tooLong(.postText, limit: 5)) {
+            try residentPost("abcdef", tuning: tuning)
         }
     }
 
@@ -186,7 +168,6 @@ struct PostTests {
                 author: .resident(june),
                 text: "Hi.",
                 happenedAt: TownFixtures.movedIn,
-                language: .english,
                 sceneID: scene,
             )
         }
@@ -200,7 +181,6 @@ struct PostTests {
                 author: .resident(june),
                 text: "Hi.",
                 happenedAt: TownFixtures.movedIn,
-                language: .english,
                 origin: .ordinary,
             )
         }
@@ -214,7 +194,6 @@ struct PostTests {
                 author: .you,
                 text: "Hi.",
                 happenedAt: TownFixtures.movedIn,
-                language: .english,
                 origin: .ordinary,
             )
         }
@@ -228,7 +207,6 @@ struct PostTests {
                 author: .you,
                 text: "Hi.",
                 happenedAt: TownFixtures.movedIn,
-                language: .english,
                 sceneID: scene,
             )
         }
@@ -245,7 +223,6 @@ struct PostTests {
                 author: .you,
                 text: text,
                 happenedAt: TownFixtures.movedIn,
-                language: .english,
             )
         }
         let hello = try make("Hi.")

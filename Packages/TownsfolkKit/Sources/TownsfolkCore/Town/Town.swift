@@ -3,9 +3,9 @@ import Foundation
 /// The town itself — there is always exactly one (requirements §3.9, §5), which is why it
 /// carries no id. Everything in it is invented by the model at founding and never edited.
 public struct Town: Sendable, Equatable {
-    /// The longest setting, in characters (requirements.md:395).
+    /// The longest setting, in characters (requirements.md:393).
     public static let settingMaxLength = 400
-    /// The longest place name, in characters (requirements.md:395).
+    /// The longest place name, in characters (requirements.md:393).
     public static let placeNameMaxLength = 30
 
     /// The town's name, shown as the window title.
@@ -16,8 +16,6 @@ public struct Town: Sendable, Equatable {
     public let places: [String]
     /// When you moved in — the time of the founding row.
     public let foundedAt: Date
-    /// The language the town was founded in; the town keeps it when the setting changes.
-    public let language: TownLanguage
 
     /// Creates a town, trimming every text at both ends.
     /// - Throws: ``TownValueError`` for a name over `tuning.founding.townNameMaxLength`,
@@ -28,7 +26,6 @@ public struct Town: Sendable, Equatable {
         setting: String,
         places: [String],
         foundedAt: Date,
-        language: TownLanguage,
         tuning: Tuning = .default,
     ) throws(TownValueError) {
         self.name = try TextRule.validated(
@@ -57,6 +54,5 @@ public struct Town: Sendable, Equatable {
         }
         self.places = validPlaces
         self.foundedAt = foundedAt
-        self.language = language
     }
 }

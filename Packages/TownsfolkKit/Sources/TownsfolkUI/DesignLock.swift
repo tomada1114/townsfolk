@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// The design lock's shared values (ADR-0008 › Decision), in the one place every view's
-/// private `Layout` enum reads them from.
+/// The design lock's shared values (`docs/design/design-direction.md` › Design lock), in
+/// the one place every view's private `Layout` enum reads them from.
 ///
 /// Presentation only, so it lives in `TownsfolkUI` and never in `TownsfolkCore`, and it
 /// stays internal: `App/` reaches a size through a view's `public static` instead of
-/// spelling one. A value changes here only when ADR-0008 changes first.
+/// spelling one. A value changes here only together with that document.
 enum DesignLock {
     /// The spacing scale: 4, 8, 12, 16, 32 pt. Nothing in a layout falls between them.
     enum Spacing {
@@ -22,7 +22,7 @@ enum DesignLock {
         static let extraLarge: CGFloat = 32
     }
 
-    /// Window and popover sizes (ADR-0008 › Window sizing; ADR-0001).
+    /// Window and popover sizes.
     enum Window {
         /// The town window's width when it first opens.
         static let defaultWidth: CGFloat = 380
@@ -38,7 +38,7 @@ enum DesignLock {
         static let settingsWidth: CGFloat = 480
     }
 
-    /// The timeline's metrics (ADR-0008 › Timeline metrics, › Type).
+    /// The timeline's metrics.
     enum Timeline {
         /// The text column's cap, gutter included; a wider window centers it.
         static let textColumnMaxWidth: CGFloat = 560
@@ -53,7 +53,7 @@ enum DesignLock {
         static let postLineSpacing: CGFloat = 2
     }
 
-    /// The only custom animations, all opacity (ADR-0008 › Motion), in seconds. Under
+    /// The only custom animations, all opacity, in seconds. Under
     /// Reduce Motion the pill's scroll jumps and the fades stay.
     enum Motion {
         /// A new post fades in, ease-out.
@@ -71,11 +71,11 @@ enum DesignLock {
     }
 
     /// The two custom colors, each a Color Set in `TownsfolkUI`'s
-    /// `Resources/Colors.xcassets` with Any, Dark, and High Contrast variants (ADR-0008 ›
-    /// Custom colors). Everything else is a semantic system color.
+    /// `Resources/Colors.xcassets` with Any, Dark, and High Contrast variants. Everything
+    /// else is a semantic system color.
     ///
     /// Read from `.module`, never the main bundle: a `#Preview` host has no app asset
-    /// catalog, so a main-bundle lookup renders clear there (ADR-0008 › Amended).
+    /// catalog, so a main-bundle lookup renders clear there.
     enum Palette {
         /// Metadata text and the symbols beside it. Never post text, never a fill.
         static let secondaryText = Color("SecondaryText", bundle: .module)

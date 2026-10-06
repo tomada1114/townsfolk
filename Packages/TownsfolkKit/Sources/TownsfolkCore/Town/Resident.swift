@@ -5,7 +5,7 @@ import Foundation
 /// caught before it reaches the store.
 public struct Resident: Identifiable, Sendable, Equatable {
     /// Whether the resident still lives in town. A past resident stays remembered, so no
-    /// one like them is invented again (requirements.md:261).
+    /// one like them is invented again (requirements.md:260).
     public enum Status: Sendable, Equatable {
         /// Living here, and able to speak in scenes.
         case living
@@ -44,7 +44,7 @@ public struct Resident: Identifiable, Sendable, Equatable {
         }
     }
 
-    /// How a resident stands with another resident (requirements.md:396).
+    /// How a resident stands with another resident (requirements.md:394).
     public struct Relationship: Sendable, Equatable {
         /// The other resident.
         public let resident: EntityID<Resident>
@@ -65,11 +65,11 @@ public struct Resident: Identifiable, Sendable, Equatable {
         }
     }
 
-    /// The longest name, in characters (requirements.md:396).
+    /// The longest name, in characters (requirements.md:394).
     public static let nameMaxLength = 20
-    /// The most relationships a resident keeps (requirements.md:396).
+    /// The most relationships a resident keeps (requirements.md:394).
     public static let maxRelationships = 3
-    /// The most interests a resident takes up (requirements.md:396).
+    /// The most interests a resident takes up (requirements.md:394).
     public static let maxInterests = 5
 
     /// The resident's id.
