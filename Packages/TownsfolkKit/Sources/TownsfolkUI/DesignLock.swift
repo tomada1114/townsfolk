@@ -70,17 +70,17 @@ enum DesignLock {
         static let foundingCheckFadeIn: TimeInterval = 0.15
     }
 
-    /// The two custom colors, each a Color Set in `App/Assets.xcassets` with Any, Dark,
-    /// and High Contrast variants (ADR-0008 › Custom colors). Everything else is a
-    /// semantic system color.
+    /// The two custom colors, each a Color Set in `TownsfolkUI`'s
+    /// `Resources/Colors.xcassets` with Any, Dark, and High Contrast variants (ADR-0008 ›
+    /// Custom colors). Everything else is a semantic system color.
     ///
-    /// They resolve only inside `Townsfolk.app`: a `#Preview` runs in a host with no asset
-    /// catalog, where both render clear (ADR-0008 › Amended).
+    /// Read from `.module`, never the main bundle: a `#Preview` host has no app asset
+    /// catalog, so a main-bundle lookup renders clear there (ADR-0008 › Amended).
     enum Palette {
         /// Metadata text and the symbols beside it. Never post text, never a fill.
-        static let secondaryText = Color("SecondaryText")
+        static let secondaryText = Color("SecondaryText", bundle: .module)
         /// The wash behind a newly arrived post. Decoration only: never text, a symbol, a
         /// control, a border, a selection, a lasting surface, or the only sign of anything.
-        static let lamplight = Color("Lamplight")
+        static let lamplight = Color("Lamplight", bundle: .module)
     }
 }

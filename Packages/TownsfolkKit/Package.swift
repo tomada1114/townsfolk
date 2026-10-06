@@ -31,6 +31,9 @@ let package = Package(
         .target(
             name: "TownsfolkUI",
             dependencies: ["TownsfolkCore"],
+            // The design lock's Color Sets, read with `bundle: .module` so a `#Preview`,
+            // whose host has no app asset catalog, resolves them too (ADR-0008).
+            resources: [.process("Resources")],
             swiftSettings: strictSettings,
         ),
         // OS-integration adapters behind Core-declared ports. Depends on TownsfolkCore
