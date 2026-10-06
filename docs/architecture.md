@@ -1,10 +1,9 @@
 # Architecture
 
-This page describes the layers every app cut from this template starts with. What an
-app decides on top of them — its shape, sandbox posture, persistence, dependencies,
-distribution, macOS floor, and permissions — is recorded as ADRs under
-[`docs/architecture/`](architecture/README.md), whose `README.md` is the index. How
-Townsfolk sits on these layers is [Townsfolk on these layers](#townsfolk-on-these-layers).
+This page describes the layers every app cut from this template starts with. What
+Townsfolk decided on top of them — its shape, sandbox posture, persistence, dependencies,
+distribution, macOS floor, and permissions — and why is
+[Townsfolk on these layers](#townsfolk-on-these-layers).
 
 ## Layers
 
@@ -155,8 +154,8 @@ keeps decisions out of adapters — see "Ports and adapters" above.
 
 ## Townsfolk on these layers
 
-Everything above is the template's. This section is Townsfolk's own shape on it — the
-result of the ADRs in [`docs/architecture/`](architecture/README.md), which hold the
+Everything above is the template's. This section is Townsfolk's own shape on it, and
+[Decisions](#decisions) below records each hard-to-reverse choice behind it with its
 reasons. What the app is comes from `AGENTS.md` › Product and
 [`docs/product/requirements.md`](product/requirements.md), whose sections are cited as §.
 
@@ -164,19 +163,20 @@ reasons. What the app is comes from `AGENTS.md` › Product and
 
 - **Rules decide; the model only writes.** Timing, speakers, seeds, events, moves,
   delays, influence, and catch-up are Core code, and the model fills in text through
-  structured output (§3.11, ADR-0005). Rules out agents, tool calling, and the model
-  choosing who speaks.
+  structured output (§3.11, [The on-device model](#the-on-device-model)). Rules out
+  agents, tool calling, and the model choosing who speaks.
 - **The log is the truth; a model session is thrown away.** Every call is rebuilt from
-  the store and forgotten (§3.8, ADR-0004). Rules out memory kept in a session, and state
-  that lives only in the model's context.
+  the store and forgotten (§3.8, [Persistence](#persistence)). Rules out memory kept in a
+  session, and state that lives only in the model's context.
 - **One writer at a time.** Ordinary scenes, responses, and catch-up go through one
   engine, one call after another. Rules out parallel generation and interleaved scenes.
-- **Only while seen.** The town moves only while its window is visible (§3.7, ADR-0006).
-  Rules out background work, timers while hidden, and anything that calls the person
-  back.
-- **Local, and enforced.** No network entitlement (ADR-0002), no analytics, and no text
-  the person or the model wrote in a log or an error. Rules out any feature that needs
-  the network without a new ADR.
+- **Only while seen.** The town moves only while its window is visible (§3.7,
+  [Window presence](#window-presence)). Rules out background work, timers while hidden,
+  and anything that calls the person back.
+- **Local, and enforced.** No network entitlement ([Sandbox posture](#sandbox-posture)),
+  no analytics, and no text the person or the model wrote in a log or an error. Rules out
+  any feature that needs the network without a `## Product` change and a recorded
+  decision first.
 - **The machinery stays out of sight.** Only founding shows a wait; a failed call is a
   scene that never appears (`docs/design/ux-guidelines.md`). Rules out progress, typing,
   and "generating" states in the UI.
@@ -186,14 +186,14 @@ reasons. What the app is comes from `AGENTS.md` › Product and
 | Domain | Layer | Where |
 |---|---|---|
 | The town engine: schedule, speakers, seeds, influence, events, moves, catch-up, whether the town runs | Core | one engine that takes one step at a time, driven by an injected clock, random number generator, and `Tuning`, which holds the requirements' † starting values (`designing-core-logic`) |
-| Prompts, `@Generable` outputs, the context budget, the retry rules | Core | `import FoundationModels` (ADR-0005) |
-| The model call, availability, token counts | Platform | an adapter behind `LanguageModelProviding` (ADR-0005) |
-| The town's store and its migrations | Core | `TownStore` over `import SQLite3` (ADR-0004) |
-| Settings | Core | `UserDefaults` keys (ADR-0004) |
-| Window visible, app active, Mac awake | Platform | an adapter behind `WindowPresenceProviding` (ADR-0006) |
-| Seed tables and wording, in English and Japanese | Core resources | `Resources/Seeds/<language>.json` and `Localizable.xcstrings` (ADR-0007) |
-| First run, founding, the timeline, the composer, the status line, profiles, Settings | UI | views built against the design lock (ADR-0008) |
-| Scenes, menus, composition | App | one `Window` and one `Settings` scene (ADR-0001) |
+| Prompts, `@Generable` outputs, the context budget, the retry rules | Core | `import FoundationModels` ([The on-device model](#the-on-device-model)) |
+| The model call, availability, token counts | Platform | an adapter behind `LanguageModelProviding` ([The on-device model](#the-on-device-model)) |
+| The town's store and its migrations | Core | `TownStore` over `import SQLite3` ([Persistence](#persistence)) |
+| Settings | Core | `UserDefaults` keys ([Persistence](#persistence)) |
+| Window visible, app active, Mac awake | Platform | an adapter behind `WindowPresenceProviding` ([Window presence](#window-presence)) |
+| Seed tables and wording, in English | Core resources | `Resources/SeedTables.json` and `Localizable.xcstrings` ([Language](#language)) |
+| First run, founding, the timeline, the composer, the status line, profiles, Settings | UI | views built against the design lock ([`docs/design/design-direction.md` › Design lock](design/design-direction.md#design-lock)) |
+| Scenes, menus, composition | App | one `Window` and one `Settings` scene ([App shape](#app-shape)) |
 
 Only Core values cross a boundary: the model's output enters Core as generated content
 that Core decodes into its own types, presence arrives as a stream of values, and views
@@ -204,10 +204,11 @@ read view-model state and call its actions.
 Requirements §5 lists the entities: the town, residents, posts, events (moves included),
 the names you brought up, the schedule, and settings. All but settings live in one
 SQLite file in the app's container, and settings are `UserDefaults` keys that survive
-moving away (ADR-0004). The seed tables ship read-only with the app (ADR-0007). What a
-model call sees is assembled from the store each time: the recent posts that fit the
-context from roughly the last day, ongoing events, the residents involved, and the
-relevant names you brought up (§3.8).
+moving away ([Persistence](#persistence)). The seed tables ship read-only with the app,
+in `Resources/SeedTables.json`, loaded by `SeedTables.load()`. What a model call sees is
+assembled from the store each time: the recent posts that fit the context from roughly
+the last day, ongoing events, the residents involved, and the relevant names you brought
+up (§3.8).
 
 ### Core flows
 
@@ -238,28 +239,223 @@ relevant names you brought up (§3.8).
 | One generation at a time | a Core test with a fake model that records overlapping calls |
 | Catch-up never floods | Core tests with a fake clock: at most 5 scenes after any pause, weeks included |
 | No scene while the Mac is too hot | a Core test with the thermal state injected as serious |
-| A failed step leaves nothing behind | a Core test in which a step fails mid-transaction and the store is unchanged (ADR-0004) |
-| Every stored version still opens | one migration test per schema version (ADR-0004) |
-| Nothing leaves the Mac | review: no network entitlement (ADR-0002), and nothing the person or the model wrote is logged (`.claude/rules/swift.md` › Logging) |
+| A failed step leaves nothing behind | a Core test in which a step fails mid-transaction and the store is unchanged ([Persistence](#persistence)) |
+| Every stored version still opens | one migration test per schema version ([Persistence](#persistence)) |
+| Nothing leaves the Mac | review: no network entitlement ([Sandbox posture](#sandbox-posture)), and nothing the person or the model wrote is logged (`.claude/rules/swift.md` › Logging) |
 | The app launches without a model | `just uitest` and `just smoke` on CI, where the model is unavailable |
 
 ### Decisions
 
-- [ADR-0001](architecture/adr/0001-app-shape.md) — one window, and closing it quits.
-- [ADR-0002](architecture/adr/0002-sandbox-posture.md) — keep the App Sandbox, and add
-  no entitlement.
-- [ADR-0003](architecture/adr/0003-macos-27-floor.md) — macOS 27.0 as the floor.
-- [ADR-0004](architecture/adr/0004-persistence-sqlite-in-core.md) — the town in one
-  SQLite file owned by Core, and settings in `UserDefaults`.
-- [ADR-0005](architecture/adr/0005-foundation-models-in-core.md) — Core speaks to
-  Foundation Models, and the model call is a Platform adapter.
-- [ADR-0006](architecture/adr/0006-window-presence-port.md) — window presence behind a
-  Core port.
-- [ADR-0007](architecture/adr/0007-english-and-japanese.md) — English and Japanese,
-  switched inside the app.
-- [ADR-0008](architecture/adr/0008-design-lock.md) — the design lock.
-- [ADR-0009](architecture/adr/0009-not-distributed-yet.md) — not distributed in this
-  version.
+Each hard-to-reverse choice the owner made is recorded here: what was decided, why it
+beat the alternatives, what is still open, and the sources it leans on, each with the
+date it was checked. The kinds of change that land here are listed in `AGENTS.md` ›
+"Before changing the architecture"; such a change updates its subsection in the same
+pull request, and the owner's sign-off is still what "Security and human approval" asks
+for. The design lock lives in
+[`docs/design/design-direction.md` › Design lock](design/design-direction.md#design-lock).
+
+#### App shape
+
+`App/TownsfolkApp.swift` declares one `Window` scene, id `town`, holding the town
+window's root view, and one `Settings` scene. The window opens at 380 × 680 pt
+(`.defaultSize`) with a minimum of 320 × 440 pt (the root view's
+`.frame(minWidth:minHeight:)`), and is titled with the town's name, "Townsfolk" until a
+town exists. The app keeps its Dock tile and the standard main menu; the Town menu goes
+in a `Commands` group on the scene (ux-flows S8). `project.yml` carries no shape key. SwiftUI
+autosaves the window's frame under the scene's id (`NSWindow Frame town`), so its size
+and position come back across launches with no code — checked by moving, resizing,
+quitting, and relaunching, 2026-09-30 (#7).
+
+A `Window` that is the app's primary scene quits the app when it closes, with no
+delegate, and offers no File › New Window. A `WindowGroup` lets people open more windows
+and keeps running after the last one closes, both contrary to §3.7; a menu-bar agent is
+the non-goal "Running while out of sight". The cost is intended: a closed window cannot
+be reopened without relaunching. If the town stops too often because work windows cover
+it, always-on-top and every-Space are the first things to revisit (the non-goal "Window
+extras").
+
+- <https://developer.apple.com/documentation/swiftui/window> — "If your app uses a
+  single window as its primary scene, the app quits when the window closes." — checked
+  2026-09-30
+
+#### Sandbox posture
+
+`App/Townsfolk.entitlements` holds `com.apple.security.app-sandbox` and nothing else;
+`project.yml` declares no `INFOPLIST_KEY_NS…UsageDescription` key, and the app asks for
+no TCC permission. Without `com.apple.security.network.client` the sandbox gives the app
+no outgoing connection, so "nothing leaves the Mac" (requirements §4) is enforced by the
+OS, not only promised by the code. The Foundation Models documentation names no
+entitlement for the on-device model; the one it mentions is for Private Cloud Compute,
+which Townsfolk does not use. Keeping the sandbox also keeps the Mac App Store open.
+
+Outside information and external integrations (both Later) would need the network client
+entitlement and a `## Product` change first; screenshot input (Next) would need Screen
+Recording only if it captured the screen rather than took an image the person hands it.
+
+- <https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.network.client>
+  — whether the app "may open outgoing network connections"; macOS 10.7+ — checked
+  2026-09-30
+- <https://developer.apple.com/documentation/foundationmodels> — no entitlement or
+  Info.plist key for the on-device model — checked 2026-09-30
+- <https://developer.apple.com/app-store/review/guidelines/> — guideline 2.4.5(i): Mac
+  apps "must be appropriately sandboxed" — checked 2026-09-30
+
+#### macOS floor
+
+The floor is macOS 27.0, the OS the owner uses and the model the app is tuned against:
+`deploymentTarget.macOS: "27.0"` in `project.yml` and `platforms: [.macOS("27.0")]` in
+`Package.swift`, built with Xcode 27 (`.xcode-version` 27.0), with every macOS CI job on
+`runs-on: xcode-27`. It states what is supported, not what an API needs: in the macOS
+26.5 SDK the Foundation Models types are macOS 26.0+ and `tokenCount(for:)` 26.4+.
+
+**Not applied yet.** `project.yml` still says `"14.0"`, `Package.swift` `.macOS(.v14)`,
+`.xcode-version` 26.5, and the macOS jobs `runs-on: macos-26`. Issue #6 tracks the one
+`ci:` pull request that moves them together, with `docs/getting-started.md`'s Xcode
+requirement; the owner installs Xcode 27 first.
+
+`xcode-27` is the only hosted image on macOS 27, and it is in Preview, outside the
+Actions SLA; when GitHub ships a GA image on macOS 27, the `runs-on:` labels move to it.
+Keeping CI on `macos-26` was rejected because the launch and smoke tests launch the app
+and would pause until then; a 26.4 floor was rejected as support nobody exercises.
+Everyone who builds the app needs Xcode 27, which runs on macOS 26.6 or later. On CI the
+launch and smoke tests see the model-unavailable state (ux-flows S7), never a town.
+
+- Unverified: whether Apple Intelligence is ever available inside a macOS virtual
+  machine such as a CI runner. Nothing depends on it.
+- <https://developer.apple.com/documentation/xcode-release-notes/xcode-27-release-notes>
+  — "Xcode 27 requires a Mac running macOS Tahoe 26.6 or later."; ships the macOS 27 SDK
+  — checked 2026-09-30
+- <https://developer.apple.com/news/releases/> — Xcode 27 (27A266a) released 2026-09-14
+  — checked 2026-09-30
+- <https://github.com/actions/runner-images> — the `xcode-27` image is Preview, and a
+  beta image's workflows "do not fall under the customer SLA in place for Actions";
+  `macos-26` carries no Xcode 27 — checked 2026-09-30
+
+#### Persistence
+
+The town lives in one SQLite database, `town.sqlite`, in a `Town` directory under the
+app container's Application Support directory. `TownsfolkCore` owns it through
+`import SQLite3`, the SDK's system library, which links with no extra settings. A
+`TownStore` actor holds the connection and takes and returns Core value types; the
+composition root hands it its directory, so a test uses a temporary directory or an
+in-memory database. There is no port: the store runs the same under `swift test`.
+
+- **Tables** follow requirements §5, with an index on the posts' `happened_at` for
+  newest-first paging past 100,000 posts.
+- **One transaction per step of the town** — a scene's posts, tags, names, and next due
+  time; a new resident with its move event; a founded town, written only after all of
+  its generation succeeded — so a crash repeats or loses nothing.
+- **Versions.** `PRAGMA user_version` holds the schema version; Core keeps an ordered
+  list of migrations, run in one transaction when the store opens, each with a test that
+  builds the previous version's database.
+- **Moving away** closes the store and deletes the `Town` directory, the database and
+  its companion files, before the next town is founded.
+- **Settings are `UserDefaults` keys**, outside `Town/` so moving away keeps them, read
+  and written by `SettingsStore` through an injected `UserDefaults`: see
+  [What is contract and what is private](#what-is-contract-and-what-is-private).
+
+SQLite beat SwiftData because Core's `Sendable` value types would be mapped to and from
+SwiftData's model classes, and its schema and migrations would be SwiftData's rather than
+the app's; it beat JSON files, where a write that spans files is not atomic and paging is
+hand-written; it beat GRDB.swift on the dependency checklist's Need item, at the cost of
+a few hundred lines of binding code. Under Swift 6 the actor closes its connection in an
+`isolated deinit`: a plain `deinit` does not compile, because the handle is not
+`Sendable` (experiment, Swift 6.3.2, 2026-09-30). If residents' long-term memory (Later)
+needs text search over the log, SQLite's full-text search is the first thing to check.
+
+- <https://www.sqlite.org/formatchng.html> — newer SQLite versions read files written by
+  older ones back to 3.0.0, so an OS update strands no town — checked 2026-09-30
+
+#### The on-device model
+
+Core owns the conversation with the model. `TownsfolkCore` imports `FoundationModels`
+(not on Core's banned imports) and declares the `@Generable` output of each call — a
+scene, a founded town, a new resident, an event's description — with the code that
+builds the instructions and prompts, fits them to the budget, and checks what comes back:
+a scene naming a speaker who was not chosen is discarded. The schema's guides are part of
+what the model is told, so they sit under the coverage floor with the prompt, defined
+once rather than mirrored in an adapter.
+
+The call itself is a port, provisionally `LanguageModelProviding`, answering
+availability (available, Apple Intelligence off, device not eligible, model still
+downloading), the context size and a prompt's token count, and a response under a
+generation schema, returned as generated content Core decodes. Its adapter,
+provisionally `SystemLanguageModelProvider`, uses `SystemLanguageModel.default` with the
+default guardrails, opens a fresh `LanguageModelSession` per call and drops it, and maps
+the framework's errors to a Core error — refused (a guardrail violation or a refusal),
+over the context size, unavailable, or other — carrying no prompt or generated text. The
+fake answers from scripted generated content, and one contract suite runs against both.
+
+The rules around the call are Core's: retry with a new seed, leave out what keeps being
+refused, retry once with half the posts after an overflow, skip a turn, one call at a
+time, and no call while `ProcessInfo`'s thermal state is serious or critical (read
+through an injected closure). Core's build now depends on an SDK whose API moves every
+year; a model other than the system one (Later) would sit behind the same port, and
+macOS 27's `LanguageModel` protocol is the first place to look.
+
+- Unverified: the context size on macOS 27 — Apple documents 4,096 tokens per session,
+  and 8,192 has been reported. Nothing depends on it: the budget is read at run time.
+- Unverified: whether the owner's Mac gets only the smaller on-device model; read at run
+  time.
+- Unverified: an Apple-documented way to open System Settings at the Apple Intelligence
+  pane for ux-flows S7; none was found, so the message names where the setting is.
+- Unverified: the error cases the macOS 27 SDK declares — the documentation names
+  `LanguageModelError.contextSizeExceeded(_:)` where the 26.5 SDK has
+  `GenerationError.exceededContextWindowSize`; the adapter maps whatever the SDK it is
+  built with declares.
+- <https://developer.apple.com/documentation/foundationmodels/managing-the-context-window>
+  — "a context window of 4096 tokens per session" — checked 2026-09-30
+- <https://developer.apple.com/documentation/foundationmodels/languagemodel> — "A
+  protocol that you use to interface with a model."; macOS 27.0+ — checked 2026-09-30
+
+#### Window presence
+
+Whether the town runs is decided in Core from a stream of presence values that
+`WindowPresenceProviding` reports: the town window visible (not fully occluded), the app
+active, and the Mac awake. The adapter, `WindowPresenceProvider`, observes the window's
+occlusion, the app becoming active and inactive, `NSWorkspace`'s sleep and wake,
+screens-did-sleep and screens-did-wake, and session-did-resign-active and
+session-did-become-active, reporting the window not visible while the screens sleep or
+the session is inactive, and decides nothing. It finds the town window by its
+`NSWindow.identifier`, which SwiftUI sets to the scene's id, so `App/` hands it the same
+`"town"` (in a `just run`, `visible=true` arrived 17 ms after the window appeared, #13).
+Core combines the latest presence with the "keep moving" setting and the model's
+availability, stops town time, and records when it last ran, so the next start measures
+the pause.
+
+Letting views drive this through scene phase would put the rule outside the coverage
+floor, and running on a timer is a non-goal. Occlusion is coarse: a sliver showing from
+under another window counts as visible.
+
+- Unverified: whether occlusion reports a locked screen (⌃⌘Q) as not visible; no
+  `NSWorkspace` notification covers it. Settled by a human run: lock the screen with the
+  app running and `just logs` streaming, and read `visible=` while locked.
+- <https://developer.apple.com/documentation/appkit/nswindow/occlusionstate-swift.struct/visible>
+  — "if not set, the entire window is occluded" — checked 2026-09-30
+
+#### Language
+
+English only, with no language setting (2026-10-06): `defaultLocalization: "en"`, a
+String Catalog holding English alone, and one seed file, `Resources/SeedTables.json`.
+An event kind's id is stored with every event, so an id is never removed or reused; its
+wording may change. Adding a language is the owner's decision, recorded here first;
+`localizing-the-app` lists the work it involves.
+
+#### Distribution
+
+This version is not distributed. The owner runs a build of this repository (`just run`);
+no `v*` tag is pushed, so the release workflow never runs; no signing or notarization
+secret is configured; and the app icon stays a placeholder. The release workflow and
+`docs/distribution.md` stay as the template ships them, and the sandbox stays on, so
+every channel stays open.
+
+- Owner decides, at release: the Mac App Store, a signed and notarized DMG, or both —
+  through a release issue the owner files, which updates this subsection.
+- Owner decides, from their own use: how the app stands against the Foundation Models
+  acceptable-use requirements, which prohibit a use that "Enables dependency or spiraling
+  user interactions detrimental to a user's mental health".
+- <https://developer.apple.com/apple-intelligence/acceptable-use-requirements-for-the-foundation-models-framework/>
+  — the prohibited use quoted above; the page shows no date — checked 2026-09-30
 
 ## What is contract and what is private
 
@@ -270,16 +466,15 @@ else is private.
 
 | Contract | What depends on it | What changing it requires |
 |---|---|---|
-| **Core's public API** — every `public` declaration in `TownsfolkCore` | `TownsfolkUI`, `TownsfolkPlatform`, `App/`, and the tests, which all import `TownsfolkCore` as a separate module; `Package.swift` declares the library products so `App/` can link them, and nothing outside this repository does | Update every caller in the same pull request — the compiler finds them (`just build`, `just test`). A new public declaration carries a `///` saying why (the Review Checklist in `AGENTS.md`); a new port is an ADR (`AGENTS.md` › "Before changing the architecture") |
-| **The bundle identifier** — `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`, set by `scripts/bootstrap.sh` | Everything macOS keys by it on a user's Mac: the sandbox container that holds the app's `UserDefaults` and Application Support files, and its permission (TCC) grants; the log subsystem (`AppLog.subsystem`); and `just run`, `just logs`, and `just reset-permissions`, which read it through `scripts/bundle-id.sh` | Treat it as fixed once a build has left your machine: a new identifier is a new app to macOS, so the user's settings, files, and grants stay behind under the old one. Changing it is a human's decision, recorded as an ADR; `project.yml` and `AppLog.subsystem` change together (`AppLogTests` fails otherwise), and a signing or entitlements change that goes with it needs the sign-off in `AGENTS.md` › "Security and human approval" |
-| **`UserDefaults` keys** — each key the app stores, and the type of its value | A user's saved preferences, read back by every later version | Renaming, removing, or retyping a key silently resets the user's value, because the old one is left unread. Read the old key and migrate it in Core, with a test that starts from the old value. Choosing `UserDefaults` at all is the persistence ADR |
-| **File formats** — anything the app writes and reads back in a later version: a config file, saved state, a document | Files already on a user's disk, and for a hand-edited config ("A human-editable config file" below), the user who edits it | A new version still reads the old format — a version field and a migration in Core, with a test that decodes a sample of the previous format. The format and where it lives are the persistence ADR. A cache the app can rebuild from scratch is private |
+| **Core's public API** — every `public` declaration in `TownsfolkCore` | `TownsfolkUI`, `TownsfolkPlatform`, `App/`, and the tests, which all import `TownsfolkCore` as a separate module; `Package.swift` declares the library products so `App/` can link them, and nothing outside this repository does | Update every caller in the same pull request — the compiler finds them (`just build`, `just test`). A new public declaration carries a `///` saying why (the Review Checklist in `AGENTS.md`); a new port is recorded in [Decisions](#decisions) (`AGENTS.md` › "Before changing the architecture") |
+| **The bundle identifier** — `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`, set by `scripts/bootstrap.sh` | Everything macOS keys by it on a user's Mac: the sandbox container that holds the app's `UserDefaults` and Application Support files, and its permission (TCC) grants; the log subsystem (`AppLog.subsystem`); and `just run`, `just logs`, and `just reset-permissions`, which read it through `scripts/bundle-id.sh` | Treat it as fixed once a build has left your machine: a new identifier is a new app to macOS, so the user's settings, files, and grants stay behind under the old one. Changing it is a human's decision, recorded in [Decisions](#decisions); `project.yml` and `AppLog.subsystem` change together (`AppLogTests` fails otherwise), and a signing or entitlements change that goes with it needs the sign-off in `AGENTS.md` › "Security and human approval" |
+| **`UserDefaults` keys** — each key the app stores, and the type of its value | A user's saved preferences, read back by every later version | Renaming, removing, or retyping a key silently resets the user's value, because the old one is left unread. Read the old key and migrate it in Core, with a test that starts from the old value. Choosing `UserDefaults` at all is a persistence decision ([Persistence](#persistence)) |
+| **File formats** — anything the app writes and reads back in a later version: a config file, saved state, a document | Files already on a user's disk, and for a hand-edited config ("A human-editable config file" below), the user who edits it | A new version still reads the old format — a version field and a migration in Core, with a test that decodes a sample of the previous format. The format and where it lives are a persistence decision ([Persistence](#persistence)). A cache the app can rebuild from scratch is private |
 
-The template ships no `UserDefaults` key and no file format. Townsfolk's are its four
-settings keys and its town database, `town.sqlite`, both in
-[ADR-0004](architecture/adr/0004-persistence-sqlite-in-core.md), and the `AppleLanguages`
-default it writes for the menus macOS provides
-([ADR-0007](architecture/adr/0007-english-and-japanese.md)).
+The template ships no `UserDefaults` key and no file format. Townsfolk's are its town
+database, `town.sqlite` ([Persistence](#persistence)), and exactly three settings keys:
+`settings.displayName` (a String), `settings.speed` (`"slow"`, `"normal"`, or `"fast"`),
+and `settings.keepsMovingInOtherApps` (a Bool).
 
 **Private** is everything else: `internal` and `private` declarations, how an adapter
 talks to the OS behind its port, view structure, file and type layout, test helpers, and

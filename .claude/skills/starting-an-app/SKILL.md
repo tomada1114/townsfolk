@@ -161,14 +161,14 @@ what stays on either way (Hardened Runtime, Developer ID signing, notarization),
 
 ## Recording both decisions
 
-Both steps end in the new app's first two ADRs, written after the rename in the tree
-`recording-architecture-decisions` owns: copy `docs/architecture/adr/template.md` to
-`docs/architecture/adr/0001-app-shape.md` (windowed or menu-bar agent, and why) and
-`0002-sandbox-posture.md` (sandboxed or not, naming any capability that forces the
-flip), each with status Proposed — only the owner accepts — and add both rows to
-`docs/architecture/README.md`'s Decisions table in the same change. Every external claim
-in them (an App Store rule, an API's sandbox behavior) carries its URL and checked date.
-The template itself ships no ADRs; these belong to the app.
+Both steps end in the new app's first two recorded decisions, written after the rename
+in a section of `docs/architecture.md` that follows the template's layers (in this app,
+"Townsfolk on these layers"): an app shape subsection (windowed or menu-bar agent, and why) and a
+sandbox posture subsection (sandboxed or not, naming any capability that forces the
+flip). Only the owner decides either; an agent proposes them in the pull request. Every
+external claim in them (an App Store rule, an API's sandbox behavior) carries its URL
+and checked date (`updating-docs` › "Fact discipline"). The template itself records
+neither; they belong to the app.
 
 ## What the new app keeps
 

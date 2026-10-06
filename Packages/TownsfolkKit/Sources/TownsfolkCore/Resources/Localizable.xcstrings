@@ -9,12 +9,6 @@
             "state" : "translated",
             "value" : "Frontmost: %@"
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最前面: %@"
-          }
         }
       }
     },
@@ -25,12 +19,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frontmost: —"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最前面: —"
           }
         }
       }
@@ -43,12 +31,6 @@
             "state" : "translated",
             "value" : "When off, the town rests unless its window is active."
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オフにすると、町のウインドウがアクティブなとき以外は町がひと休みします。"
-          }
         }
       }
     },
@@ -59,46 +41,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keep the town moving while I use other apps"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ほかのアプリを使っているあいだも町を動かす"
-          }
-        }
-      }
-    },
-    "settings.language.help" : {
-      "comment" : "Settings: helper text under the language picker. The app's own text switches at once; the menus macOS provides switch at the next launch.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Menus switch the next time Townsfolk opens."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メニューは次に Townsfolk を開いたときに切り替わります。"
-          }
-        }
-      }
-    },
-    "settings.language.title" : {
-      "comment" : "Settings: the label of the picker that chooses the app's language.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "言語"
           }
         }
       }
@@ -111,12 +53,6 @@
             "state" : "translated",
             "value" : "Use %lld–%lld characters."
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld〜%2$lld 文字で入力してください。"
-          }
         }
       }
     },
@@ -127,12 +63,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your name"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "あなたの名前"
           }
         }
       }
@@ -145,12 +75,6 @@
             "state" : "translated",
             "value" : "Fast"
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "はやい"
-          }
         }
       }
     },
@@ -161,12 +85,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About one new post every 30 seconds."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 秒に 1 件ほど新しい投稿があります。"
           }
         }
       }
@@ -179,12 +97,6 @@
             "state" : "translated",
             "value" : "About one new post every 3 minutes."
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3 分に 1 件ほど新しい投稿があります。"
-          }
         }
       }
     },
@@ -195,12 +107,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About one new post every 15 minutes."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "15 分に 1 件ほど新しい投稿があります。"
           }
         }
       }
@@ -213,12 +119,6 @@
             "state" : "translated",
             "value" : "Normal"
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ふつう"
-          }
         }
       }
     },
@@ -230,12 +130,6 @@
             "state" : "translated",
             "value" : "Slow"
           }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ゆっくり"
-          }
         }
       }
     },
@@ -246,12 +140,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Speed"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "速さ"
           }
         }
       }

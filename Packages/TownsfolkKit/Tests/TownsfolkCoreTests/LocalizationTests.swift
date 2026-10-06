@@ -3,6 +3,40 @@ import Testing
 import TownsfolkCore
 import TownsfolkTestSupport
 
+/// The subset of the String Catalog format these tests read: its source language and,
+/// per key, each language's single string. A plural or device-varied entry has
+/// `variations` instead of a `stringUnit`.
+private struct StringCatalog: Decodable {
+    let sourceLanguage: String
+    let strings: [String: CatalogEntry]
+}
+
+/// One key's entry. An entry keyed by its own English text may carry no `localizations`
+/// at all, which decodes as none rather than failing the whole catalog.
+private struct CatalogEntry: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case localizations
+    }
+
+    let localizations: [String: CatalogLocalization]
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        localizations = try container.decodeIfPresent(
+            [String: CatalogLocalization].self,
+            forKey: .localizations,
+        ) ?? [:]
+    }
+}
+
+private struct CatalogLocalization: Decodable {
+    struct StringUnit: Decodable {
+        let value: String
+    }
+
+    let stringUnit: StringUnit?
+}
+
 /// The String Catalog plumbing (`Sources/TownsfolkCore/Resources/Localizable.xcstrings`).
 ///
 /// `swift test` builds with SwiftPM's native build system, which copies the catalog into
@@ -14,10 +48,7 @@ import TownsfolkTestSupport
 /// the catalog's and exactly ``everyCase()``'s; and the catalog's English is what Core
 /// renders. Without them, a key missing from the catalog still reads correctly in
 /// English and simply never translates. A resource made from a bare string literal is
-/// outside what the scan sees (``ResourceDeclarationScan``). Every key also carries a
-/// translated Japanese value taking the English's arguments (ADR-0007,
-/// ``CatalogTranslationCheck``), and the language helper hands each resource the app
-/// language's locale.
+/// outside what the scan sees (``ResourceDeclarationScan``).
 @MainActor
 @Suite("Localization")
 struct LocalizationTests {
@@ -49,8 +80,6 @@ struct LocalizationTests {
         return [
             Case(resource: answered.label, arguments: ["Finder"]),
             Case(resource: unanswered.label, arguments: []),
-            Case(resource: SettingsWording.languageTitle, arguments: []),
-            Case(resource: SettingsWording.languageHelp, arguments: []),
             Case(resource: SettingsWording.nameTitle, arguments: []),
             Case(
                 resource: SettingsWording.nameError(length: nameLength ... nameLimit),
@@ -71,20 +100,6 @@ struct LocalizationTests {
     private static func catalog() throws -> StringCatalog {
         let url = coreSources.appending(path: "Resources/Localizable.xcstrings")
         return try JSONDecoder().decode(StringCatalog.self, from: Data(contentsOf: url))
-    }
-
-    /// A fixture catalog entry with an English value and, when `japanese` is given, a
-    /// Japanese one in that state.
-    private static func entry(
-        english: String,
-        japanese: (state: String, value: String)?,
-    ) -> [String: Any] {
-        var localizations: [String: Any] = [:]
-        localizations["en"] = ["stringUnit": ["state": "translated", "value": english]]
-        if let japanese {
-            localizations["ja"] = ["stringUnit": ["state": japanese.state, "value": japanese.value]]
-        }
-        return ["localizations": localizations]
     }
 
     /// The keys the `LocalizedStringResource(…)` calls in Core's sources declare.
@@ -177,75 +192,6 @@ struct LocalizationTests {
         }
         #expect(Bundle(url: url)?.developmentLocalization == "en")
     }
-
-    @Test
-    func `every catalog key has a translated Japanese value taking the English's arguments`(
-    ) throws {
-        for problem in try CatalogTranslationCheck.problems(in: Self.catalog(), language: "ja") {
-            Issue.record("\(problem)")
-        }
-    }
-
-    @Test
-    func `the translation check names each key whose Japanese is missing, empty, untranslated, or mismatched`(
-    ) throws {
-        let fixture: [String: Any] = [
-            "sourceLanguage": "en",
-            "strings": [
-                "a.complete": Self.entry(
-                    english: "%@ has %lld",
-                    japanese: ("translated", "%2$lld 件 %1$@"),
-                ),
-                "b.missing": Self.entry(english: "Hello", japanese: nil),
-                "c.empty": Self.entry(english: "Hello", japanese: ("translated", " ")),
-                "d.untranslated": Self.entry(english: "Hello", japanese: ("new", "こんにちは")),
-                "e.mismatched": Self.entry(english: "Hi %@", japanese: ("translated", "%lld さん")),
-                "f.noEntryAtAll": [String: Any](),
-            ],
-        ]
-        let catalog = try JSONDecoder().decode(
-            StringCatalog.self,
-            from: JSONSerialization.data(withJSONObject: fixture),
-        )
-        #expect(CatalogTranslationCheck.problems(in: catalog, language: "ja") == [
-            "b.missing has no translated ja value",
-            "c.empty has no translated ja value",
-            "d.untranslated has no translated ja value",
-            "e.mismatched's ja value takes %1$lld where its en takes %1$@",
-            "f.noEntryAtAll has no translated ja value",
-        ])
-    }
-
-    @Test(arguments: [
-        ("Frontmost: —", [:]),
-        ("100%% sure", [:]),
-        ("%@ wrote %lld", [1: "@", 2: "lld"]),
-        ("%2$lld件 %1$@", [1: "@", 2: "lld"]),
-        ("%d and %ld", [1: "d", 2: "ld"]),
-    ] as [(String, [Int: String])])
-    func `format specifiers are read by the argument they consume`(
-        format: String,
-        expected: [Int: String],
-    ) {
-        #expect(CatalogTranslationCheck.formatSpecifiers(in: format) == expected)
-    }
-
-    @Test(arguments: [
-        (TownLanguage.english, "en"),
-        (TownLanguage.japanese, "ja"),
-    ])
-    func `the language helper sets every resource's locale to the app language's`(
-        language: TownLanguage,
-        code: String,
-    ) {
-        for testCase in Self.everyCase() {
-            let localized = language.localized(testCase.resource)
-            #expect(localized.locale == Locale(identifier: code), "\(testCase.resource.key)")
-            #expect(localized.key == testCase.resource.key)
-            #expect(localized.bundleURL != nil, "\(testCase.resource.key)")
-            #expect(localized.bundleURL == testCase.resource.bundleURL, "\(testCase.resource.key)")
-        }
-    }
 }
 
 extension Locale {
@@ -255,15 +201,6 @@ extension Locale {
 }
 
 extension LocalizedStringResource {
-    /// The bundle this resource is looked up in, when it names one by URL as
-    /// `bundle: .module` does; `BundleDescription` itself is not `Equatable`.
-    var bundleURL: URL? {
-        guard case let .atURL(url) = bundle else {
-            return nil
-        }
-        return url
-    }
-
     /// The string this resource renders as in `locale` — what a view would show a
     /// reader whose language is `locale`.
     func resolved(in locale: Locale) -> String {

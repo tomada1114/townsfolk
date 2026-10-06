@@ -18,7 +18,7 @@ Include:
 
 This project is maintained on a best-effort basis and makes no guaranteed response
 time. Townsfolk has no releases — it is not distributed and is built from source
-([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)) — so reports are
+([`docs/architecture.md` › Distribution](docs/architecture.md#distribution)) — so reports are
 assessed against `main`, and a fix lands on `main` once one is ready.
 
 ## Supported Versions

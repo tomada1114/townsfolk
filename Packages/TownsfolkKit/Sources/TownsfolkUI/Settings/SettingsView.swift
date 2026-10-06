@@ -6,34 +6,28 @@ private enum Layout {
     static let width = DesignLock.Window.settingsWidth
 }
 
-/// A helper line under a control: `.callout` in `SecondaryText` (ADR-0008 › Type).
+/// A helper line under a control: `.callout` in `SecondaryText`.
 private struct HelperText: View {
-    let text: String
+    let text: LocalizedStringResource
 
     var body: some View {
-        Text(verbatim: text)
+        Text(text)
             .font(.callout)
             .foregroundStyle(DesignLock.Palette.secondaryText)
     }
 }
 
 /// The Settings window's one pane, which the `Settings` scene in `App/` holds and ⌘,
-/// opens (ux-flows S5): language, your name, speed, and keep-moving, in that order, each
-/// applied the moment it changes.
+/// opens (ux-flows S5): your name, speed, and keep-moving, in that order, each applied the
+/// moment it changes.
 ///
-/// It renders ``SettingsViewModel`` and decides nothing. Every string arrives resolved in
-/// the app's language and is drawn with `Text(verbatim:)`, never `Text(resource)`, which
-/// would ignore the language the app is set to (ADR-0007 › Amended 2026-10-06).
+/// It renders ``SettingsViewModel`` and decides nothing.
 public struct SettingsView: View {
     @State private var model: SettingsViewModel
     @FocusState private var isNameFocused: Bool
 
     public var body: some View {
         Form {
-            Section {
-                languagePicker
-                HelperText(text: model.languageHelp)
-            }
             Section {
                 nameField
                 if let error = model.nameError {
@@ -59,21 +53,9 @@ public struct SettingsView: View {
         .accessibilityIdentifier("settingsPane")
     }
 
-    private var languagePicker: some View {
-        Picker(selection: Binding(get: { model.language }, set: { model.languageChosen($0) })) {
-            ForEach(SettingsViewModel.languageChoices, id: \.self) { language in
-                // Each language's own name, the same in every app language.
-                Text(verbatim: language.nativeName).tag(language)
-            }
-        } label: {
-            Text(verbatim: model.languageTitle)
-        }
-        .accessibilityIdentifier("settingsLanguagePicker")
-    }
-
     private var nameField: some View {
         TextField(text: Binding(get: { model.nameField }, set: { model.nameEdited($0) })) {
-            Text(verbatim: model.nameTitle)
+            Text(model.nameTitle)
         }
         .focused($isNameFocused)
         .onSubmit { model.nameSubmitted(model.nameField) }
@@ -89,10 +71,10 @@ public struct SettingsView: View {
     private var speedPicker: some View {
         Picker(selection: Binding(get: { model.speed }, set: { model.speedChosen($0) })) {
             ForEach(SettingsViewModel.speedChoices, id: \.self) { speed in
-                Text(verbatim: model.speedName(speed)).tag(speed)
+                Text(model.speedName(speed)).tag(speed)
             }
         } label: {
-            Text(verbatim: model.speedTitle)
+            Text(model.speedTitle)
         }
         .pickerStyle(.segmented)
         .accessibilityIdentifier("settingsSpeedPicker")
@@ -103,7 +85,7 @@ public struct SettingsView: View {
             get: { model.keepsMovingInOtherApps },
             set: { model.keepsMovingChanged($0) },
         )) {
-            Text(verbatim: model.keepsMovingTitle)
+            Text(model.keepsMovingTitle)
         }
         .accessibilityIdentifier("settingsKeepMovingToggle")
     }
@@ -165,10 +147,6 @@ private func pane(_ model: SettingsViewModel?) -> some View {
 
 #Preview("Keep moving off") {
     pane(previewModel("keepMovingOff") { $0.keepsMovingChanged(false) })
-}
-
-#Preview("Japanese") {
-    pane(previewModel("japanese") { $0.languageChosen(.japanese) })
 }
 
 #Preview("Default, dark") {

@@ -29,6 +29,15 @@ answer because macOS withheld a grant, the log line that never fires. That is wh
 launching is for, and its result is evidence in the pull request, never a substitute for
 a test.
 
+## Ask before taking over the Mac
+
+Launching the app, a throwaway XCUITest, `just uitest`, `just smoke`, and
+`just test-local` all take over the owner's screen and keyboard. Batch them at the end of
+the work, and ask the owner in chat before running them ("May I launch the app now?").
+When one is needed partway through, stop there and ask rather than running it. Every
+check that leaves the screen alone — `just test`, `just build`, `just lint`, `just check`
+— needs no such ask.
+
 ## Launch the build you just made
 
 ```bash
@@ -146,8 +155,10 @@ you ran, not a paraphrase, and paste:
   absent.
 - **A log excerpt** (a few lines of the stream, with the predicate you used above them)
   for behavior whose only observable is a log line.
-- **A screenshot** for anything a person looks at — window-level, after the interaction,
-  showing the state the change produces.
+- **For anything a person looks at, a sentence, not a screenshot.** The owner does not
+  want screenshots in pull requests (2026-10-06). Say what was checked and how — for
+  example, a throwaway XCUITest that found each label by its text — and what it showed.
+  A screenshot taken to look at the app yourself stays out of the pull request.
 
 Never paste a Team ID, a signing identity, a certificate common name, or a personal
 name: a pull request here, or in a repository cut from this template, may be public,

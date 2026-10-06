@@ -32,8 +32,8 @@ Keeping it in the view model is what makes the 80% floor on `TownsfolkCore` hone
 `SettingsViewModel` is the worked example of the rules below: it holds the model in
 `@State`, set in `init(model:)`; builds each control's `Binding` from an action; submits
 the name on Return, on focus loss, and when the pane closes (`paneClosed()`); renders
-every string with `Text(verbatim:)`; and has a `#Preview` per state. `RootView` is the
-example of a view with no model. Both show the rest: a `private enum Layout` over
+every Core resource with `Text(resource)` or `Label(resource, systemImage:)`; and has a
+`#Preview` per state. `RootView` is the example of a view with no model. Both show the rest: a `private enum Layout` over
 `DesignLock`, accessibility identifiers, light and dark previews.
 
 - A view is a `struct` in `TownsfolkUI` importing `SwiftUI` and `TownsfolkCore`, and never
@@ -74,7 +74,7 @@ example of a view with no model. Both show the rest: a `private enum Layout` ove
 | `if let` on an optional model or value, to show or omit a part | Any rule, clamp, threshold, or comparison on domain values |
 | Calling an action from a `Button`, `.onSubmit`, a menu command | What the action does, and the state it leaves behind |
 | *When* to ask again — `.onChange(of: scenePhase)`, `.task` — as `App/TownsfolkApp.swift` reads window presence in a `.task` on `RootView` | *What* asking again means (`refresh()`) |
-| `Text(verbatim:)` for every string — a Core-resolved one, a glyph, an already-formatted number — never `Text(resource)` (ADR-0007) | Every word a person reads, resolved in the app language and handed over as a `String` (`SettingsViewModel.languageTitle`, `speedHint`) — `localizing-the-app` |
+| `Text(verbatim:)` for a glyph or an already-formatted number | Every word a person reads, as a `LocalizedStringResource` (`SettingsViewModel.nameTitle`, `speedHint`) — `localizing-the-app` |
 | `.disabled(!model.canPost)` | Formatting numbers and dates with an injected `Locale` |
 
 - An action that waits is `async`; call it from `.task { await model.load() }` so
@@ -113,11 +113,10 @@ example of a view with no model. Both show the rest: a `private enum Layout` ove
   never localized, never shown to a person. Renaming one breaks `just uitest`, so rename
   the test in the same change (`LaunchTests` reads `townWindow`).
 - **Labels are what VoiceOver says**, and an identifier is not one. Give every control a
-  text label from a Core `LocalizedStringResource`, resolved as `localizing-the-app`'s
-  rendering rule says (ADR-0007: never pass the resource itself):
-  `Button(String(localized: model.addTitle), systemImage: "plus")` or `Label` rather than
-  a bare `Image`, and `.accessibilityLabel(Text(verbatim: String(localized: model.replyLabel)))`
-  where the visible text is a glyph or a number without context. A decorative image is `Image(decorative:)` or `.accessibilityHidden(true)`.
+  text label from a Core `LocalizedStringResource` (`localizing-the-app`):
+  `Button(model.addTitle, systemImage: "plus")` or `Label` rather than a bare `Image`,
+  and `.accessibilityLabel(model.replyLabel)` where the visible text is a glyph or a
+  number without context. A decorative image is `Image(decorative:)` or `.accessibilityHidden(true)`.
   Enforced by: `accessibility_label_for_image` (a labelless image) and
   `accessibility_trait_for_button` (an `.onTapGesture` without `.isButton`), both on
   through `opt_in_rules: all`. Neither sees a glyph-only text button — review does.
@@ -140,8 +139,9 @@ example of a view with no model. Both show the rest: a `private enum Layout` ove
    `just lint`.
 3. `just uitest` — when an identifier the launch test reads, or the first screen,
    changed.
-4. `just run`, then a screenshot per `running-the-app` in both appearances and at the
-   minimum window size — the pull request's evidence of what the view shows.
+4. `just run`, after asking the owner (`running-the-app` › Ask before taking over the
+   Mac), to look at the view in both appearances and at the minimum window size. The pull
+   request says what was checked; it carries no screenshot.
 
 ## Sources
 

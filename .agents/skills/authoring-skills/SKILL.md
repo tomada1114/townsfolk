@@ -123,7 +123,7 @@ the same commit, and widening a skill's subject means widening its row. Enforced
   `integrating-system-apis`, holds only what this repository decided there and why. It
   links Apple's documentation by URL instead of restating it, and a version,
   availability, or policy it must state carries its URL and a checked date
-  (**BACKGROUND:** `recording-architecture-decisions` › "Fact discipline").
+  (**BACKGROUND:** `updating-docs` › "Fact discipline").
 
 ## Where a skill lives
 

@@ -3,7 +3,7 @@
 ///
 /// The observing counterpart of the pull-style ``FrontmostAppProviding``: the town has to
 /// stop the moment its window can no longer be seen, so the adapter pushes every change
-/// instead of waiting to be asked (ADR-0006). Core declares the protocol,
+/// instead of waiting to be asked. Core declares the protocol,
 /// `TownsfolkPlatform` holds the AppKit adapter that watches the window's occlusion, the
 /// app's activation, and the Mac's sleep, tests substitute `FakeWindowPresenceProvider`,
 /// and `App/` picks the real one.

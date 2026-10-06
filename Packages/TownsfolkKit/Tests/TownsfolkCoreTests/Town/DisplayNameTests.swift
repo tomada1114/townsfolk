@@ -45,8 +45,8 @@ struct DisplayNameTests {
     func `a character is a grapheme cluster, not a scalar`() throws {
         let twenty = TownFixtures.text(20, of: TownFixtures.wavingHand)
         #expect(try DisplayName(twenty).value == twenty)
-        let japanese = TownFixtures.text(20, of: TownFixtures.hiragana)
-        #expect(try DisplayName(japanese).value == japanese)
+        let kana = TownFixtures.text(20, of: TownFixtures.hiragana)
+        #expect(try DisplayName(kana).value == kana)
         #expect(throws: TownValueError.tooLong(.displayName, limit: 20)) {
             try DisplayName(twenty + TownFixtures.hiragana)
         }

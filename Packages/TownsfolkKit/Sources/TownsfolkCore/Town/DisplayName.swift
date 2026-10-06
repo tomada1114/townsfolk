@@ -1,6 +1,6 @@
-/// Your name in the town — the one thing founding asks besides the language
-/// (requirements §3.1, §3.10). A type rather than a `String` so a name that reached the
-/// settings or the timeline has already been trimmed and checked.
+/// Your name in the town — the one thing founding asks (requirements §3.1, §3.10). A
+/// type rather than a `String` so a name that reached the settings or the timeline has
+/// already been trimmed and checked.
 public struct DisplayName: Sendable, Hashable {
     /// The name, trimmed at both ends.
     public let value: String

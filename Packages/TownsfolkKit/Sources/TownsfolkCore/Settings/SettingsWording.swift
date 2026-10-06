@@ -1,35 +1,11 @@
 import Foundation
 
-/// Every word the Settings pane shows, as String Catalog resources in the process's
-/// locale. ``SettingsViewModel`` sets each to the app language and resolves it; a view
-/// never reads these (ADR-0007 › Amended 2026-10-06).
+/// Every word the Settings pane shows, as String Catalog resources. ``SettingsViewModel``
+/// hands each to the view, which reads them only through it.
 ///
 /// Computed, so each read builds a fresh resource; `package`, so `LocalizationTests` can
 /// list every key without the app seeing them.
 package enum SettingsWording {
-    /// The language picker's label.
-    package static var languageTitle: LocalizedStringResource {
-        LocalizedStringResource(
-            "settings.language.title",
-            defaultValue: "Language",
-            bundle: .module,
-            comment: "Settings: the label of the picker that chooses the app's language.",
-        )
-    }
-
-    /// The helper under the language picker.
-    package static var languageHelp: LocalizedStringResource {
-        LocalizedStringResource(
-            "settings.language.help",
-            defaultValue: "Menus switch the next time Townsfolk opens.",
-            bundle: .module,
-            comment: """
-            Settings: helper text under the language picker. The app's own text switches at \
-            once; the menus macOS provides switch at the next launch.
-            """,
-        )
-    }
-
     /// The name field's label.
     package static var nameTitle: LocalizedStringResource {
         LocalizedStringResource(

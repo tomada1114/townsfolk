@@ -2,12 +2,11 @@
 ///
 /// The adapter behind ``WindowPresenceProviding`` reports these and nothing more: whether
 /// the town runs — presence, the "keep moving" setting, and the model's availability — is
-/// the engine's decision, made in Core where a test can drive it (ADR-0006).
+/// the engine's decision, made in Core where a test can drive it.
 public struct WindowPresence: Equatable, Hashable, Sendable {
     /// The town window has some part on screen: not minimized, hidden, on another Space,
     /// or completely covered, with the displays awake and this login session the active
-    /// one. A sliver showing from under another window counts as visible (ADR-0006 ›
-    /// Consequences).
+    /// one. A sliver showing from under another window counts as visible.
     public var isWindowVisible: Bool
     /// This app is the active one, the app that receives key events.
     public var isAppActive: Bool

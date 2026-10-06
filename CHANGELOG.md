@@ -10,13 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
-- Japanese is available alongside English: every string the app shows has a Japanese
-  translation, and the app declares Japanese, so the menus macOS provides (Quit, Edit, …)
-  appear in Japanese when the app's language is Japanese
-- Settings (⌘,) holds the language, your name, the town's speed, and whether the town
-  keeps moving while you use other apps; every change applies at once with no Save
-  button, the pane switches language without a relaunch, and a name outside 1–20
-  characters is kept in the field with "Use 1–20 characters." under it
+- Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
+  while you use other apps; every change applies at once with no Save button, and a
+  name outside 1–20 characters is kept in the field with "Use 1–20 characters." under it
 
 ### Changed
 
