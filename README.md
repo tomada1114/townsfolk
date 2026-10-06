@@ -21,12 +21,11 @@ It exists to be pleasant to watch. What it will not grow is listed under Non-goa
 - **Nothing leaves the Mac:** every word the town writes comes from Apple's on-device
   model through the Foundation Models framework — no server, no API key, no network
   access, no analytics. Your posts and the generated text never reach a log
-  ([ADR-0002](docs/architecture/adr/0002-sandbox-posture.md)).
-- **Languages:** English and Japanese, chosen inside the app
-  ([ADR-0007](docs/architecture/adr/0007-english-and-japanese.md)).
+  ([Sandbox posture](docs/architecture.md#sandbox-posture)).
+- **Language:** English only.
 - **Getting it:** this version is not distributed — there is no download and no DMG.
   Build it from source with `just install`, then `just run`
-  ([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)).
+  ([Distribution](docs/architecture.md#distribution)).
 
 Built from the `tomada1114/macos-app-template` repository.
 
@@ -80,7 +79,7 @@ meaningless view tests. Note: Swift's llvm-cov has no dependable branch
 metric, so the gate uses line coverage, plus function coverage so a Core function
 no test calls cannot hide under the line floor.
 
-### Why one String Catalog in Core?
+### Why one String Catalog in Core, and English only?
 
 User-facing wording is a decision like any other, so it lives where the
 coverage floor sees it: Core view models return `LocalizedStringResource`
@@ -89,13 +88,13 @@ coverage floor sees it: Core view models return `LocalizedStringResource`
 their own, because a SwiftUI literal is looked up in the app's main bundle, not
 the package's. The template ships English alone — `defaultLocalization: "en"`
 and one catalog — since a second language makes every later string owe a
-translation and a reviewer, so an app that wants one records it as an ADR. The
+translation and a reviewer; an app that wants one records the decision in
+`docs/architecture.md`. The
 `localizing-the-app` skill holds the rules, including one that shapes the
 tests: `swift test` copies the catalog uncompiled (only `xcodebuild` compiles
 it), so `LocalizationTests` scans Core's sources for `LocalizedStringResource`
 calls and checks their keys and English against the catalog's source.
-Townsfolk itself ships English and Japanese, switched inside the app:
-[ADR-0007](docs/architecture/adr/0007-english-and-japanese.md).
+Townsfolk ships English only.
 
 ### Why Swift Testing?
 
@@ -125,18 +124,18 @@ path-scoped rules give LLMs the project's standards, architecture, and hard
 prohibitions (never lower the coverage floor, never disable safety lint
 rules) — reducing review cycles.
 
-### Why an ADR tree that ships empty?
+### Where are the app's own decisions recorded?
 
 The template's own decisions are the ones above. An app makes decisions of a
 different kind — its shape, its sandbox posture, where it keeps state, how it
-ships, which permissions it asks for — and records each as an Architecture
-Decision Record under `docs/architecture/`, whose index the template ships
-empty. Townsfolk's decisions are ADR-0001 through ADR-0009, listed in
-[docs/architecture/README.md](docs/architecture/README.md). `AGENTS.md`'s
-"Before changing the architecture" names the changes that owe one. An accepted
-ADR takes small corrections in place, dated; a replaced decision gets a new
-ADR rather than a rewrite, so the reasoning that held at the time stays
-readable.
+ships, which permissions it asks for. Townsfolk records each one, with its
+reasons, open questions, and dated sources, in
+[docs/architecture.md › Townsfolk on these layers](docs/architecture.md#townsfolk-on-these-layers),
+beside the layers it builds on, and its design lock in
+[docs/design/design-direction.md](docs/design/design-direction.md#design-lock).
+`AGENTS.md`'s "Before changing the architecture" names the changes that land
+there. A changed decision updates its record in the same pull request, so the
+record says what holds now and git history keeps what held before.
 
 ### Why secret-gated notarization?
 
@@ -146,7 +145,7 @@ signs and says so loudly, so it works without an Apple Developer Program
 membership and upgrades to fully trusted distribution by adding secrets — no
 workflow edits. See docs/distribution.md. Townsfolk releases nothing yet: no
 `v*` tag is pushed, so the workflow never runs, and no secret is configured
-([ADR-0009](docs/architecture/adr/0009-not-distributed-yet.md)).
+([Distribution](docs/architecture.md#distribution)).
 
 ## Keeping up with template updates
 
@@ -201,7 +200,6 @@ ad-hoc-signed Debug builds lose the grant on every rebuild.
 - [Roadmap](docs/architecture/roadmap.md)
 - [Getting Started](docs/getting-started.md)
 - [Architecture](docs/architecture.md)
-- [Architecture Decisions](docs/architecture/README.md)
 - [Distribution & Signing](docs/distribution.md)
 - [Adding iOS Later](docs/adding-ios.md)
 

@@ -22,6 +22,127 @@
           }
         }
       }
+    },
+    "settings.keepsMoving.help" : {
+      "comment" : "Settings: helper text under the keep-moving toggle. \"Rests\" means the town pauses.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, the town rests unless its window is active."
+          }
+        }
+      }
+    },
+    "settings.keepsMoving.title" : {
+      "comment" : "Settings: the label of the toggle that lets the town keep running while another app is in front, as long as its window is visible.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the town moving while I use other apps"
+          }
+        }
+      }
+    },
+    "settings.name.error" : {
+      "comment" : "Settings: shown under the name field when the submitted name is empty or too long. The arguments are the fewest and the most characters a name may have.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use %lld–%lld characters."
+          }
+        }
+      }
+    },
+    "settings.name.title" : {
+      "comment" : "Settings: the label of the field holding the person's own name in the town.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        }
+      }
+    },
+    "settings.speed.fast" : {
+      "comment" : "Settings: the fastest speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast"
+          }
+        }
+      }
+    },
+    "settings.speed.hint.fast" : {
+      "comment" : "Settings: helper under the speed control while Fast is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 30 seconds."
+          }
+        }
+      }
+    },
+    "settings.speed.hint.normal" : {
+      "comment" : "Settings: helper under the speed control while Normal is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 3 minutes."
+          }
+        }
+      }
+    },
+    "settings.speed.hint.slow" : {
+      "comment" : "Settings: helper under the speed control while Slow is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 15 minutes."
+          }
+        }
+      }
+    },
+    "settings.speed.normal" : {
+      "comment" : "Settings: the default speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        }
+      }
+    },
+    "settings.speed.slow" : {
+      "comment" : "Settings: the slowest speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow"
+          }
+        }
+      }
+    },
+    "settings.speed.title" : {
+      "comment" : "Settings: the label of the segmented control choosing how often the town posts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

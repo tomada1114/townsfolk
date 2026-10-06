@@ -1,8 +1,9 @@
 # Townsfolk — Design direction
 
-- **Status:** research record from the kickoff (2026-09-30). The binding design lock is
-  [ADR-0008](../architecture/adr/0008-design-lock.md), per the `designing-ui` skill; this
-  file is its source.
+- **Status:** research record from the kickoff (2026-09-30), approved by the owner the
+  same day. Its [Design lock](#design-lock) section is binding: every screen obeys it,
+  `TownsfolkUI`'s `DesignLock` mirrors it in code, and a change to either changes both in
+  the same pull request (`designing-ui`).
 - **Inputs:** `docs/product/requirements.md`, `docs/product/ux-flows.md`,
   `docs/design/ux-guidelines.md`; the template's `designing-ui` (system first, custom by
   exception) and its design-lock fields.
@@ -103,7 +104,7 @@ system accent on system controls, nothing else in the window is colored.
 |---|---|---|---|
 | Monochrome feed on the opaque system canvas | Threads (primary): black text on a light canvas, content as the focal point | the canvas takes no tint but the transient wash | the residents' words are the product, and a glance from a distance reads them best |
 | System font; `.title3` is the largest style | Threads: system-ui only, "avoid large, impactful headlines"; template `designing-ui`: built-in text styles | — | native, follows the system's accessibility text features, no license |
-| Post text `.body` with 2 pt extra line spacing | `ux-guidelines.md` (13 pt body); Threads' body line height 1.4 | post text only | 18/13 ≈ 1.4: multi-line posts and Japanese read without crowding |
+| Post text `.body` with 2 pt extra line spacing | `ux-guidelines.md` (13 pt body); Threads' body line height 1.4 | post text only | 18/13 ≈ 1.4: multi-line posts read without crowding |
 | Name `.headline`, then the time in `.body` SecondaryText on the same line | Threads and Bluesky post headers: name weight 600, time muted at a similar size | — | hierarchy by weight; one line per header |
 | Supporting lines at `.callout` | Posts by Read.cv: a gray "Replying to" line above a reply; Threads' caption scale | metadata only | quote lines and event rows recede behind the posts |
 | `SecondaryText` custom Color Set | measured: `secondaryLabelColor` 3.95:1 on the light canvas (AA needs 4.5:1); Bluesky's Slate Text for metadata | metadata text and its symbols | AA was chosen in `ux-guidelines.md`, and `.secondary` meets it only in dark |
@@ -118,29 +119,39 @@ system accent on system controls, nothing else in the window is colored.
 | Problems in primary text with `exclamationmark.triangle` | measured: systemRed 3.57:1 on white | — | AA, and never color alone |
 | App icon: one lit window in Lamplight amber on a neutral ground; a placeholder until distribution | Paste's "single lit window" thesis, not its all-amber tile; HIG App icons (Icon Composer, appearance variants) | Lamplight's decoration role | recognizable at a glance without resembling Paste's icon |
 
-## Token values (target: the design-lock fields)
+## Design lock
+
+The values every screen obeys, one row per design-lock field (`designing-ui` ›
+`references/design-lock.md`). Shared values live in one internal type in `TownsfolkUI`,
+`DesignLock`, which each view's private `Layout` enum refers to; none of it goes in
+`TownsfolkCore`.
 
 | Field | Value |
 |---|---|
 | Accent color | System default: `AccentColor.colorset` keeps no value. Used by system controls only (default buttons, text selection, Settings' controls, the focus ring). |
-| Custom colors | `SecondaryText` — Any #666666, Dark #A3A3A3, Any High Contrast #4D4D4D, Dark High Contrast #C2C2C2: metadata text and its symbols (roles above). `Lamplight` — Any #FFEED6, Dark #3D3221, its High Contrast variants the same values (it is decoration; the stronger High Contrast text colors keep the pairs passing): the arrival wash; the app icon's glow takes its hue. Everything else is a semantic system color. |
+| Custom colors | `SecondaryText` — Any #666666, Dark #A3A3A3, Any High Contrast #4D4D4D, Dark High Contrast #C2C2C2: metadata text and its symbols (roles above). `Lamplight` — Any #FFEED6, Dark #3D3221, its High Contrast variants the same values (it is decoration; the stronger High Contrast text colors keep the pairs passing): the arrival wash; the app icon's glow takes its hue. Everything else is a semantic system color. Both Color Sets live in `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets` and are read with `Color(_:bundle: .module)`: a named color in the app's own asset catalog is looked up in the main bundle, which a `#Preview` host (`XCPreviewAgent.app`) does not have, so there it resolves to clear (checked 2026-09-30, #7; moved 2026-10-06, #37). |
 | Type | System font only; no fixed sizes. `.body`: post text (2 pt extra line spacing), the composer, first-run and founding text, Settings. `.headline`: resident names in post headers and the profile's full name. Post times: `.body` in SecondaryText after the name ("Jun · 1m"). `.callout`: the status line (primary color; the resting line in SecondaryText), quote lines, event rows, labeled dividers ("While you were away"), the replying chip, the counter, helper text, the profile's details. `.title3`: the heading of a full-window state (S2, S3, S7). Nothing larger, and nothing below 12 pt. |
 | Spacing scale | 4, 8, 12, 16, 32 pt. 4 between a post's header and its text; 8 between the posts of a group, between a quote line and its first post, and between the status line and the composer; 12 on each side of the hairline between groups and event rows; 16 from the window edge to the content, and as the gutter; 32 as the margin of a full-window state (S2, S3, S7) and between its blocks. The profile popover pads 16 and separates its rows by 8. Settings keeps the system form's spacing. |
 | Timeline metrics | The text column, gutter included, is capped at 560 pt and centered. The thread line, a quote line's symbol, and an event row's symbol hang in the 16 pt gutter left of the shared text edge. Thread line: 2 pt wide with round caps, from the group's first header to its last line. Hover ↩ Reply: a 28 × 28 pt borderless button at the trailing end of the post's header line. The Lamplight wash is a square-cornered band across the window's full width, covering the new post's row. |
 | Density | A compact rhythm from the spacing scale with regular-size controls (the default `.controlSize(.regular)`; no scene-level modifier). Posts take no fill on hover or selection. |
 | Corner radius | System default for every control. No custom containers: the new-posts pill is the glass style's capsule, and the thread line has round caps. |
-| Symbols | SF Symbols only, monochrome everywhere, inline at the style and color of the text beside them. Events: every kind in the shipped event-kind table names one symbol — for example weather `cloud.rain`, a shop opening `storefront`, a festival `balloon.2`, a lost pet `pawprint`, road works `cone`, a visitor `figure.wave`, a power cut `bolt.slash`; moving in `house`, moving away `figure.walk`. Interface: resting `moon.zzz`; quote line and Reply `arrowshape.turn.up.left`; the pill `arrow.up`; a founding step done `checkmark`, pending `circle.dotted`; a problem `exclamationmark.triangle`; cancelling a reply `xmark`. Every name above resolves on macOS 27 (checked 2026-09-30). |
+| Symbols | SF Symbols only, monochrome everywhere, inline at the style and color of the text beside them. Events: every kind in `Resources/SeedTables.json` names its own symbol, and that table is the source of truth; today `weather-turns` `cloud.sun.rain`, `shop-opens` `storefront`, `festival` `party.popper`, `lost-pet` `pawprint`, `road-works` `cone`, `visitor` `suitcase.rolling`, `power-cut` `bolt.slash`, `market-day` `basket`, `snowfall` `snowflake`, `thick-fog` `cloud.fog`, `concert` `music.note`, `fireworks` `fireworks`, `sports-day` `figure.run`, `book-fair` `books.vertical`, and the fixed kinds `move-in` `house`, `move-out` `figure.walk`, and `founding` `house` (the "You moved to {town}." row). Interface: resting `moon.zzz`; quote line and Reply `arrowshape.turn.up.left`; the pill `arrow.up`; a founding step done `checkmark`, pending `circle.dotted`; a problem `exclamationmark.triangle`; cancelling a reply `xmark`. The interface names resolve on macOS 27 (checked 2026-09-30); the event names were checked on macOS 27.0 on 2026-10-06 (Sources). |
 | Materials | The new-posts pill only (`.buttonStyle(.glass)`), plus what the system draws for the title bar, popovers, alerts, and the Settings window. The timeline, status line, composer, and banner sit on the opaque canvas. |
-| Window sizing | Main window: default 380 × 680 pt, minimum 320 × 440 pt, text column capped at 560 pt (`ux-flows.md` §2). Profile popover: 280 pt wide. Settings: one pane, 480 pt wide. |
+| Window sizing | Main window: default 380 × 680 pt, minimum 320 × 440 pt, text column capped at 560 pt (`ux-flows.md` §2; the scene is `docs/architecture.md` › App shape). Profile popover: 280 pt wide. Settings: one pane, 480 pt wide. |
 | Motion | Exactly the custom animations in `ux-guidelines.md` › Motion, and no others: a new post fades in over 200 ms (ease-out) while its Lamplight wash fades out over 3 s (ease-in: it lingers, then goes out); the status line crossfades over 200 ms; the pill fades over 150 ms and its scroll to the top takes 300 ms; founding check marks fade in over 150 ms. Opacity only. Under Reduce Motion the scroll jumps; the fades stay. |
 | Copy style | Per `ux-guidelines.md` › Language and copy: Title Case for menu items and buttons, sentence case for everything else; the window title is the town's name. Voice: in-world and gentle, second person, no exclamation marks; plain in errors and confirmations. |
-| App icon | Placeholder until distribution is decided. Direction when made: a small house or a row of houses in graphite and white with one window lit in Lamplight amber — the amber a small focal point, never the whole tile — layered in Icon Composer so macOS can draw its default, dark, clear, and tinted appearances. |
+| App icon | Placeholder while the app is not distributed (`docs/architecture.md` › Distribution). Direction when made: a small house or a row of houses in graphite and white with one window lit in Lamplight amber — the amber a small focal point, never the whole tile — layered in Icon Composer so macOS can draw its default, dark, clear, and tinted appearances. |
 
 ## Measured contrast
 
+Every measured text pair passes AA in light, dark, and High Contrast — 14 of 14 below.
+The tightest is SecondaryText on the wash at its strongest (5.05:1 light, 4.97:1 dark),
+so a stronger wash re-runs this pass first. With no avatars or imagery, residents are
+told apart by name alone until the Later visual identity.
+
 Pairs file: `contrast-pairs.json`, next to this file. Canvas and label values are the
 macOS 27 values measured above; the popover and grouped-form backgrounds are
-approximated as #F2F2F2 / #323232 and are re-measured on screenshots during
+approximated as #F2F2F2 / #323232 and are re-measured on the rendered views during
 implementation. The High Contrast rows pair the custom High Contrast variants with the
 regular canvas. Not in the table: the separator lines and thread line (decoration), and
 the glass pill and focus ring, which the system draws and adapts.
@@ -178,18 +189,18 @@ fg       bg       kind  ratio  required  result   what it is
 ## Open
 
 - The popover and grouped-form backgrounds are approximations: re-measure SecondaryText
-  on screenshots of S4 and S5 in both appearances.
-- The glass pill's label contrast depends on the posts beneath it: check screenshots over
-  light and dark content, with Reduce Transparency on and off.
+  on S4 and S5 as rendered, in both appearances.
+- The glass pill's label contrast depends on the posts beneath it: check it over light
+  and dark content, with Reduce Transparency on and off.
 - The composer's placeholder takes SecondaryText through the field's prompt; if the
   system text field ignores the prompt's color, raise it rather than ship #808080.
 - Whether the wash (20% / 14%) is visible enough at a glance from a second display is
   settled by using the app. A stronger wash re-runs this contrast pass first:
   SecondaryText on the wash is the tightest pair (5.05 light, 4.97 dark).
-- The event-kind table's symbols are chosen when that table is written (an issue in
-  the backlog), each checked in the SF Symbols app.
+- The event symbols were checked to exist, not opened in the SF Symbols app; how each
+  reads beside an event row is seen once the timeline shows one.
 - The app icon's maker and format wait on the distribution decision (the owner's,
-  recorded as an ADR).
+  recorded in `docs/architecture.md` › Distribution).
 
 ## Sources
 
@@ -208,3 +219,7 @@ Checked 2026-09-30.
   appropriate for foreground separator or border lines".
 - <https://developer.apple.com/design/human-interface-guidelines/app-icons> — layered
   icons made in Icon Composer; default, dark, clear, and tinted appearances on macOS.
+- Run on macOS 27.0 (26A428), 2026-10-06 (#10): a throwaway, uncommitted Swift script
+  passing each of the 16 distinct event symbol names to
+  `NSImage(systemSymbolName:accessibilityDescription:)` found all of them, and did not
+  find a made-up name.

@@ -33,4 +33,12 @@ public enum AppLog {
     /// `log stream --predicate 'category == "frontmost-app"'` narrows the stream to one
     /// story. A new concern adds a `Logger` here instead of building one inline.
     public static let frontmostApp = Logger(subsystem: subsystem, category: "frontmost-app")
+
+    /// The window-presence concern: every value ``WindowPresenceProviding`` reports. Its
+    /// three flags say nothing about the person, so they are logged `.public`.
+    public static let presence = Logger(subsystem: subsystem, category: "presence")
+
+    /// The settings concern: each change ``SettingsViewModel`` stores. Your name is never
+    /// in it — only whether a submitted name was taken.
+    public static let settings = Logger(subsystem: subsystem, category: "settings")
 }

@@ -7,7 +7,8 @@
   Apple's on-device model through the Foundation Models framework, called directly: no
   server, no API key, nothing leaves the Mac. Requires macOS 27 or later on an Apple
   silicon Mac with Apple Intelligence turned on — the template targets macOS 14, so the
-  new floor is recorded as [ADR-0003](../architecture/adr/0003-macos-27-floor.md).
+  new floor is recorded in
+  [`docs/architecture.md` › macOS floor](../architecture.md#macos-floor).
 
 Numbers marked † are **starting values**. They live in one `Tuning` type and are
 adjusted by using the app; they were deliberately not decided on paper, because only
@@ -27,8 +28,8 @@ running the real model on a real Mac can settle them.
 - **What it is not:** a tool. It does not help you work, manage tasks, or answer
   questions. It exists to be pleasant to watch and to feel linked to what you are doing.
 - **Who it is for:** its developer first, at a Mac during work and during breaks. It is
-  built so that other people could use it too: every install founds its own town, and
-  the default language is English.
+  built so that other people could use it too: every install founds its own town. It is
+  in English only.
 - **Core interaction:** glance at the timeline and the town's status line and see the
   town moving; occasionally post one line and watch the town respond over time. If
   glancing does not show a living town, nothing else matters.
@@ -48,7 +49,7 @@ running the real model on a real Mac can settle them.
 
 ### MVP
 
-- Founding a town at first run: you choose a language and your display name; the model
+- Founding a town at first run: you choose your display name; the model
   invents the town and its first residents (§3.1)
 - A timeline the residents keep writing on their own, scene by scene (§3.2)
 - The town's status line: what is going on right now, at a glance (§3.3)
@@ -58,7 +59,7 @@ running the real model on a real Mac can settle them.
 - When the town runs, when it stops, and catching up after a pause (§3.7)
 - The town's log, kept on this Mac (§3.8)
 - Moving to another town (§3.9)
-- Settings: language, display name, speed, running while you use other apps (§3.10)
+- Settings: display name, speed, running while you use other apps (§3.10)
 - Writing scenes with the on-device model: availability, refusals, limits (§3.11)
 - Resident profiles: who is who, on demand (§3.12)
 
@@ -132,12 +133,11 @@ running the real model on a real Mac can settle them.
 
 | Item | Specification |
 |------|---------------|
-| Asked of you | Language (English or 日本語), then your display name — nothing else |
-| Language choice | English preselected; the UI switches to the picked language at once |
+| Asked of you | Your display name — nothing else |
 | Display name | 1–20 characters†, trimmed, required |
 | Invented by the model | Town name (≤ 30 characters†), a setting of 2–3 sentences, 3–5 named places†, and 3 residents† |
 | A resident | Name, age group, occupation, hobby, a current worry, personality, relationships to other residents |
-| Variety | Each resident is seeded from a random combination of axes (occupation, personality, life stage, hobby) drawn from lists shipped with the app for each language; names never repeat within a town |
+| Variety | Each resident is seeded from a random combination of axes (occupation, personality, life stage, hobby) drawn from lists shipped with the app; names never repeat within a town |
 | After founding | The first scene is written at once, so the timeline is never empty when you first see it |
 
 #### Edge Cases
@@ -146,7 +146,7 @@ running the real model on a real Mac can settle them.
 - **Apple Intelligence unavailable:** explain what is missing and how to fix it (§3.11);
   no town is founded until the model is available.
 - **The app quits mid-founding:** nothing is kept; the next launch founds again with the
-  language and name already chosen.
+  name already chosen.
 
 ### 3.2 The timeline
 
@@ -165,7 +165,7 @@ running the real model on a real Mac can settle them.
 | Invented people | Residents refer only to residents who exist, past residents, and you |
 | Replies | A post may reply to an earlier post; the timeline shows which |
 | Showing a scene | Its posts appear one at a time, 10–30%† of the scene interval apart (§3.4) |
-| Post length | 1–2 sentences, at most 140 characters in Japanese or 280 in English† |
+| Post length | 1–2 sentences, at most 280 characters† |
 | Timestamps | Each post carries the time it happened; the town runs on real time |
 | While writing | Nothing is shown — no typing indicator, no spinner; posts simply appear |
 
@@ -238,7 +238,6 @@ running the real model on a real Mac can settle them.
   stalls on it (§3.11).
 - **You post while responses to an earlier post are pending:** both schedules run; see
   the cap above.
-- **You post in the other language:** residents still write in the town's language.
 
 ### 3.6 Events and moves
 
@@ -251,10 +250,10 @@ running the real model on a real Mac can settle them.
 
 | Item | Specification |
 |------|---------------|
-| Event source | A table of event kinds shipped with the app for each language (weather turns, a shop opens, a festival, a lost pet, road works, a visitor, a power cut, …) |
+| Event source | A table of event kinds shipped with the app (weather turns, a shop opens, a festival, a lost pet, road works, a visitor, a power cut, …) |
 | Frequency | A new event about every 3 hours† of running time, at random |
 | Duration | 1–12 hours† of town time, by kind; at most 2† ongoing at once |
-| An event | A kind, a one-line description in the town's language, a start, an end |
+| An event | A kind, a one-line description, a start, an end |
 | After it ends | It stays in the log as part of the town's history |
 | Population | Starts at 3; stays between 3 and 10†; drifts at random, about one move per 1–2 days† of running time; move-ins likelier near the minimum, move-outs near the maximum |
 | A newcomer | Invented by the model from random axes (as in §3.1), never repeating a current or past resident; may be seeded from a name you brought up |
@@ -319,7 +318,7 @@ at most about 15 posts.
 | Item | Specification |
 |------|---------------|
 | Confirmation | States that the current town — residents, posts, events, and the names you brought up — is deleted and cannot be restored |
-| On confirm | Everything of the current town is deleted, then a new town is founded as in §3.1 with the current language and display name |
+| On confirm | Everything of the current town is deleted, then a new town is founded as in §3.1 with the current display name |
 | Old towns | Not kept; there is always exactly one town |
 
 #### Edge Cases
@@ -330,7 +329,6 @@ at most about 15 posts.
 
 | Setting | Values | Default | Notes |
 |------|---------------|---------|-------|
-| Language | English, 日本語 | English | Applies to the UI and to everything written from then on. The app's own UI switches at once; menu items macOS provides (Quit, Edit, …) switch at the next launch. The town stays: residents, the town's name and setting, and earlier posts remain in the language they were written in; new posts, residents, and events use the new language |
 | Display name | 1–20 characters† | chosen at first run | A change shows everywhere in the UI; what residents already wrote stays as written |
 | Speed | Slow, Normal, Fast | Normal | §3.4 |
 | Keep the town moving while I use other apps | On, Off | On | §3.7 |
@@ -350,7 +348,7 @@ at most about 15 posts.
 | Output | Structured output (a declared schema) for every call: posts with speaker and reply target, topic tags |
 | Guardrails | Apple's default level. A refused call is dropped and retried with a different seed, up to 2 times† per turn, then the turn is skipped. The permissive level is not used — it does not apply to structured output |
 | Never stuck | Something that keeps causing refusals — 3 in a row† with it in the context — is left out of later contexts |
-| Context budget | Read from the model at run time (Apple documents 4,096 tokens; 8,192 has been observed on macOS 27). The prompt is assembled to fit, trimming recent posts first; if the model still reports an overflow, retry once with half as many posts. Japanese costs about one token per character, so Japanese prompts carry less history |
+| Context budget | Read from the model at run time (Apple documents 4,096 tokens; 8,192 has been observed on macOS 27). The prompt is assembled to fit, trimming recent posts first; if the model still reports an overflow, retry once with half as many posts |
 | One at a time | Ordinary scenes, responses, and catch-up are written one after another, never in parallel |
 | Heat | While the Mac reports a serious or critical thermal state, no scene is written; the town just seems quieter |
 | Other failures | The turn is skipped and the next one tries again |
@@ -370,7 +368,6 @@ at most about 15 posts.
 | Past residents | Marked as moved out, with when |
 | Editing | None — residents are never curated (§2) |
 | Your own name | Opens nothing in this version |
-| Language | Each field appears in the language it was written in |
 
 ## 4. Cross-cutting rules
 
@@ -380,37 +377,38 @@ at most about 15 posts.
 - **Not a chat.** No instant replies, no typing or "generating" indicators, no read
   receipts; posts appear when they appear.
 - **Nothing pulls you back.** No notifications, badges, sounds, or streaks (§2).
-- **One language at a time.** The UI and all new text follow the language setting; the
-  model is always told which language to write in.
+- **English only.** The UI and everything the town writes are in English; there is no
+  language setting.
 
 ## 5. Data
 
 All of it lives in the app's own container on this Mac. A town's data lives as long as
 the town and is deleted when you move away (§3.9); removing the app leaves the container
 in place, as macOS does. The stored format is versioned, and a format change ships with
-a migration (the persistence ADR decides the store).
+a migration ([`docs/architecture.md` › Persistence](../architecture.md#persistence)
+decides the store).
 
 | Entity | Fields (limits) |
 |------|---------------|
-| Town | name (≤ 30), setting (≤ 400), places (3–5, each ≤ 30), founded at, language at founding |
+| Town | name (≤ 30), setting (≤ 400), places (3–5, each ≤ 30), founded at |
 | Resident | name (≤ 20), age group, occupation, hobby, worry, personality, relationships (0–3: another resident + a one-line description), interests taken up (0–5), status (living here / moved out), moved in at, moved out at |
-| Post | author (a resident or you), text (≤ 140 Japanese / ≤ 280 English; yours ≤ 140), reply target (optional), topic tags (0–3, each ≤ 40), origin (ordinary / response / catch-up / event), happened at, language |
+| Post | author (a resident or you), text (≤ 280; yours ≤ 140), reply target (optional), topic tags (0–3, each ≤ 40), origin (ordinary / response / catch-up / event), happened at |
 | Event | kind, description (≤ 120), starts at, ends at, status (ongoing / ended), related resident (optional) — moves are events too |
 | Interest (a name you brought up) | term (≤ 40), first mentioned at, last mentioned at, mentions, source posts |
 | Schedule | next ordinary scene due, pending responses (post, due at), when the town last ran |
-| Settings | display name, language, speed, keep moving while in other apps |
+| Settings | display name, speed, keep moving while in other apps |
 
 ## 6. Open questions
 
 - **Deferred by the owner:** this version is not distributed; the Mac App Store or a
   signed and notarized DMG is chosen when a release is wanted — if the store,
   "Townsfolk" must also be free as a store name
-  ([ADR-0009](../architecture/adr/0009-not-distributed-yet.md)).
+  ([`docs/architecture.md` › Distribution](../architecture.md#distribution)).
 - **Deferred by the owner:** if the app is shared with others, how it stands against the
   Foundation Models acceptable-use requirement that forbids enabling dependency or
   spiraling interactions harmful to mental health. The non-goals in §2 keep it clear of
   engagement hooks; the owner judges it from their own use before anything is shared
-  ([ADR-0009](../architecture/adr/0009-not-distributed-yet.md)).
+  ([`docs/architecture.md` › Distribution](../architecture.md#distribution)).
 - **Unknowable until shared:** whether anyone but the owner finds it fun.
 - **Settled in use** (starting values above): the three speeds and the heat they cause;
   catch-up size and how it looks; how strong your influence feels and the balance of
@@ -419,12 +417,11 @@ a migration (the persistence ADR decides the store).
   repeating; status-line overflow; the shape of the store of names you bring up;
   whether a small model keeps the town fresh for days; how much residents may
   confidently get wrong about real names you bring up (no limit was set); the quality of
-  English writing (Japanese was tried once and reads a little stiff); whether text works
-  at a glance at all.
+  the writing; whether text works at a glance at all.
 - **Read at run time / confirmed during implementation:** the context size on the
   owner's Mac (M2, 16 GB, macOS 27.0); whether only the smaller on-device model is
   available on it. The macOS floor is 27.0
-  ([ADR-0003](../architecture/adr/0003-macos-27-floor.md)).
+  ([`docs/architecture.md` › macOS floor](../architecture.md#macos-floor)).
 - **Known gap:** a single mistaken post cannot be removed without moving away (deleting
   is Later).
 
@@ -473,15 +470,14 @@ Decided before this repository existed (2026-09-30):
 - 2026-09-30 The town and its residents are invented by the model from randomly combined
   axes, with no curation (rejected: a hand-written roster, because it runs out and every
   town looks the same)
-- 2026-09-30 English and Japanese, English by default (rejected: Japanese only)
 - 2026-09-30 Default guardrails with structured output; a refused scene is silently
   replaced (rejected: the permissive level, because it does not apply to structured
   output; plain text parsed by hand, because a small model breaks formats)
 - 2026-09-30 What only running can tell — heat at Fast, consistency across days, how
   often refusals happen — is noticed in use, not measured by a planned procedure
-- 2026-09-30 First run asks for the language and your display name only (rejected:
-  choosing the town's mood, because it needs a hand-made list; asking nothing, because a
-  model-chosen name for you feels wrong)
+- 2026-09-30 First run asks for your display name only (rejected: choosing the town's
+  mood, because it needs a hand-made list; asking nothing, because a model-chosen name
+  for you feels wrong)
 
 Decided in the kickoff hearing:
 
@@ -489,11 +485,6 @@ Decided in the kickoff hearing:
 - 2026-09-30 The town runs while its window is visible, even when another app is active;
   a setting limits it to while the window is active (rejected: running while covered,
   because of heat while unseen; a separate pause button)
-- 2026-09-30 The language setting covers the UI too, switched inside the app (rejected:
-  UI following macOS; an English-only UI)
-- 2026-09-30 Switching language keeps the town; later writing uses the new language
-  (rejected: fixing a town's language, because trying English and then switching would
-  cost the town; moving to a new town on every switch)
 - 2026-09-30 Your post is new or a reply (rejected for this version: deleting and
   `@mentions` — Later; editing — a non-goal)
 - 2026-09-30 Moving away deletes the old town after a confirmation (rejected: a
@@ -505,3 +496,7 @@ Decided in the kickoff hearing:
 - 2026-09-30 Searching, filtering, bookmarking, and exporting the log are non-goals: the
   town takes a social feed's look, not its conveniences (rejected: search as Later)
 - 2026-09-30 Signed off by the owner
+
+Decided by the owner after the kickoff:
+
+- 2026-10-06 English only, with no language setting

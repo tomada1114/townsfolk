@@ -2,22 +2,11 @@ import Foundation
 import Testing
 import TownsfolkCore
 
-/// What every Town value shares: the language and speed raw values the settings keys
-/// store (ADR-0004), the typed ids, the schedule, and an error that never repeats the
-/// text it rejected.
+/// What every Town value shares: the speed raw values the settings key stores, the
+/// typed ids, the schedule, and an error that never repeats the text it rejected.
 @Suite("Town values")
 struct TownValueTests {
-    // MARK: - TownLanguage and Speed
-
-    @Test
-    func `languages carry the settings raw values, English first and by default`() {
-        #expect(TownLanguage.allCases == [.english, .japanese])
-        #expect(TownLanguage.english.rawValue == "en")
-        #expect(TownLanguage.japanese.rawValue == "ja")
-        #expect(TownLanguage(rawValue: "ja") == .japanese)
-        #expect(TownLanguage(rawValue: "de") == nil)
-        #expect(TownLanguage.default == .english)
-    }
+    // MARK: - Speed
 
     @Test
     func `speeds carry the settings raw values, Normal by default`() {

@@ -1,22 +1,22 @@
 # The design lock: fields and where they land
 
-The design lock is one ADR (see the `designing-ui` skill for when it is written and how
-it changes; `recording-architecture-decisions` for its shape, number, and status). This
-file lists what its **Decision** section fixes. Copy `docs/architecture/adr/template.md`
-as usual; the fields below go in the Decision section, and the alternatives that were
-weighed for each go in Considered options.
+The design lock is one table of values, recorded in this app in
+`docs/design/design-direction.md` › Design lock and mirrored in `TownsfolkUI`'s
+`DesignLock` (see the `designing-ui` skill for when it is written and how it changes).
+This file lists the fields that table fixes; the alternatives weighed for each go in that
+document's decision ledger.
 
 Every field is either a value or the words "system default". "System default" is a real
 decision — often the right one for a first version — and saying it explicitly stops the
 next implementer from inventing a value. A field left out is a gap, not a default: list
-it under Open questions until it is decided.
+it under that document's open items until it is decided.
 
 ## Fields
 
 | Field | What "decided" looks like | Where it lands in code |
 |---|---|---|
 | Accent color | "System default", or one color with its Any and Dark variants given as sRGB values, and what it is used for (prominent buttons, selection) | `App/Assets.xcassets/AccentColor.colorset` |
-| Custom colors | Each named color, its purpose, and its Any and Dark variants — or "none; semantic system colors only" | One Color Set each in `App/Assets.xcassets` |
+| Custom colors | Each named color, its purpose, and its Any and Dark variants — or "none; semantic system colors only" | One Color Set each in `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets`, read with `Color(_:bundle: .module)` so a `#Preview` resolves it |
 | Type | The text styles the app uses and for what (`.title` for a window's heading, `.body` for content, `.footnote` for secondary facts); any fixed-size display style and why; a custom font and its license, or "system font only" | `.font(...)` at the call site; a fixed display size in the view's `Layout` enum |
 | Spacing scale | A short list of spacing values (for example 4, 8, 16, 32 points) and which one separates what — control from control, group from group, content from window edge | Each view's private `Layout` enum draws only from this scale |
 | Density | Regular or compact; `.controlSize` and list row style if not the default | A modifier on the scene's root view, so every screen inherits it |
@@ -31,17 +31,17 @@ it under Open questions until it is decided.
 ## Sharing values between views
 
 The template keeps each view's metrics in a `private enum Layout` beside the view
-(`ContentView`), because `no_magic_numbers` — on through `.swiftlint.yml`'s
+(`RootView`, `SettingsView`), because `no_magic_numbers` — on through `.swiftlint.yml`'s
 `opt_in_rules: all` — rejects a bare number in a view body. That stays the rule while
 only one view uses a value. Once a second view needs the same spacing or radius, move
-the lock's values into one internal type in `TownsfolkUI` — the ADR names it — and have each
-`Layout` enum refer to it. They never go in `TownsfolkCore`: they are presentation, and Core
+the lock's values into one internal type in `TownsfolkUI` — here it is `DesignLock` —
+and have each `Layout` enum refer to it. They never go in `TownsfolkCore`: they are presentation, and Core
 does not import SwiftUI.
 
-## A Decision section, sketched
+## A design lock, sketched
 
 ```markdown
-## Decision
+## Design lock
 
 - Accent color: system default. Nothing in the app depends on its hue.
 - Custom colors: none; semantic system colors only.
@@ -59,12 +59,13 @@ does not import SwiftUI.
 ```
 
 Keep the sketch's level of detail: values and one reason each, not a style guide. The
-reasoning that beat the alternatives belongs in Considered options, and anything the
-owner has not settled goes under Open questions, never filled in from habit.
+reasoning that beat the alternatives belongs in the decision ledger, and anything the
+owner has not settled goes under the open items, never filled in from habit.
 
 ## What does not belong in the lock
 
-- The app shape and the scenes it has — `starting-an-app` and its own ADR.
+- The app shape and the scenes it has — `starting-an-app`, recorded in
+  `docs/architecture.md`.
 - A single screen's layout — that is the screen's own pull request, built against the
   lock.
 - Anything the HIG already fixes for every Mac app (standard shortcuts, the menu order);

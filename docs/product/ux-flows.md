@@ -8,7 +8,7 @@
   and language rules — lives in [ux-guidelines.md](../design/ux-guidelines.md). This document cites
   it and does not restate it. Colors, type, and spacing come from the design lock.
 
-Wireframe copy is English; every string also ships in Japanese (§3.10).
+Wireframe copy is the app's English copy; the app ships in English only (§4).
 
 ## 1. Screen inventory
 
@@ -153,34 +153,12 @@ model is back.
 
 ### S2 First run
 
-**S2a Language**
-
 ```
 ┌────────────────────────────────────────┐
 │ ● ● ●            Townsfolk             │
 ├────────────────────────────────────────┤
 │                                        │
 │   A small town is waiting for you.     │
-│   Choose its language.                 │
-│                                        │
-│   (•) English                          │
-│   ( ) 日本語                            │
-│                                        │
-│   You can change this later in         │
-│   Settings.                            │
-│                                        │
-│   Its residents are written by Apple's │ ← the one plain line about the
-│   on-device model, right on this Mac.  │   machinery (ux-guidelines › Language and copy)
-│                                        │
-│                          [Continue]    │ ← default button (Return)
-└────────────────────────────────────────┘
-```
-
-English is preselected; choosing 日本語 switches the screen to Japanese at once.
-
-**S2b Your name**
-
-```
 │   What should the town call you?       │
 │   ┌──────────────────────────────┐     │
 │   │ Tomo                         │     │ ← 1–20 characters, trimmed
@@ -188,7 +166,11 @@ English is preselected; choosing 日本語 switches the screen to Japanese at on
 │   Residents see this name on your      │
 │   posts.                               │
 │                                        │
-│   [Back]                  [Continue]   │ ← Continue disabled until valid
+│   Its residents are written by Apple's │ ← the one plain line about the
+│   on-device model, right on this Mac.  │   machinery (ux-guidelines › Language and copy)
+│                                        │
+│                          [Continue]    │ ← default button (Return); disabled until valid
+└────────────────────────────────────────┘
 ```
 
 ### S3 Founding
@@ -240,10 +222,6 @@ instead, with the name in the secondary style. Read-only.
 ┌────────────────────────────────────────────────┐
 │ ● ● ●                Settings                  │
 ├────────────────────────────────────────────────┤
-│  Language      [ English          ▾ ]          │
-│                Menus switch the next time      │
-│                Townsfolk opens.                │
-│                                                │
 │  Your name     [ Tomo                 ]        │ ← 1–20 characters
 │                                                │
 │  Speed         [ Slow | Normal | Fast ]        │
@@ -332,18 +310,17 @@ Every control is reachable with Full Keyboard Access (ux-guidelines › Accessib
 
 ### F1 First run (§3.1)
 
-1. Launch with no town → S2a: choose a language → Continue.
-2. S2b: enter your name → Continue.
-3. S3: the town is founded → S1 opens with "You moved to {town}." and the first scene.
+1. Launch with no town → S2: enter your name → Continue.
+2. S3: the town is founded → S1 opens with "You moved to {town}." and the first scene.
 
 ```
-[Launch] -> [S2a Language] -> [S2b Name] -> [S3 Founding] -> [S1 new town]
-                 |                               |
-                 v                               v (3 failures)
-         [S7 model unavailable]        ["Couldn't find you a town"]
-                 |                               |
-                 v (available)                   v [Try Again]
-           [S3 Founding]                   [S3 Founding]
+[Launch] -> [S2 Name] -> [S3 Founding] -> [S1 new town]
+                |              |
+                v              v (3 failures)
+    [S7 model unavailable]  ["Couldn't find you a town"]
+                |              |
+                v (available)  v [Try Again]
+          [S3 Founding]  [S3 Founding]
 ```
 
 ### F2 Glance (§3.2–§3.4)
@@ -414,9 +391,8 @@ Click a resident's name, or select a post → ⌘I → S4 opens → Esc or a cli
 
 ### F7 Change a setting (§3.10)
 
-⌘, → S5 → change a value → it applies at once: speed from the next scene; language in
-the UI at once, in the menus at the next launch, and in everything written from then on;
-your name everywhere in the UI.
+⌘, → S5 → change a value → it applies at once: speed from the next scene; your name
+everywhere in the UI.
 
 ### F8 Move to another town (§3.9)
 
@@ -442,4 +418,4 @@ Per [ux-guidelines.md](../design/ux-guidelines.md):
   character name.
 - **Accessibility targets** — VoiceOver reading of groups, quote lines, and event rows;
   keyboard reach; contrast.
-- **Language and copy** — English and Japanese, switching inside the app, the glossary.
+- **Language and copy** — English only, the voice, and the glossary.

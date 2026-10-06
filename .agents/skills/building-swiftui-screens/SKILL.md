@@ -28,8 +28,13 @@ A view renders Core state and forwards user intent to a Core action; it decides 
 only, because SwiftUI layout is not what `swift test` can assert — so any branch that
 lives in a view is a branch no gate tests.
 Keeping it in the view model is what makes the 80% floor on `TownsfolkCore` honest
-(`docs/architecture.md` › "Where new code goes"). `ContentView` over `CounterViewModel`
-and `FrontmostAppViewModel` is the worked example; copy its shape.
+(`docs/architecture.md` › "Where new code goes"). `SettingsView` over
+`SettingsViewModel` is the worked example of the rules below: it holds the model in
+`@State`, set in `init(model:)`; builds each control's `Binding` from an action; submits
+the name on Return, on focus loss, and when the pane closes (`paneClosed()`); renders
+every Core resource with `Text(resource)` or `Label(resource, systemImage:)`; and has a
+`#Preview` per state. `RootView` is the example of a view with no model. Both show the rest: a `private enum Layout` over
+`DesignLock`, accessibility identifiers, light and dark previews.
 
 - A view is a `struct` in `TownsfolkUI` importing `SwiftUI` and `TownsfolkCore`, and never
   `TownsfolkPlatform`. Enforced by: `ArchitectureBoundaryTests`' sibling-import tests.
@@ -41,12 +46,12 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
 - **The view that owns the model** holds it in `@State private var model`, set in its
   initializer with `_model = State(initialValue: model)`, and takes the model as an
   initializer parameter so previews and `App/` can inject a state:
-  `init(model: CounterViewModel = CounterViewModel())`. A default argument is only for a
+  `init(model: TimelineViewModel = TimelineViewModel())`. A default argument is only for a
   model that needs no port.
 - **A model that needs a port** cannot be built in `TownsfolkUI`: its adapter lives in
   `TownsfolkPlatform`, which this module must not import. `App/`, the composition root,
-  builds it and passes it down — `ContentView`'s optional
-  `frontmostApp: FrontmostAppViewModel?`, which previews simply leave out.
+  builds it and passes it down as an initializer parameter — optional when previews
+  should simply leave it out.
 - **A subview that only reads** takes the model as a plain `let` property. With
   `@Observable`, SwiftUI re-renders a view when a property its `body` read changes, with
   no property wrapper needed.
@@ -65,12 +70,12 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
 
 | Belongs in the view | Belongs in the Core view model |
 |---|---|
-| Layout, modifiers, and the order things appear in | Whether an action is allowed now (`canIncrement`) |
+| Layout, modifiers, and the order things appear in | Whether an action is allowed now (`canPost`) |
 | `if let` on an optional model or value, to show or omit a part | Any rule, clamp, threshold, or comparison on domain values |
 | Calling an action from a `Button`, `.onSubmit`, a menu command | What the action does, and the state it leaves behind |
-| *When* to ask again — `.onChange(of: scenePhase)`, `.task` — as `ContentView` refreshes `frontmostApp` on activation | *What* asking again means (`refresh()`) |
-| `Text(verbatim:)` for a glyph or an already-formatted number | Every word a person reads, as a `LocalizedStringResource` (`resetTitle`, `label`) — `localizing-the-app` |
-| `.disabled(!model.canDecrement)` | Formatting numbers and dates with an injected `Locale` |
+| *When* to ask again — `.onChange(of: scenePhase)`, `.task` — as `App/TownsfolkApp.swift` reads window presence in a `.task` on `RootView` | *What* asking again means (`refresh()`) |
+| `Text(verbatim:)` for a glyph or an already-formatted number | Every word a person reads, as a `LocalizedStringResource` (`SettingsViewModel.nameTitle`, `speedHint`) — `localizing-the-app` |
+| `.disabled(!model.canPost)` | Formatting numbers and dates with an injected `Locale` |
 
 - An action that waits is `async`; call it from `.task { await model.load() }` so
   SwiftUI cancels it with the view, or from a `Task { }` inside a button's closure.
@@ -85,12 +90,14 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
 ## Previews
 
 - One `#Preview("Name")` per state worth seeing — the default and each boundary or empty
-  state — built by injecting a Core view model already in that state, as
-  `ContentView`'s "At the upper bound" does. A preview that has to reach a state by
-  calling actions is a sign the model wants an initializer that takes that state.
+  state — built by injecting a Core view model already in that state; `RootView`'s
+  "Empty" and "Empty, dark" show the naming. A model whose state comes only from a store
+  it reads, as `SettingsViewModel` reads `UserDefaults`, is put in a state by building it
+  over a preview-only suite and calling its actions, as `SettingsView`'s previews do;
+  for any other model, a preview that has to reach a state by calling actions is a sign
+  the model wants an initializer that takes that state.
 - No `try!` or force unwrap in a preview either (`.claude/rules/swift.md` › Error
-  Handling): unwrap with `if let` and render a `Text` explaining the failure, as
-  `ContentView`'s second preview does.
+  Handling): unwrap with `if let` and render a `Text` explaining the failure.
 - Previews never construct a `TownsfolkPlatform` adapter; a port-backed model is left out.
   A state reachable only through a port is covered by a Core test with the port's fake
   and seen in the running app.
@@ -104,12 +111,11 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
 - **Identifiers are a test contract.** Every control and value `LaunchUITests` or a
   throwaway XCUITest reads carries `.accessibilityIdentifier("camelCaseName")` — stable,
   never localized, never shown to a person. Renaming one breaks `just uitest`, so rename
-  the test in the same change (`LaunchTests` reads `counterValue` and clicks
-  `incrementButton`).
+  the test in the same change (`LaunchTests` reads `townWindow`).
 - **Labels are what VoiceOver says**, and an identifier is not one. Give every control a
   text label from a Core `LocalizedStringResource` (`localizing-the-app`):
   `Button(model.addTitle, systemImage: "plus")` or `Label` rather than a bare `Image`,
-  and `.accessibilityLabel(model.decrementLabel)` where the visible text is a glyph or a
+  and `.accessibilityLabel(model.replyLabel)` where the visible text is a glyph or a
   number without context. A decorative image is `Image(decorative:)` or `.accessibilityHidden(true)`.
   Enforced by: `accessibility_label_for_image` (a labelless image) and
   `accessibility_trait_for_button` (an `.onTapGesture` without `.isButton`), both on
@@ -133,8 +139,9 @@ and `FrontmostAppViewModel` is the worked example; copy its shape.
    `just lint`.
 3. `just uitest` — when an identifier the launch test reads, or the first screen,
    changed.
-4. `just run`, then a screenshot per `running-the-app` in both appearances and at the
-   minimum window size — the pull request's evidence of what the view shows.
+4. `just run`, after asking the owner (`running-the-app` › Ask before taking over the
+   Mac), to look at the view in both appearances and at the minimum window size. The pull
+   request says what was checked; it carries no screenshot.
 
 ## Sources
 

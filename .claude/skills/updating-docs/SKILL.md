@@ -7,14 +7,19 @@ description: >
   .agents/skills/, or a /// doc comment in Packages/TownsfolkKit/Sources. Use when triaging
   whether a pull request needs a document changed or a CHANGELOG entry, when a rule, a
   just recipe, or an architecture boundary moved and it is unclear which file owns it,
-  when the quickstart or setup steps drifted, or when deciding that an internal refactor
-  needs no documentation change.
+  when the quickstart or setup steps drifted, when recording a hard-to-reverse decision
+  in docs/architecture.md (a target or port, app shape, sandbox posture, persistence, a
+  dependency, distribution, deploymentTarget, a TCC permission, a language), when
+  writing a version, an availability, a price, or an Apple policy into a document, or
+  when deciding that an internal refactor needs no documentation change.
 ---
 
 # Updating Documentation
 
-**Owns:** whether a change owes a documentation update, and which surface it lands on.
-**Does not own:** what a `///` comment for a given symbol says (`.claude/rules/swift.md`);
+**Owns:** whether a change owes a documentation update, and which surface it lands on;
+how a hard-to-reverse decision is recorded in `docs/architecture.md`; and how an
+external fact is written into a document. **Does not own:** the decisions themselves
+(the owner); what a `///` comment for a given symbol says (`.claude/rules/swift.md`);
 how a skill is authored and mirrored (`authoring-skills`); the wording rules for files
 under `docs/` and the top-level Markdown (`.claude/rules/docs.md`).
 
@@ -32,7 +37,7 @@ release is built and signed. A change to any of those owes a document; a change 
 them does not.
 
 - `README.md` changes when the first ten minutes with a checkout change — the Quickstart
-  commands, what "Using This Template" asks you to do, or a documented design decision.
+  commands, how to keep up with template updates, or a documented design decision.
 - `CONTRIBUTING.md` changes when setup, the toolchain, or the pull request process
   changes.
 - Neither changes for a refactor, a test, a gate or rule that `AGENTS.md` owns, or an
@@ -43,9 +48,8 @@ them does not.
 Each surface has one job; do not blur them, and do not let one grow a second copy of
 another's content.
 
-- `README.md` — the tour: what this template is, the Quickstart, "Using This Template"
-  (turning it into a new app and keeping up with template updates), and the Design
-  Philosophy that records why each major decision was made. It links to `docs/`,
+- `README.md` — the tour: what the app is, the Quickstart, keeping up with template
+  updates, and the Design Philosophy that records why each major decision was made. It links to `docs/`,
   `AGENTS.md`, and `CONTRIBUTING.md` instead of repeating them.
 - `AGENTS.md` — the agent-facing guide: the Quick Reference command index, "Validating a
   change", the Architecture, the Skills and Rules tables, "Security and human approval",
@@ -58,14 +62,14 @@ another's content.
   Changelog format (`CONTRIBUTING.md`'s "Changelog Policy"). A user-facing change gets an
   entry under `[Unreleased]` in the same pull request that makes it; GitHub's generated
   release notes are supplementary, never a substitute.
-- `docs/architecture.md` — the layer diagram, "Where new code goes", and the optional
-  dependencies worth reaching for. It covers the same ground as `AGENTS.md`'s
-  Architecture section, so a moved boundary updates both in the same pull request.
-- `docs/architecture/` — an app's Architecture Decision Records and their index, which
-  the template ships empty. `recording-architecture-decisions` owns whether a change
-  owes an ADR and how one is written; a moved boundary it records still updates
-  `docs/architecture.md` and `AGENTS.md`'s Architecture section to match. Its
-  `roadmap.md`, the app's direction and not an ADR, is `steering-the-roadmap`'s.
+- `docs/architecture.md` — the layer diagram, "Where new code goes", the optional
+  dependencies worth reaching for, and, in "Townsfolk on these layers", the app's own
+  shape and its hard-to-reverse decisions ([Recording a decision](#recording-a-decision)).
+  It covers the same ground as `AGENTS.md`'s Architecture section, so a moved boundary
+  updates both in the same pull request.
+- `docs/architecture/roadmap.md` — the app's direction, `steering-the-roadmap`'s.
+- `docs/design/design-direction.md` — the visual research and the design lock
+  (`designing-ui`).
 - `docs/getting-started.md`, `docs/adding-ios.md`, `docs/distribution.md` — single-topic
   how-tos: first setup and everyday commands, the runbook for adding an iOS target, and
   the release, signing, and notarization flow. Each owns its one topic; a change to that
@@ -82,6 +86,42 @@ description. `.claude/rules/docs.md` holds the mechanical rules that load whenev
 them, `README.md`, or `CONTRIBUTING.md` is touched: the `[Unreleased]` entry, commands
 that match the `justfile`, and keeping README's Design Philosophy in sync with a changed
 decision.
+
+## Recording a decision
+
+A change of a kind `AGENTS.md`'s "Before changing the architecture" lists updates its
+subsection under `docs/architecture.md` › "Townsfolk on these layers" › Decisions in the
+same pull request, or adds one; the design lock's home is
+`docs/design/design-direction.md` › Design lock. The test for anything else: if a
+reviewer a year from now would ask "why is it like this?" and the code cannot answer,
+the answer belongs there. A refactor, a test, or a fix that restores what a recorded
+decision already says owes nothing — say so in the pull request.
+
+A subsection says what was decided, the reason it beat each alternative in a sentence or
+two, what is still open, and its sources. It describes what holds now: a changed
+decision is rewritten in place, and git history keeps what held before. The owner makes
+the decision; an agent proposes it in the pull request and records it once the owner
+confirms. A record grants nothing: an entitlement, a signing change, or a new dependency
+still needs the sign-off `AGENTS.md`'s "Security and human approval" asks for.
+
+## Fact discipline
+
+Keep three kinds of statement apart in a recorded decision, the design documents, and a
+platform skill:
+
+- **Verified fact** — every external claim carries a primary-source URL and
+  "checked YYYY-MM-DD". Check it against the source itself, never from memory: Apple's
+  developer documentation or App Review Guidelines for an API, an availability, an
+  entitlement, or a review rule; a package's own repository, release page, and
+  `Package.swift` for its version, license, and platform floor. A price carries its unit
+  and date; availability and deprecation carry the OS version and date.
+- **Decision or recommendation** — its reason and the alternatives it beat.
+- **Unverified** — prefixed `Unverified:` and kept with the decision's open questions. It
+  leaves only by being verified and cited, or by deleting the claim that needed it.
+  Never fill a gap from memory to complete a table.
+
+None of it carries a Team ID, a certificate name, a credential, an Apple ID, a personal
+name or email, or any user's data; call the person who decides "the owner".
 
 ## A skill is documentation; editing one is usually not a doc change
 

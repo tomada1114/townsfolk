@@ -11,7 +11,7 @@ let strictSettings: [SwiftSetting] = [
 let package = Package(
     name: "TownsfolkKit",
     // The language the String Catalog is written in, and the one a reader falls back to
-    // when the catalog lacks theirs. A second language is an ADR (`localizing-the-app`).
+    // when the catalog lacks theirs. The app ships English only (`localizing-the-app`).
     defaultLocalization: "en",
     platforms: [.macOS("27.0")],
     products: [
@@ -23,14 +23,21 @@ let package = Package(
         // Core owns the user-facing wording (it returns `LocalizedStringResource`), so the
         // one String Catalog lives here. xcodebuild compiles it into Core's resource
         // bundle; `swift build` only copies it, so tests read English from `defaultValue`.
+        // The seed tables, `SeedTables.json`, are copied beside it.
         .target(
             name: "TownsfolkCore",
-            resources: [.process("Resources/Localizable.xcstrings")],
+            resources: [
+                .process("Resources/Localizable.xcstrings"),
+                .process("Resources/SeedTables.json"),
+            ],
             swiftSettings: strictSettings,
         ),
         .target(
             name: "TownsfolkUI",
             dependencies: ["TownsfolkCore"],
+            // The design lock's Color Sets, read with `bundle: .module` so a `#Preview`,
+            // whose host has no app asset catalog, resolves them too.
+            resources: [.process("Resources")],
             swiftSettings: strictSettings,
         ),
         // OS-integration adapters behind Core-declared ports. Depends on TownsfolkCore

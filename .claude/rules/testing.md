@@ -65,9 +65,9 @@ The expected value comes from somewhere other than the code under test: a litera
 out by hand, a case table in `@Test(arguments:)` pairing each input with its answer, or
 an invariant that must hold whatever the input (the value stays inside `range`, a
 round-trip returns what went in). Never compute it by calling the implementation, and
-never re-derive it with the implementation's own formula: after `increment()` from 99,
-`#expect(counter.value == min(99 + 1, counter.range.upperBound))` passes with any bug
-the formula shares, where `#expect(counter.value == 100)` does not.
+never re-derive it with the implementation's own formula: for a value clamped to
+`0 ... 100`, `#expect(value == min(99 + 1, range.upperBound))` passes with any bug the
+formula shares, where `#expect(value == 100)` does not.
 
 ## Fakes, not mocks
 

@@ -16,7 +16,6 @@ struct TownTests {
             setting: setting,
             places: places,
             foundedAt: TownFixtures.movedIn,
-            language: .japanese,
             tuning: tuning,
         )
     }
@@ -32,7 +31,6 @@ struct TownTests {
         #expect(maplewood.setting == "A river town.")
         #expect(maplewood.places == Self.places)
         #expect(maplewood.foundedAt == TownFixtures.movedIn)
-        #expect(maplewood.language == .japanese)
     }
 
     // MARK: - Name

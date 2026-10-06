@@ -150,8 +150,8 @@ EOF
 **Examples:**
 
 ```
-feat(core): add persistence for counter state
-fix: clamp counter at range bounds instead of overflowing
+feat(core): add persistence for town state
+fix: clamp post length at the limit instead of truncating mid-word
 test: add parameterized tests for boundary values
 docs: update architecture guide for new module
 chore: bump pinned tool versions in mise.toml

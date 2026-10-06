@@ -4,7 +4,7 @@ import Foundation
 /// town's life so residents may talk about it, take it up, or be seeded from it
 /// (requirements §3.5, §5).
 public struct Interest: Identifiable, Sendable, Equatable {
-    /// The longest term, in characters (requirements.md:399).
+    /// The longest term, in characters (requirements.md:397).
     public static let termMaxLength = 40
 
     /// The interest's id.

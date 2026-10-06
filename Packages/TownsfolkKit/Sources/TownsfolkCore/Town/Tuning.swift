@@ -1,5 +1,5 @@
 /// Every starting value the requirements mark † — the numbers only running the real
-/// model on a real Mac can settle (requirements.md:12) — in one place, so tuning the
+/// model on a real Mac can settle (requirements.md:13) — in one place, so tuning the
 /// town is an edit here rather than a hunt through method bodies.
 ///
 /// A type that obeys one of these takes a `Tuning` in its initializer, defaulting to
@@ -10,16 +10,16 @@
 public struct Tuning: Sendable, Equatable {
     /// Founding a town and naming yourself (§3.1).
     public struct Founding: Sendable, Equatable {
-        /// Your display name, in characters after trimming (:137, :334).
+        /// Your display name, in characters after trimming (:137, :332).
         public var displayNameLength = 1 ... 20
         /// The longest town name the model may invent, in characters (:138).
         public var townNameMaxLength = 30
         /// How many named places a town has (:138).
         public var placeCount = 3 ... 5
-        /// Residents invented at founding — also the starting population (:138, :259).
+        /// Residents invented at founding — also the starting population (:138, :258).
         public var foundingResidentCount = 3
         /// Founding attempts in total before the failure is shown (:144;
-        /// `docs/product/ux-flows.md:213`).
+        /// `docs/product/ux-flows.md:195`).
         public var foundingAttempts = 3
     }
 
@@ -28,17 +28,10 @@ public struct Tuning: Sendable, Equatable {
         /// The gap between a scene's posts as they appear, as a fraction of the scene
         /// interval (:167).
         public var revealSpacing = 0.10 ... 0.30
-        /// The longest post a resident may write, in characters — English 280, Japanese
-        /// 140, since Japanese packs more into each (:168).
-        public var residentPostMaxLength: PerLanguage<Int>
+        /// The longest post a resident may write, in characters (:168).
+        public var residentPostMaxLength = 280
         /// Lines the status line takes; what does not fit is truncated (:188).
         public var statusLineLineLimit = 1
-
-        init() {
-            let english = 280
-            let japanese = 140
-            residentPostMaxLength = PerLanguage(english: english, japanese: japanese)
-        }
     }
 
     /// How often ordinary scenes come (§3.4).
@@ -111,12 +104,12 @@ public struct Tuning: Sendable, Equatable {
 
     /// Events (§3.6).
     public struct Events: Sendable, Equatable {
-        /// About how often a new event starts, in running time — about 3 hours (:255).
+        /// About how often a new event starts, in running time — about 3 hours (:254).
         public var eventInterval: Duration
         /// How long an event lasts in town time — 1 to 12 hours; each kind picks within
-        /// it (:256).
+        /// it (:255).
         public var eventDuration: ClosedRange<Duration>
-        /// Events ongoing at once (:256).
+        /// Events ongoing at once (:255).
         public var maxOngoingEvents = 2
 
         init() {
@@ -129,13 +122,13 @@ public struct Tuning: Sendable, Equatable {
 
     /// Population and moves (§3.6).
     public struct Residents: Sendable, Equatable {
-        /// How many residents live in town at once (:259).
+        /// How many residents live in town at once (:258).
         public var population = 3 ... 10
         /// About how often someone moves in or out, in running time — 1 to 2 days
-        /// (:259).
+        /// (:258).
         public var moveInterval: ClosedRange<Duration>
         /// The chance a newcomer is seeded from a name you brought up that no living
-        /// resident holds (:232, :260; chosen in planning for #28, adjusted in use).
+        /// resident holds (:232, :259; chosen in planning for #28, adjusted in use).
         public var newcomerFromNameChance = 0.5
 
         init() {
@@ -147,15 +140,15 @@ public struct Tuning: Sendable, Equatable {
     /// What happens after a pause (§3.7).
     public struct CatchUp: Sendable, Equatable {
         /// Scene intervals of pause per catch-up scene — also the shortest pause that
-        /// invents anything (:279, :282).
+        /// invents anything (:278, :281).
         public var catchUpIntervalsPerScene = 4
-        /// The most catch-up scenes after any pause, so weeks away never flood (:279).
+        /// The most catch-up scenes after any pause, so weeks away never flood (:278).
         public var catchUpMaxScenes = 5
-        /// The shortest pause that brings news, an event or a move — 2 hours (:280).
+        /// The shortest pause that brings news, an event or a move — 2 hours (:279).
         public var catchUpNewsPause: Duration
-        /// New events after a long pause (:280).
+        /// New events after a long pause (:279).
         public var catchUpMaxEvents = 1
-        /// Moves after a long pause (:280).
+        /// Moves after a long pause (:279).
         public var catchUpMaxMoves = 1
 
         init() {
@@ -166,15 +159,15 @@ public struct Tuning: Sendable, Equatable {
 
     /// Talking to the on-device model (§3.8, §3.11).
     public struct Generation: Sendable, Equatable {
-        /// How far back a scene's context reaches for recent posts — about a day (:308).
+        /// How far back a scene's context reaches for recent posts — about a day (:307).
         public var recentContextWindow: Duration
-        /// Retries with a new seed after a refusal before the turn is skipped (:351).
+        /// Retries with a new seed after a refusal before the turn is skipped (:349).
         public var refusalRetriesPerTurn = 2
         /// Refusals in a row with something in the context before it is left out
-        /// (:352).
+        /// (:350).
         public var refusalsBeforeLeftOut = 3
         /// Tokens held back from the context budget for the schema and the answer
-        /// (:353, :415; chosen in planning for #14, adjusted in use).
+        /// (:351, :413; chosen in planning for #14, adjusted in use).
         public var outputTokenReserve = 1_024
 
         init() {

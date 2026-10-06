@@ -38,8 +38,7 @@ runs it on a pristine clone on every push, so it cannot silently rot.
 Rename first, so nothing downstream is written against the template's identity. Then
 write the one thing no literal replace can write — `AGENTS.md`'s `## Product` section —
 then verify, then hand-edit the rest of what a replace cannot decide, then set up the
-new repository on GitHub. `README.md`'s "Using This Template" section is the reader-facing
-list of those steps; the script prints the same list when it finishes.
+new repository on GitHub. The script prints the list of those steps when it finishes.
 
 ## The rename
 
@@ -62,8 +61,8 @@ scripts/bootstrap.sh CoolApp --bundle-id-prefix io.example --github-user janedoe
   outside a git checkout (**BACKGROUND:** `writing-repo-scripts`).
 - **Keep markers:** a line containing the keep-begin marker (the text `bootstrap:keep-`
   followed by `begin`) through the next line containing the keep-end marker is never
-  rewritten. The passages that explain the placeholders — the script's header,
-  `README.md`'s "Using This Template" paragraph, and this skill's opening and
+  rewritten. The passages that explain the placeholders — the script's header and this
+  skill's opening and
   path-rename bullet — are wrapped in them (an HTML comment in Markdown, a `#` comment
   in shell), so they still name the placeholders after the rename. CI's
   `bootstrap-smoke` asserts they survive, and its leftover check ignores kept lines.
@@ -112,8 +111,8 @@ leftover grep is case-insensitive and allows a missing hyphen, so a new mention 
 app name in a spelling the literal replace does not cover (all lowercase, say) fails
 that job.
 
-The rename leaves the example code in place: the counter and the `FrontmostApp`
-port/adapter are illustrations, not the app. Removing or replacing them is one
+The rename leaves the example code in place: the template's example screen and the
+`FrontmostApp` port/adapter are illustrations, not the app. Removing or replacing them is one
 checklist, `docs/getting-started.md` › "Removing the example code", which both
 `README.md` and the script's next steps point to.
 
@@ -162,14 +161,14 @@ what stays on either way (Hardened Runtime, Developer ID signing, notarization),
 
 ## Recording both decisions
 
-Both steps end in the new app's first two ADRs, written after the rename in the tree
-`recording-architecture-decisions` owns: copy `docs/architecture/adr/template.md` to
-`docs/architecture/adr/0001-app-shape.md` (windowed or menu-bar agent, and why) and
-`0002-sandbox-posture.md` (sandboxed or not, naming any capability that forces the
-flip), each with status Proposed — only the owner accepts — and add both rows to
-`docs/architecture/README.md`'s Decisions table in the same change. Every external claim
-in them (an App Store rule, an API's sandbox behavior) carries its URL and checked date.
-The template itself ships no ADRs; these belong to the app.
+Both steps end in the new app's first two recorded decisions, written after the rename
+in a section of `docs/architecture.md` that follows the template's layers (in this app,
+"Townsfolk on these layers"): an app shape subsection (windowed or menu-bar agent, and why) and a
+sandbox posture subsection (sandboxed or not, naming any capability that forces the
+flip). Only the owner decides either; an agent proposes them in the pull request. Every
+external claim in them (an App Store rule, an API's sandbox behavior) carries its URL
+and checked date (`updating-docs` › "Fact discipline"). The template itself records
+neither; they belong to the app.
 
 ## What the new app keeps
 

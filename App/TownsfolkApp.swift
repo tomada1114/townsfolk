@@ -1,4 +1,6 @@
 import SwiftUI
+import TownsfolkCore
+import TownsfolkPlatform
 import TownsfolkUI
 
 /// Application entry point — wiring only. All real code lives in Packages/TownsfolkKit.
@@ -6,14 +8,30 @@ import TownsfolkUI
 /// This is also the composition root: the one place that knows both halves of a port.
 /// It constructs each `TownsfolkPlatform` adapter and hands it to a `TownsfolkCore` view
 /// model, so nothing below `App/` depends on which implementation answers
-/// (`docs/architecture.md` › Layers). The town window takes no port yet.
+/// (`docs/architecture.md` › Layers). Window presence has no consumer yet — the engine
+/// takes it in #29 — so for now every value is only logged.
 @main
 struct TownsfolkApp: App {
+    /// The town `Window` scene's `id`, which SwiftUI also gives its `NSWindow` as the
+    /// `identifier` the presence adapter looks the window up by.
+    private static let townWindowID = "town"
+
+    private let presence = WindowPresenceProvider(windowIdentifier: townWindowID)
+
     var body: some Scene {
         // One `Window`, not a `WindowGroup`: as the primary scene it offers no
-        // File › New Window, and closing it quits the app (ADR-0001).
-        Window(Text(verbatim: "Townsfolk"), id: "town") {
+        // File › New Window, and closing it quits the app.
+        Window(Text(verbatim: "Townsfolk"), id: Self.townWindowID) {
             RootView()
+                .task {
+                    for await value in presence.presenceUpdates() {
+                        AppLog.presence.debug("""
+                        presence visible=\(value.isWindowVisible, privacy: .public) \
+                        active=\(value.isAppActive, privacy: .public) \
+                        awake=\(value.isMacAwake, privacy: .public)
+                        """)
+                    }
+                }
         }
         .defaultSize(RootView.defaultSize)
         .commands {

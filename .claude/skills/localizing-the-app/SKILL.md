@@ -4,7 +4,7 @@ description: >
   Covers every string a person reads and its translation, meaning the String Catalog at
   Packages/TownsfolkKit/Sources/TownsfolkCore/Resources/Localizable.xcstrings, defaultLocalization
   in Package.swift, Core view models returning LocalizedStringResource with bundle .module,
-  Text(verbatim:) in TownsfolkUI, LocalizationTests, and xcodebuild -exportLocalizations. Use
+  Text(resource) in TownsfolkUI, LocalizationTests, and xcodebuild -exportLocalizations. Use
   when adding or changing user-facing wording, a Text or Button title, a catalog key,
   comment, plural, or translation; when a string shows its key, reads right in English but
   never translates, or a catalog key goes stale; or when an app considers a second
@@ -18,20 +18,24 @@ translated, keeping the String Catalog and the code in step, and what adding a l
 involves. **Does not own:** a view model's shape and injecting a `Locale` to format a
 number or date (`designing-core-logic`); how a view is wired to its model
 (`building-swiftui-screens`); capitalization and voice (`designing-ui`'s copy rules and
-design lock); the ADR a second language owes (`recording-architecture-decisions`); the
-English-only rule and its one exception (`AGENTS.md`'s "Important Reminders").
+design lock); recording the decision a second language owes (`docs/architecture.md` ›
+Language, `updating-docs`); the English-only rule (`AGENTS.md`'s "Important
+Reminders").
 
 ## What the template decides
 
-- **English only.** `Package.swift` sets `defaultLocalization: "en"`, and the one catalog's
-  source language is `en`. Shipping a second language is an app's decision, recorded as
-  an ADR: every later string then owes a translation, and every translation owes a reviewer.
+- **English only.** `Package.swift` sets `defaultLocalization: "en"`, and the one catalog
+  holds `en` alone. Shipping a second language is the owner's decision, recorded in
+  `docs/architecture.md` › Language: every later string then owes a translation, and
+  every translation owes a reviewer.
 - **Core owns the wording.** A Core view model returns `LocalizedStringResource`
-  (Foundation, which Core may import) and a view renders it. The wording then sits under
+  (Foundation, which Core may import) and a view renders it (how, in
+  [In `TownsfolkUI`](#in-townsfolkui)). The wording then sits under
   the coverage floor, where a test asserts it; a Core API that handed out bare keys would
   leave the view to know the key, the bundle, and the fallback, none of it tested.
-- **One catalog, in Core.** `TownsfolkCore` declares `resources: [.process(...)]` for it;
-  `TownsfolkUI` has no catalog and no resources.
+- **One string catalog, in Core.** `TownsfolkCore` declares `resources: [.process(...)]`
+  for it; `TownsfolkUI` has no string catalog. It does carry other resources: this app's
+  custom Color Sets live in its `Resources/Colors.xcassets` (`designing-ui`).
 
 ## Declaring a string
 
@@ -54,7 +58,7 @@ Every part is there for a reason:
 - **`defaultValue`.** `swift test` (`just test`) builds with SwiftPM's native build
   system, which copies the `.xcstrings` into Core's bundle uncompiled, so the English a
   test sees comes from here. Without it a test would see the key.
-- **An explicit key**, `feature.purpose` (`counter.reset`, `frontmostApp.unavailable`),
+- **An explicit key**, `feature.purpose` (`frontmostApp.label`, `frontmostApp.unavailable`),
   not the English text: the English can be polished without re-keying every translation,
   and a key is something a test and a search can name.
 - **`comment`** is a translator's only context: where the text appears and what each
@@ -62,9 +66,9 @@ Every part is there for a reason:
 - **One whole sentence per state**, with arguments interpolated (`\(name)` becomes `%@`,
   an `Int` becomes `%lld`), never a fixed prefix glued to a swapped-in fragment: a
   translation must be free to reorder the sentence around its arguments.
-- **A computed property**, as `label` and `CounterViewModel.resetTitle` are: the
-  initializer's `locale` defaults to `.current` when the resource is built, so each read
-  builds it afresh.
+- **A computed property**, as `FrontmostAppViewModel.label` and
+  `SettingsViewModel.speedHint` are: the initializer's `locale` defaults to `.current`
+  when the resource is built, so each read builds it afresh.
 - **No generated symbols.** `xcodebuild` runs `GenerateStringSymbols` over the catalog, but
   SwiftPM's native build does not, so code that names one fails to compile under
   `just test`.
@@ -74,12 +78,14 @@ Every part is there for a reason:
 - A view has no localizable literal. `Text("…")` and `Button("…")` take a
   `LocalizedStringKey` that is looked up in the app's main bundle, not the package's, and
   `-exportLocalizations` exports it under a `TownsfolkUI` strings file that has nowhere to
-  ship. Render a Core resource instead: `Text(frontmostApp.label)`,
-  `Button(CounterViewModel.resetTitle) { model.reset() }`.
+  ship. Render a Core resource instead, through SwiftUI's own initializers that take a
+  `LocalizedStringResource`: `Text(model.nameTitle)`,
+  `Label(error, systemImage: "exclamationmark.triangle")` for `SettingsViewModel.nameError`,
+  `Button(resource) { … }`. They resolve it in the bundle it names, so the view needs no
+  `String(localized:)`.
 - What is not language is `Text(verbatim:)`: a number (formatted in Core with an injected
-  `Locale` when formatting matters), a glyph such as `ContentView`'s "−" and "+" (whose
-  `.accessibilityLabel` is still a Core resource, `CounterViewModel.decrementLabel`), and a
-  preview's note to the developer.
+  `Locale` when formatting matters), a glyph (whose `.accessibilityLabel` is still a Core
+  resource), and a preview's note to the developer.
 - Accessibility identifiers are never localized (`building-swiftui-screens`).
 
 ## Keeping the catalog in step
@@ -130,16 +136,18 @@ forms.
 
 ## Adding a language
 
-In an app cut from the template, a second language is an ADR the owner accepts before
-any translation lands (`recording-architecture-decisions`): which language, who
-translates, and who reviews. Then:
+A second language is the owner's decision, recorded in `docs/architecture.md` › Language
+before any translation lands: which language, who translates, and who reviews. Then:
 
 - Add the language in Xcode's catalog editor, or import a translated `.xcloc` with
   `xcodebuild -importLocalizations`. Keys, comments, and the English stay English; the
-  translated values are the one non-English text the repository allows.
+  translated values become the one non-English text the repository allows, which
+  `AGENTS.md`'s "Important Reminders" then says.
 - Unverified: whether macOS offers the app in that language from the package bundle's
   new `.lproj` alone, or the app target also needs `CFBundleLocalizations` or
   `developmentLanguage` in `project.yml`. Check it in the running app (`running-the-app`)
-  and record the answer in the ADR.
-- Unverified: how `typos` (`just lint`) treats translated values; the ADR decides whether
-  an exclusion is warranted, which is a gate change (`changing-gates`).
+  and record the answer in `docs/architecture.md` › Language.
+- Unverified: how `typos` (`just lint`) treats translated values; the decision says
+  whether an exclusion is warranted, which is a gate change (`changing-gates`).
+- Seed tables (`Resources/SeedTables.json`, `SeedTables.load()`) are wording too: a
+  second language decides whether they are translated or written afresh for it.
