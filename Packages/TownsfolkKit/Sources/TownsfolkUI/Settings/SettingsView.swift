@@ -55,6 +55,7 @@ public struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: Layout.width)
+        .onDisappear { model.paneClosed() }
         .accessibilityIdentifier("settingsPane")
     }
 

@@ -141,6 +141,20 @@ public final class SettingsViewModel {
         AppLog.settings.info("name submitted: stored")
     }
 
+    /// Submits the name field when the pane closes, since closing the window may end the
+    /// field's editing with neither Return nor a focus change, and a typed name would be
+    /// lost. A field that holds nothing new — the stored name once trimmed, or blank with
+    /// no name stored — is not submitted, so closing never raises the error by itself;
+    /// it still clears one left over from a rejected name that was then put back.
+    public func paneClosed() {
+        let trimmed = nameField.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != (displayName?.value ?? "") else {
+            isNameRejected = false
+            return
+        }
+        nameSubmitted(nameField)
+    }
+
     /// Stores `speed` at once; ``speedHint`` follows it.
     public func speedChosen(_ speed: Speed) {
         store.speed = speed

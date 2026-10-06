@@ -8,6 +8,94 @@ private func name(ofLength count: Int) -> String {
     String(repeating: "a", count: count)
 }
 
+/// Closing the pane submits a name that was typed but neither returned nor left, and
+/// stays silent when nothing was edited.
+@MainActor
+@Suite("SettingsViewModel, closing the pane")
+struct SettingsViewModelClosingTests {
+    @Test
+    func `closing the pane stores a valid name that was typed but not submitted`() throws {
+        try withFreshDefaults { suite in
+            suite.defaults.set("Tomo", forKey: StoredKey.displayName)
+            let model = SettingsViewModel(defaults: suite.defaults)
+            model.nameEdited("  Hana ")
+            model.paneClosed()
+            #expect(suite.stored(StoredKey.displayName) as? String == "Hana")
+            #expect(model.displayName?.value == "Hana")
+            #expect(model.nameField == "Hana")
+            #expect(model.nameError == nil)
+        }
+    }
+
+    @Test
+    func `closing the pane on an invalid typed name keeps the stored name and shows the error`(
+    ) throws {
+        try withFreshDefaults { suite in
+            suite.defaults.set("Tomo", forKey: StoredKey.displayName)
+            let model = SettingsViewModel(defaults: suite.defaults)
+            model.nameEdited("")
+            model.paneClosed()
+            #expect(suite.stored(StoredKey.displayName) as? String == "Tomo")
+            #expect(model.nameError == "Use 1–20 characters.")
+            #expect(model.nameField.isEmpty)
+        }
+    }
+
+    @Test(arguments: [
+        ("Tomo", "Tomo"),
+        ("Tomo", " Tomo "),
+        (nil, ""),
+        (nil, "   "),
+    ] as [(String?, String)])
+    func `closing the pane with nothing edited writes nothing and shows no error`(
+        stored: String?,
+        field: String,
+    ) throws {
+        try withFreshDefaults { suite in
+            if let stored {
+                suite.defaults.set(stored, forKey: StoredKey.displayName)
+            }
+            let model = SettingsViewModel(defaults: suite.defaults)
+            model.nameEdited(field)
+            model.paneClosed()
+            #expect(suite.stored(StoredKey.displayName) as? String == stored)
+            #expect(model.nameError == nil)
+            #expect(model.nameField == field)
+        }
+    }
+
+    @Test
+    func `closing the pane after a rejected name that was put back clears the error`() throws {
+        try withFreshDefaults { suite in
+            suite.defaults.set("Tomo", forKey: StoredKey.displayName)
+            let model = SettingsViewModel(defaults: suite.defaults)
+            model.nameSubmitted("")
+            model.nameEdited("Tomo")
+            model.paneClosed()
+            #expect(model.nameError == nil)
+            #expect(suite.stored(StoredKey.displayName) as? String == "Tomo")
+        }
+    }
+
+    @Test
+    func `the name's length comes from the injected tuning, and so does the error`() throws {
+        try withFreshDefaults { suite in
+            var tuning = Tuning.default
+            tuning.founding.displayNameLength = 2 ... 3
+            let model = SettingsViewModel(defaults: suite.defaults, tuning: tuning)
+            model.nameSubmitted("A")
+            #expect(model.nameError == "Use 2–3 characters.")
+            #expect(model.displayName == nil)
+            model.nameSubmitted("Abc")
+            #expect(model.nameError == nil)
+            #expect(model.displayName?.value == "Abc")
+            model.nameSubmitted("Abcd")
+            #expect(model.nameError == "Use 2–3 characters.")
+            #expect(model.displayName?.value == "Abc")
+        }
+    }
+}
+
 @MainActor
 @Suite("SettingsViewModel")
 struct SettingsViewModelTests {
@@ -180,24 +268,6 @@ struct SettingsViewModelTests {
             model.nameSubmitted("Tomo")
             #expect(suite.stored(StoredKey.displayName) as? String == "Tomo")
             #expect(model.displayName?.value == "Tomo")
-        }
-    }
-
-    @Test
-    func `the name's length comes from the injected tuning, and so does the error`() throws {
-        try withFreshDefaults { suite in
-            var tuning = Tuning.default
-            tuning.founding.displayNameLength = 2 ... 3
-            let model = SettingsViewModel(defaults: suite.defaults, tuning: tuning)
-            model.nameSubmitted("A")
-            #expect(model.nameError == "Use 2–3 characters.")
-            #expect(model.displayName == nil)
-            model.nameSubmitted("Abc")
-            #expect(model.nameError == nil)
-            #expect(model.displayName?.value == "Abc")
-            model.nameSubmitted("Abcd")
-            #expect(model.nameError == "Use 2–3 characters.")
-            #expect(model.displayName?.value == "Abc")
         }
     }
 
