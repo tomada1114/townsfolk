@@ -18,7 +18,8 @@ deterministic under `swift test` — what it is handed rather than reads, where 
 numbers live, what its entry points look like, and which patterns are not adopted.
 **Does not own:** the test-first loop itself (`tdd`); an OS integration behind a port
 (`integrating-system-apis`, `docs/architecture.md` › Ports and adapters); recording a
-decision to adopt a new pattern (`recording-architecture-decisions`); the module
+decision to adopt a new pattern (`docs/architecture.md` › Townsfolk on these layers,
+`updating-docs`); the module
 boundaries and import rules (`AGENTS.md` › Architecture, `.claude/rules/swift.md`).
 
 ## Why this exists
@@ -137,8 +138,7 @@ only when the answer really comes from an OS framework Core may not import.
 ## Deliberately not adopted
 
 Each row is a pattern an implementer may reach for out of habit. The template's
-reasoning lives in `README.md` › Design Philosophy; the template ships no ADRs of its
-own (`README.md` › "Why an ADR tree that ships empty?").
+reasoning lives in `README.md` › Design Philosophy.
 
 | Pattern | Why not | Reasoning |
 |---|---|---|
@@ -150,6 +150,6 @@ own (`README.md` › "Why an ADR tree that ships empty?").
 | Coordinators / routers as separate objects | SwiftUI's own navigation state, owned by a view model, suffices at this size | this skill |
 | An event bus or `NotificationCenter` between Core types | Direct calls; an OS notification is observed through a port instead | `FrontmostAppViewModel.refresh()`'s doc comment |
 
-An app cut from this template that adopts one of these records that as an ADR under
-`docs/architecture/adr/`, naming the problem the current shape cannot solve.
-**REQUIRED:** `recording-architecture-decisions`.
+Adopting one of these is the owner's decision, recorded in `docs/architecture.md` ›
+Townsfolk on these layers with the problem the current shape cannot solve.
+**REQUIRED:** `updating-docs`.

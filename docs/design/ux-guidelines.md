@@ -24,7 +24,7 @@ not repeated.
 - **The town speaks as a place** — the UI talks about the town, not the machinery.
   Decides: states are worded in-world; errors and confirmations are plain; the first-run
   screen says once, plainly, that residents are written by Apple's on-device model.
-  Gives up: some plainness, and every string needs care in two languages.
+  Gives up: some plainness.
 
 ## Navigation
 
@@ -44,7 +44,7 @@ deeper than one level.
 
 | State | Trigger | Shows | Primary action | Copy pattern |
 |---|---|---|---|---|
-| First run | No town exists | S2: language, then your name. S2a carries the one plain line: "Its residents are written by Apple's on-device model, right on this Mac." | Continue | "A small town is waiting for you. Choose its language." |
+| First run | No town exists | S2: your name, with the one plain line: "Its residents are written by Apple's on-device model, right on this Mac." | Continue | "A small town is waiting for you. What should the town call you?" |
 | Founding | After first run, or after moving away | S3: staged lines checked off as the real steps finish — the only wait the app ever shows | — | "Finding you a town…" · "Drawing the streets" · "Meeting the neighbors" · "Saying hello" |
 | Founding slow | Founding passes 60 s | One line added under the steps; no cancel — quitting is always possible | — | "This is taking longer than usual." |
 | Founding failed | 3 failed attempts | In place of S3 | Try Again | "Couldn't find you a town this time." |
@@ -102,21 +102,18 @@ length cannot be wrong too early.
 
 ## Language and copy
 
-- **UI languages:** English and Japanese, chosen in the app (first run, then Settings)
-  and independent of the macOS language. The app's own strings switch at once;
-  OS-provided menu items follow at the next launch. No right-to-left languages.
+- **UI language:** English only; there is no language setting (requirements §4).
 - **Formatting:** relative times, dates, and numbers go through the platform formatters
-  with **the app's language as their locale**, never the Mac's current locale —
-  otherwise a Japanese UI on an English Mac would print English times.
+  with the system's current locale, as the template does by default: Core takes the
+  `Locale` it is handed, `.current` in the app (`designing-core-logic` › Inject locale).
 - **Relative time:** "now" under a minute, then minutes, then hours up to 23 hours, then
-  a short date (the formatter's abbreviated forms in each language). Updated every 60 s.
-  Pointing at a time shows the full date and time.
-- **Text expansion:** English runs about 50% longer than Japanese for the same string;
-  no fixed-width labels or buttons — text wraps or truncates as ux-flows §2 says.
+  a short date (the formatter's abbreviated forms). Updated every 60 s. Pointing at a
+  time shows the full date and time.
+- **Text length:** no fixed-width labels or buttons — text wraps or truncates as
+  ux-flows §2 says.
 - **Register:** in-world and gentle; the town is a place and you are one of its
-  residents. Second person, no exclamation marks. Japanese uses the polite form
-  (desu/masu) in UI strings. Errors and confirmations drop the in-world voice and state
-  plainly what happened and what to do.
+  residents. Second person, no exclamation marks. Errors and confirmations drop the
+  in-world voice and state plainly what happened and what to do.
 - **Capitalization:** Title Case for menu items and buttons; sentence case for
   everything else. An ellipsis ends a command that asks for more before acting ("Move to
   Another Town…") and an in-world line that is still happening ("Finding you a town…").
@@ -185,15 +182,16 @@ Color Filters).
 | Toasts, notifications, badges, sounds | Nothing hurries you; the town moves only while visible | The window itself |
 | "Writing…" or progress for scenes and catch-up | Machinery stays out of sight | Posts simply appear; the arrival tint |
 | Custom focus rings | One focus appearance everywhere | The system focus ring |
-| A tour or tips | First run is two steps; the town explains itself | S2's copy |
+| A tour or tips | First run is one step; the town explains itself | S2's copy |
 
 ## Open items
 
 - Open: whether one status line carries enough at a glance, or needs a second line or
   rotation — settled by using the app (requirements §3.3).
 - Settled: the arrival tint is Lamplight, at 20% over the light canvas and 14% over the
-  dark one ([ADR-0008](../architecture/adr/0008-design-lock.md)), measured in
-  design-direction.md; whether it is visible enough at a glance is settled in use.
+  dark one ([design-direction.md › Design lock](design-direction.md#design-lock)),
+  measured in design-direction.md; whether it is visible enough at a glance is settled
+  in use.
 
 ## Decision log
 

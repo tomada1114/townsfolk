@@ -72,8 +72,8 @@ Section numbers (§) below refer to `docs/product/requirements.md`.
 - **Where these decisions are recorded** — `docs/product/requirements.md` (scope, the
   Later and Non-goals lists, and the reasoning in its §7 decision log);
   `docs/product/ux-flows.md` and `docs/design/ux-guidelines.md` (screens, flows, and UX
-  policy); `docs/design/design-direction.md` (the visual direction behind the design
-  lock); ADRs under `docs/architecture/adr/` for the hard-to-reverse choices.
+  policy); `docs/design/design-direction.md` (the visual direction and the design lock);
+  `docs/architecture.md` › Townsfolk on these layers for the hard-to-reverse choices.
 
 ## Quick Reference
 
@@ -130,7 +130,7 @@ job call.
 | `project.yml`, or `Config/Debug.xcconfig` | `just generate && just build` |
 | A test under `LaunchUITests/`, or launch behavior | `just uitest` |
 | The Release configuration, or anything only a Release launch shows | `just smoke` |
-| Behavior only the running app shows (a view's wiring, an OS integration, a log line) | `just run`, then `just logs` — no gate asserts it, so the PR carries the evidence instead (the `running-the-app` skill) |
+| Behavior only the running app shows (a view's wiring, an OS integration, a log line) | `just run`, then `just logs`, after asking the owner, since it takes over the screen — no gate asserts it, so the PR describes what was checked, without screenshots (the `running-the-app` skill) |
 | A shell script under `scripts/` (including the sourced `scripts/guard/*.sh`), or `.githooks/pre-commit` | `just lint`, then `just test-scripts` |
 | `scripts/verify-hooks.sh` | `just lint`, then `just test-scripts`; `just verify-hooks` for the check itself |
 | A harness check under `scripts/checks/` (including the sourced `scripts/checks/lib.sh`) | `just lint`, then `just test-scripts`; `just check-harness` for the checks themselves |
@@ -177,8 +177,8 @@ Config/Debug.xcconfig       # Debug-only build settings project.yml cannot expre
 - Townsfolk's own shape on these layers — the town engine, its SQLite store
   (`import SQLite3`), and the conversation with the on-device model
   (`import FoundationModels`) in Core; the model call and window presence as Platform
-  adapters — is `docs/architecture.md` › Townsfolk on these layers, and each choice is
-  an ADR under `docs/architecture/adr/`
+  adapters — is `docs/architecture.md` › Townsfolk on these layers, whose Decisions
+  record each choice and why
 - The dependency direction is one-way: Core ← UI and Core ← Platform, both ← App.
   `TownsfolkUI` and `TownsfolkPlatform` are siblings and never import each other
 - OS integration goes in `TownsfolkPlatform` as an adapter behind a `Sendable` port Core
@@ -215,11 +215,11 @@ Config/Debug.xcconfig       # Debug-only build settings project.yml cannot expre
 
 ## Before changing the architecture
 
-An app cut from this template records its architecture decisions as ADRs under
-`docs/architecture/` — start at its `README.md`, the index, whose statuses say what is
-decided and what is only proposed. `docs/architecture.md` describes the layers every app
-starts with; the ADRs record what the app decided on top of them. A change to any of
-these owes an ADR, as `recording-architecture-decisions` sets out:
+`docs/architecture.md` describes the layers every app starts with, and its "Townsfolk on
+these layers" section records what this app decided on top of them — each decision, why
+it beat the alternatives, what is still open, and its sources with a checked date. A
+change to any of these updates that section in the same pull request, and the design
+lock's own record is `docs/design/design-direction.md` › Design lock:
 
 - a new target (`project.yml`, `Package.swift`) or a new Core port;
 - the app shape — a windowed app or a menu-bar agent;
@@ -232,11 +232,11 @@ these owes an ADR, as `recording-architecture-decisions` sets out:
   privacy grant;
 - a shipped language beyond English, the `defaultLocalization` the template sets.
 
-An agent writes an ADR as Proposed; only a human accepts it. An ADR records reasoning and
-grants nothing: an entitlement, a signing change, or a new dependency still needs the
-sign-off "Security and human approval" asks for. The template repository ships the index
-empty — its own reasoning lives in `README.md`'s Design Philosophy, and ADRs belong to
-the apps cut from it.
+The owner makes these decisions; an agent proposes one in the pull request and records
+it only once the owner has confirmed it. A record grants nothing: an entitlement, a
+signing change, or a new dependency still needs the sign-off "Security and human
+approval" asks for. The template's own reasoning lives in `README.md`'s Design
+Philosophy.
 
 ## Skills
 
@@ -265,18 +265,17 @@ tool that sees the generated copy rather than the authored one:
 | `changing-gates` | a file that enforces rather than implements: `.swiftlint.yml`, `.swiftformat`, `Package.swift`'s `strictSettings`, `mise.toml`, `.githooks/pre-commit`, `scripts/lint.sh`, `scripts/coverage.sh`, the `scripts/guard/` commit-time guard, or a workflow — and which gate would catch a change |
 | `triaging-issues` | filing or triaging an issue: the labels in `.github/labels.yml` (`just labels`), priority tiers, the `Depends on #N` convention, and routing a request from daily use (file, park as `on hold`, or drop) |
 | `authoring-skills` | adding, editing, or reviewing a skill: authoring under `.agents/skills/`, the `just agents-sync` mirror, frontmatter, layout, and size limits |
-| `updating-docs` | deciding whether a change owes a documentation update and which surface it lands on: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/*.md`, a skill, or a `///` comment |
-| `recording-architecture-decisions` | the ADR tree under `docs/architecture/`: whether a change owes an ADR (a target or port, app shape, sandbox posture, persistence, a dependency, distribution, `deploymentTarget`, a TCC permission), an ADR's statuses, amending versus superseding, and fact discipline — every external claim with a URL and a checked date |
+| `updating-docs` | deciding whether a change owes a documentation update and which surface it lands on: `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/*.md`, a skill, or a `///` comment; recording a hard-to-reverse decision in `docs/architecture.md`; and fact discipline — every external claim with a URL and a checked date |
 | `writing-repo-scripts` | writing or testing a shell script under `scripts/`, `.githooks/pre-commit`, or `scripts/tests/`: why bash, refusing or skipping outside a git checkout, the stderr contract by example, and `scripts/tests/lib.sh` |
 | `running-the-app` | seeing a change work in the real app: `just run` and confirming the running process is the fresh build, reading `just logs`, screenshotting a window, a throwaway XCUITest, the human hand-off for a TCC prompt, and the evidence a PR then carries |
 | `integrating-system-apis` | calling a macOS system API from `TownsfolkPlatform`: choosing the mechanism (`CGEventTap`, `AXObserver`, a Carbon hotkey), a C callback's refcon and teardown under Swift 6 strict concurrency, TCC-gated permissions (Accessibility, Input Monitoring, Screen Recording), and what can be tested where |
 | `designing-core-logic` | shaping logic in `TownsfolkCore`: injecting time (`Clock`, a `() -> Date`), `Locale`, and a `RandomNumberGenerator`; one `Tuning` type for tunables; action-shaped `@Observable` view models; and the patterns deliberately not adopted |
-| `designing-ui` | how a screen looks: HIG-based craft rules (system text styles, semantic and accent colors, light and dark, contrast, SF Symbols, window sizing, menu commands and shortcuts, motion, copy) and the app's design lock, recorded as an ADR under `docs/architecture/` |
+| `designing-ui` | how a screen looks: HIG-based craft rules (system text styles, semantic and accent colors, light and dark, contrast, SF Symbols, window sizing, menu commands and shortcuts, motion, copy) and the app's design lock, recorded in `docs/design/design-direction.md` › Design lock |
 | `building-swiftui-screens` | a view in `TownsfolkUI`: a thin renderer over a `TownsfolkCore` `@Observable` view model (how it holds its model, what `body` may contain), `#Preview` per state, accessibility identifiers and labels, Reduce Motion, keyboard reachability, and verifying a screen |
 | `starting-an-app` | turning this template into a new app: `scripts/bootstrap.sh`'s rename, what the new repository keeps, its `just labels` and `just ruleset` setup, choosing the app shape (windowed or menu-bar agent), and deciding the sandbox posture |
 | `shipping-issues` | shipping the open issue backlog: ranking issues by `priority: P0`-`P3`, implementing the top one, reviewing it with `/code-review`, and taking its PR through CI to merge |
 | `steering-the-roadmap` | the app's direction in `docs/architecture/roadmap.md`: its Now / Next / Later horizons, who changes it and when, how the backlog and parked `on hold` issues feed it, and answering "what is next?" before `shipping-issues` |
-| `localizing-the-app` | a string a person reads: the String Catalog `Localizable.xcstrings` in `TownsfolkCore`, `defaultLocalization`, Core view models returning `LocalizedStringResource` (`bundle: .module`), `Text(verbatim:)` in `TownsfolkUI`, keeping the catalog and `LocalizationTests` in step, `xcodebuild -exportLocalizations`, plurals, and what adding a language involves |
+| `localizing-the-app` | a string a person reads: the String Catalog `Localizable.xcstrings` in `TownsfolkCore`, `defaultLocalization`, Core view models returning `LocalizedStringResource` (`bundle: .module`), `Text(resource)` in `TownsfolkUI`, keeping the catalog and `LocalizationTests` in step, `xcodebuild -exportLocalizations`, plurals, and what adding a language involves |
 | `merging-dependency-prs` | landing open Dependabot (SwiftPM, GitHub Actions) and Renovate (`mise.toml`) PRs: the security checklist, one human approval for a listed batch of passing PRs, and a combined branch for conflicting bumps |
 
 ### Rules
@@ -538,12 +537,8 @@ Before submitting a PR:
 
 ## Important Reminders
 
-- All code, docs, commits, and PRs must be written in English. The exceptions are a
-  translated value in a `*.xcstrings` String Catalog — the entry for a language other
-  than `en`; its key, its `comment`, and its English stay English (`localizing-the-app`)
-  — and a value in a seed table for a language other than English under
-  `Packages/TownsfolkKit/Sources/TownsfolkCore/Resources/Seeds/`, whose keys stay
-  English (ADR-0007, `docs/architecture/adr/0007-english-and-japanese.md`)
+- All code, docs, commits, and PRs must be written in English, and the app ships in
+  English only: the String Catalog holds no language but `en` (`localizing-the-app`)
 - Do what has been asked; nothing more, nothing less
 - NEVER create files unless absolutely necessary
 - ALWAYS prefer editing an existing file to creating a new one
