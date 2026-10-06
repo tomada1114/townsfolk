@@ -44,10 +44,27 @@ struct LocalizationTests {
         )
         answered.refresh()
         let unanswered = FrontmostAppViewModel(provider: FakeFrontmostAppProvider(answering: [nil]))
+        let nameLength = 1
+        let nameLimit = 20
         return [
             Case(resource: answered.label, arguments: ["Finder"]),
             Case(resource: unanswered.label, arguments: []),
-        ]
+            Case(resource: SettingsWording.languageTitle, arguments: []),
+            Case(resource: SettingsWording.languageHelp, arguments: []),
+            Case(resource: SettingsWording.nameTitle, arguments: []),
+            Case(
+                resource: SettingsWording.nameError(length: nameLength ... nameLimit),
+                arguments: [nameLength, nameLimit],
+            ),
+            Case(resource: SettingsWording.speedTitle, arguments: []),
+            Case(resource: SettingsWording.keepsMovingTitle, arguments: []),
+            Case(resource: SettingsWording.keepsMovingHelp, arguments: []),
+        ] + Speed.allCases.flatMap { speed in
+            [
+                Case(resource: SettingsWording.speedName(speed), arguments: []),
+                Case(resource: SettingsWording.speedHint(speed), arguments: []),
+            ]
+        }
     }
 
     /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.

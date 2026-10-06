@@ -34,6 +34,227 @@
           }
         }
       }
+    },
+    "settings.keepsMoving.help" : {
+      "comment" : "Settings: helper text under the keep-moving toggle. \"Rests\" means the town pauses.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, the town rests unless its window is active."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフにすると、町のウインドウがアクティブなとき以外は町がひと休みします。"
+          }
+        }
+      }
+    },
+    "settings.keepsMoving.title" : {
+      "comment" : "Settings: the label of the toggle that lets the town keep running while another app is in front, as long as its window is visible.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the town moving while I use other apps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアプリを使っているあいだも町を動かす"
+          }
+        }
+      }
+    },
+    "settings.language.help" : {
+      "comment" : "Settings: helper text under the language picker. The app's own text switches at once; the menus macOS provides switch at the next launch.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menus switch the next time Townsfolk opens."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メニューは次に Townsfolk を開いたときに切り替わります。"
+          }
+        }
+      }
+    },
+    "settings.language.title" : {
+      "comment" : "Settings: the label of the picker that chooses the app's language.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言語"
+          }
+        }
+      }
+    },
+    "settings.name.error" : {
+      "comment" : "Settings: shown under the name field when the submitted name is empty or too long. The arguments are the fewest and the most characters a name may have.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use %lld–%lld characters."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld〜%2$lld 文字で入力してください。"
+          }
+        }
+      }
+    },
+    "settings.name.title" : {
+      "comment" : "Settings: the label of the field holding the person's own name in the town.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたの名前"
+          }
+        }
+      }
+    },
+    "settings.speed.fast" : {
+      "comment" : "Settings: the fastest speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はやい"
+          }
+        }
+      }
+    },
+    "settings.speed.hint.fast" : {
+      "comment" : "Settings: helper under the speed control while Fast is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 30 seconds."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 秒に 1 件ほど新しい投稿があります。"
+          }
+        }
+      }
+    },
+    "settings.speed.hint.normal" : {
+      "comment" : "Settings: helper under the speed control while Normal is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 3 minutes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 分に 1 件ほど新しい投稿があります。"
+          }
+        }
+      }
+    },
+    "settings.speed.hint.slow" : {
+      "comment" : "Settings: helper under the speed control while Slow is chosen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About one new post every 15 minutes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "15 分に 1 件ほど新しい投稿があります。"
+          }
+        }
+      }
+    },
+    "settings.speed.normal" : {
+      "comment" : "Settings: the default speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ふつう"
+          }
+        }
+      }
+    },
+    "settings.speed.slow" : {
+      "comment" : "Settings: the slowest speed, a segment of the speed control.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゆっくり"
+          }
+        }
+      }
+    },
+    "settings.speed.title" : {
+      "comment" : "Settings: the label of the segmented control choosing how often the town posts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速さ"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

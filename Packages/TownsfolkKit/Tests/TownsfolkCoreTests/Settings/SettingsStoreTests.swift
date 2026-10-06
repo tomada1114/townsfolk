@@ -4,7 +4,7 @@ import TownsfolkCore
 
 /// The keys a test reads and writes by hand. Spelled out here rather than read from the
 /// store, so a renamed key — a contract change that resets every user's value — fails.
-private enum StoredKey {
+enum StoredKey {
     static let displayName = "settings.displayName"
     static let language = "settings.language"
     static let speed = "settings.speed"
@@ -42,7 +42,7 @@ enum HandWritten: Sendable, CustomTestStringConvertible {
 }
 
 /// A `UserDefaults` suite one test owns.
-private struct FreshSuite {
+struct FreshSuite {
     let name: String
     let defaults: UserDefaults
 
@@ -55,7 +55,7 @@ private struct FreshSuite {
 
 /// Runs `body` against a `UserDefaults` suite of its own, removed afterwards, so tests
 /// running in parallel never share a stored value.
-private func withFreshDefaults(_ body: (FreshSuite) throws -> Void) throws {
+func withFreshDefaults(_ body: (FreshSuite) throws -> Void) throws {
     let name = "SettingsStoreTests-\(UUID().uuidString)"
     let defaults = try #require(UserDefaults(suiteName: name))
     defer { defaults.removePersistentDomain(forName: name) }

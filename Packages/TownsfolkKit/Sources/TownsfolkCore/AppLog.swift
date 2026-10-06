@@ -37,4 +37,8 @@ public enum AppLog {
     /// The window-presence concern: every value ``WindowPresenceProviding`` reports. Its
     /// three flags say nothing about the person, so they are logged `.public`.
     public static let presence = Logger(subsystem: subsystem, category: "presence")
+
+    /// The settings concern: each change ``SettingsViewModel`` stores. Your name is never
+    /// in it — only whether a submitted name was taken.
+    public static let settings = Logger(subsystem: subsystem, category: "settings")
 }
