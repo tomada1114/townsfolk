@@ -28,10 +28,13 @@ A view renders Core state and forwards user intent to a Core action; it decides 
 only, because SwiftUI layout is not what `swift test` can assert — so any branch that
 lives in a view is a branch no gate tests.
 Keeping it in the view model is what makes the 80% floor on `TownsfolkCore` honest
-(`docs/architecture.md` › "Where new code goes"). No screen holds a Core view model
-yet — `RootView` and `SettingsView` are placeholders that take none — so the rules below
-are the shape to follow; those two show the rest (a `private enum Layout` over
-`DesignLock`, an accessibility identifier, light and dark previews).
+(`docs/architecture.md` › "Where new code goes"). `SettingsView` over
+`SettingsViewModel` is the worked example of the rules below: it holds the model in
+`@State`, set in `init(model:)`; builds each control's `Binding` from an action; submits
+the name on Return, on focus loss, and when the pane closes (`paneClosed()`); renders
+every string with `Text(verbatim:)`; and has a `#Preview` per state. `RootView` is the
+example of a view with no model. Both show the rest: a `private enum Layout` over
+`DesignLock`, accessibility identifiers, light and dark previews.
 
 - A view is a `struct` in `TownsfolkUI` importing `SwiftUI` and `TownsfolkCore`, and never
   `TownsfolkPlatform`. Enforced by: `ArchitectureBoundaryTests`' sibling-import tests.
