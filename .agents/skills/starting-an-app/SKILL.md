@@ -111,8 +111,8 @@ leftover grep is case-insensitive and allows a missing hyphen, so a new mention 
 app name in a spelling the literal replace does not cover (all lowercase, say) fails
 that job.
 
-The rename leaves the example code in place: the counter and the `FrontmostApp`
-port/adapter are illustrations, not the app. Removing or replacing them is one
+The rename leaves the example code in place: the template's example screen and the
+`FrontmostApp` port/adapter are illustrations, not the app. Removing or replacing them is one
 checklist, `docs/getting-started.md` › "Removing the example code", which both
 `README.md` and the script's next steps point to.
 

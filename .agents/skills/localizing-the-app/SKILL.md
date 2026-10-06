@@ -54,7 +54,7 @@ Every part is there for a reason:
 - **`defaultValue`.** `swift test` (`just test`) builds with SwiftPM's native build
   system, which copies the `.xcstrings` into Core's bundle uncompiled, so the English a
   test sees comes from here. Without it a test would see the key.
-- **An explicit key**, `feature.purpose` (`counter.reset`, `frontmostApp.unavailable`),
+- **An explicit key**, `feature.purpose` (`frontmostApp.label`, `frontmostApp.unavailable`),
   not the English text: the English can be polished without re-keying every translation,
   and a key is something a test and a search can name.
 - **`comment`** is a translator's only context: where the text appears and what each

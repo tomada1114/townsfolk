@@ -29,11 +29,11 @@ key: `GENERATE_INFOPLIST_FILE: YES` with no `LSUIElement` entry *is* the regular
 
 ## Menu-bar agent
 
-Every block in this section was applied to a clone of this template and proven there:
-`just build`, `just uitest`, and `just smoke` pass with exactly this text, and
-`just lint` (SwiftFormat plus SwiftLint `--strict` with every opt-in rule) accepts it.
-Copy it verbatim; the `NSStatusItem` variant further down was proven by `just build`
-and `just lint` only.
+Every block in this section was applied to a clone of this template and checked there
+(`just build`, `just uitest`, `just smoke`, and `just lint` passed) when the template's
+example screen was the panel's content; the entry point has since been edited to hold
+`RootView()` and was not re-run, so run those gates after copying it. The
+`NSStatusItem` variant further down was checked by `just build` and `just lint` only.
 
 ### 1. `project.yml` — one key
 
@@ -55,8 +55,6 @@ Regenerate with `just generate` — `Townsfolk.xcodeproj` is generated output, n
 ### 2. `App/TownsfolkApp.swift` — the entry point
 
 ```swift
-import TownsfolkCore
-import TownsfolkPlatform
 import TownsfolkUI
 import SwiftUI
 
@@ -79,8 +77,8 @@ struct TownsfolkApp: App {
 }
 ```
 
-The shell still only wires: the scene type and the composition root line are the whole
-diff from the windowed entry point. The panel's content is a `TownsfolkUI` view — here the
+The shell still only wires: the scene type is what sets it apart from the windowed
+entry point. The panel's content is a `TownsfolkUI` view — here the
 app's own `RootView`, swapped for the app's real view later — and every
 decision it renders stays in `TownsfolkCore`.
 
