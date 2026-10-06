@@ -151,7 +151,7 @@ told apart by name alone until the Later visual identity.
 
 Pairs file: `contrast-pairs.json`, next to this file. Canvas and label values are the
 macOS 27 values measured above; the popover and grouped-form backgrounds are
-approximated as #F2F2F2 / #323232 and are re-measured on screenshots during
+approximated as #F2F2F2 / #323232 and are re-measured on the rendered views during
 implementation. The High Contrast rows pair the custom High Contrast variants with the
 regular canvas. Not in the table: the separator lines and thread line (decoration), and
 the glass pill and focus ring, which the system draws and adapts.
@@ -189,9 +189,9 @@ fg       bg       kind  ratio  required  result   what it is
 ## Open
 
 - The popover and grouped-form backgrounds are approximations: re-measure SecondaryText
-  on screenshots of S4 and S5 in both appearances.
-- The glass pill's label contrast depends on the posts beneath it: check screenshots over
-  light and dark content, with Reduce Transparency on and off.
+  on S4 and S5 as rendered, in both appearances.
+- The glass pill's label contrast depends on the posts beneath it: check it over light
+  and dark content, with Reduce Transparency on and off.
 - The composer's placeholder takes SecondaryText through the field's prompt; if the
   system text field ignores the prompt's color, raise it rather than ship #808080.
 - Whether the wash (20% / 14%) is visible enough at a glance from a second display is

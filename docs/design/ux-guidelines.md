@@ -154,8 +154,8 @@ length cannot be wrong too early.
 | Reduce Motion | See Motion |
 
 Verification for the implementing session: a VoiceOver pass through flows F1–F5 of
-ux-flows.md; a keyboard-only pass through every flow; screenshots in light and dark, with
-Increase Contrast on; one pass in grayscale (System Settings › Accessibility › Display ›
+ux-flows.md; a keyboard-only pass through every flow; a look at every screen in light and
+dark, with Increase Contrast on; one pass in grayscale (System Settings › Accessibility › Display ›
 Color Filters).
 
 ## App-type rules
