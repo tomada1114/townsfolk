@@ -32,7 +32,7 @@ release is built and signed. A change to any of those owes a document; a change 
 them does not.
 
 - `README.md` changes when the first ten minutes with a checkout change — the Quickstart
-  commands, what "Using This Template" asks you to do, or a documented design decision.
+  commands, how to keep up with template updates, or a documented design decision.
 - `CONTRIBUTING.md` changes when setup, the toolchain, or the pull request process
   changes.
 - Neither changes for a refactor, a test, a gate or rule that `AGENTS.md` owns, or an
@@ -43,9 +43,8 @@ them does not.
 Each surface has one job; do not blur them, and do not let one grow a second copy of
 another's content.
 
-- `README.md` — the tour: what this template is, the Quickstart, "Using This Template"
-  (turning it into a new app and keeping up with template updates), and the Design
-  Philosophy that records why each major decision was made. It links to `docs/`,
+- `README.md` — the tour: what the app is, the Quickstart, keeping up with template
+  updates, and the Design Philosophy that records why each major decision was made. It links to `docs/`,
   `AGENTS.md`, and `CONTRIBUTING.md` instead of repeating them.
 - `AGENTS.md` — the agent-facing guide: the Quick Reference command index, "Validating a
   change", the Architecture, the Skills and Rules tables, "Security and human approval",
