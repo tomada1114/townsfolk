@@ -3,7 +3,7 @@ import FoundationModels
 
 /// What a call inventing one resident asks the model to write: a name, a current worry,
 /// and how they know the residents already in town (requirements §3.1, :394). Declared
-/// once, here, for founding and for the newcomers who move in later (#25).
+/// once, here, for founding and for the newcomers who move in later (`TownEngine`).
 ///
 /// The rest of a profile — life stage, occupation, personality, hobby — is drawn from
 /// the seed tables by rules and handed to the model, never invented by it
@@ -63,16 +63,20 @@ extension NewResidentDraft {
 
     /// The resident this draft describes, seeded from `seed`, moving in at `movedInAt`
     /// among `earlier` — the residents already invented, whose names are taken and whom
-    /// alone a relationship may name. A relationship naming anyone else, or naming the
-    /// same resident twice, is dropped; names are compared trimmed and ignoring case.
+    /// alone a relationship may name. `past` — a newcomer's past residents — holds names
+    /// taken too, which no relationship names. A relationship naming anyone else, or
+    /// naming the same resident twice, is dropped; names are compared trimmed and
+    /// ignoring case.
     ///
-    /// - Throws: ``FoundingFailure/repeatedName`` for a name an earlier resident has, and
-    ///   ``FoundingFailure/invalidResident`` for more than ``Resident/maxRelationships``
-    ///   relationships, or a name, worry, or kept relationship outside its limits.
+    /// - Throws: ``FoundingFailure/repeatedName`` for a name an earlier or past resident
+    ///   has, and ``FoundingFailure/invalidResident`` for more than
+    ///   ``Resident/maxRelationships`` relationships, or a name, worry, or kept
+    ///   relationship outside its limits.
     func resident(
         id: Resident.ID,
         seed: ResidentSeed,
         among earlier: [Resident],
+        alsoTaken past: [Resident],
         movedInAt: Date,
     ) throws(FoundingFailure) -> Resident {
         guard relationships.count <= Resident.maxRelationships else {
@@ -108,7 +112,7 @@ extension NewResidentDraft {
         } catch {
             throw .invalidResident
         }
-        guard !earlier.contains(where: { Self.same($0.name, resident.name) }) else {
+        guard !(earlier + past).contains(where: { Self.same($0.name, resident.name) }) else {
             throw .repeatedName
         }
         return resident

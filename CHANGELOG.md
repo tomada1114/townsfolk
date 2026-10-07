@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refreshed every minute, a scene's posts appearing one at a time on a fading Lamplight
   wash, a "↑ n new posts" pill while you read older posts, older posts loading as you
   scroll, ↑ and ↓ to move between posts, and a Town menu with Scroll to Latest (⌘↑)
+- Things happen in town: about every three hours of running time an event starts — a
+  turn in the weather, a festival, a lost pet — and lasts one to twelve hours, at most
+  two at once, with residents talking about it while it goes on; and about once every
+  one to two days of running time someone moves in or away, keeping the town between 3
+  and 10 residents, each move a "Ren moved in." or "Jun moved away." row that the next
+  scene talks about. Nothing is drawn while the Mac runs hot or the model is unavailable
 
 ### Changed
 

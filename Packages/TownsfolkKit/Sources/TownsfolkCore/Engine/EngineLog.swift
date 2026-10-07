@@ -1,6 +1,7 @@
 /// What the engine writes to ``AppLog/engine`` (REQ-011): each step's outcome and its
-/// counts, `.public` because they are states and numbers. No post, name, or tag is ever in
-/// it — a skip reason and a store error carry only cases and codes (requirements §4).
+/// counts, and each event and move drawn, `.public` because they are states, kind ids, and
+/// numbers. No post, name, tag, or description is ever in it — a skip reason, a dropped
+/// event or move, and a store error carry only cases and codes (requirements §4).
 enum EngineLog {
     /// Logs what one step did.
     static func record(_ outcome: EngineStep) {
@@ -38,6 +39,43 @@ enum EngineLog {
         AppLog.engine.error(
             "speed change not stored: \(String(describing: error), privacy: .public)",
         )
+    }
+
+    /// Logs how many events ended at a turn.
+    static func recordEventsEnded(_ count: Int) {
+        AppLog.engine.info("events ended: \(count, privacy: .public)")
+    }
+
+    /// Logs an event started: its kind and how many hours it lasts.
+    static func recordEventStarted(_ kind: EventKindID, hours: Int) {
+        AppLog.engine.info(
+            "event started: \(kind.rawValue, privacy: .public), \(hours, privacy: .public) hours",
+        )
+    }
+
+    /// Logs a description refused for `kind`, which the next attempt draws away from.
+    static func recordEventRefused(_ kind: EventKindID) {
+        AppLog.engine.info("event description refused: \(kind.rawValue, privacy: .public)")
+    }
+
+    /// Logs a drawn event that starts nothing.
+    static func recordEventDropped(_ reason: TownChangeDrop) {
+        AppLog.engine.info("event dropped: \(String(describing: reason), privacy: .public)")
+    }
+
+    /// Logs a move stored, by its kind.
+    static func recordMove(_ kind: EventKindID) {
+        AppLog.engine.info("move stored: \(kind.rawValue, privacy: .public)")
+    }
+
+    /// Logs one newcomer attempt that failed, before the axes are drawn again.
+    static func recordNewcomerFailed(_ reason: FoundingFailure) {
+        AppLog.engine.info("newcomer attempt failed: \(reason.rawValue, privacy: .public)")
+    }
+
+    /// Logs a drawn move that moves nobody.
+    static func recordMoveDropped(_ reason: TownChangeDrop) {
+        AppLog.engine.info("move dropped: \(String(describing: reason), privacy: .public)")
     }
 
     /// Logs a written post ``Post`` refused, which turns the turn into a skip.

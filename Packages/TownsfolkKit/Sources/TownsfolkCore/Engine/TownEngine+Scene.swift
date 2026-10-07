@@ -67,25 +67,28 @@ extension TownEngine {
         return .skipped(reason, nextDue: due)
     }
 
-    /// Casts the due scene, asks the writer for it, and stores it (REQ-003, REQ-004).
+    /// Casts the due scene, asks the writer for it, and stores it (REQ-003, REQ-004). A
+    /// move's news seeds it, and an ongoing event may (REQ-009 of #25).
     func writeScene(at now: Date) async throws -> EngineStep {
         guard let you = settings.displayName else {
             return await skip(.noDisplayName, at: now)
         }
         let town: Town
-        let residents: [Resident]
-        let topics: [String]
+        let casting: SceneCasting
         do throws(TownStoreError) {
             guard let founded = try await store.town() else {
                 return .notFounded
             }
             town = founded
-            residents = try await store.residents()
-            topics = try await store.recentTopicTags(before: now)
+            casting = try await SceneCasting(
+                residents: store.residents(),
+                topics: store.recentTopicTags(before: now),
+                events: store.ongoingEvents(),
+                news: news,
+            )
         } catch {
             return .failed(error)
         }
-        let casting = SceneCasting(residents: residents, topics: topics)
         guard let cast = casting.cast(using: &generator) else {
             return await skip(.noSpeakers, at: now)
         }
@@ -94,21 +97,24 @@ extension TownEngine {
             request = try SceneRequest(
                 you: you,
                 town: town,
-                residents: residents,
+                residents: casting.residents,
                 speakers: cast.speakers,
                 seeds: cast.seeds,
             )
         } catch {
             return await skip(.invalidRequest(error), at: now)
         }
-        switch try await writer.write(request, at: now) {
+        let outcome = try await writer.write(request, at: now)
+        switch outcome {
         case .skipped(.unavailable):
             return .modelUnavailable
 
         case let .skipped(reason):
+            news = nil
             return await skip(.writer(reason), at: now)
 
         case let .written(scene):
+            news = nil
             return try await storeWritten(scene, at: now)
         }
     }
