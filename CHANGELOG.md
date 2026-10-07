@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the field. Pasted line breaks become spaces, a counter appears once 20 characters
   remain ("12 left", "3 over"), and your post shows at once at the top of the timeline,
   scrolling back up to it if you were reading older posts
+- Resident profiles, ready for the town window to show: click a resident's name in a
+  post, or select their post and choose Town › Show Profile (⌘I), to see who they are —
+  occupation and age, personality, hobby, worry, whom they know, the names they took up
+  from you, and when they moved in or out — in a read-only popover that Esc or a click
+  outside closes; your own name opens nothing
 
 ### Changed
 

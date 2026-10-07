@@ -107,7 +107,7 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        } + timelineCases() + availabilityCases() + composerCases()
+        } + timelineCases() + availabilityCases() + composerCases() + profileCases()
     }
 
     /// The timeline's and the Town menu's resources. A plural is listed with a count of
@@ -177,6 +177,31 @@ struct LocalizationTests {
             Case(resource: ComposerWording.replyButton, arguments: []),
             Case(resource: ComposerWording.newPost, arguments: []),
             Case(resource: ComposerWording.reply, arguments: []),
+        ]
+    }
+
+    /// The resident profile's, the name button's, and the Town menu's Show Profile.
+    static func profileCases() -> [Case] {
+        let (name, description, term, date) = ("Jun", "old friend", "Rust", "Sep 30")
+        let (occupation, ageGroup) = ("Baker", "30s")
+        return [
+            Case(resource: ProfileWording.hobby, arguments: []),
+            Case(resource: ProfileWording.worry, arguments: []),
+            Case(resource: ProfileWording.knows, arguments: []),
+            Case(resource: ProfileWording.into, arguments: []),
+            Case(resource: ProfileWording.showProfile, arguments: []),
+            Case(resource: ProfileWording.nameHint, arguments: []),
+            Case(
+                resource: ProfileWording.summary(occupation: occupation, ageGroup: ageGroup),
+                arguments: [occupation, ageGroup],
+            ),
+            Case(
+                resource: ProfileWording.knowsLine(name: name, description: description),
+                arguments: [name, description],
+            ),
+            Case(resource: ProfileWording.interestLine(term: term), arguments: [term]),
+            Case(resource: ProfileWording.movedIn(date: date), arguments: [date]),
+            Case(resource: ProfileWording.movedOut(date: date), arguments: [date]),
         ]
     }
 

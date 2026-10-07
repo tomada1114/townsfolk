@@ -33,7 +33,9 @@ private struct PostReplyButton: View {
 /// which always wraps and is never cut short. Selectable with the keyboard and shown
 /// selected by the system focus ring alone, with no fill. Hovering it shows ↩ Reply at
 /// the header's trailing end; VoiceOver offers the same as the row's Reply action, and
-/// the keyboard as Town › Reply (⌘R).
+/// the keyboard as Town › Reply (⌘R). A resident's name is a button opening their
+/// profile, as VoiceOver's Show Profile action and Town › Show Profile (⌘I) do; your name
+/// is plain text.
 ///
 /// A post that arrives live fades in over 200 ms and reports its bounds, so the timeline
 /// draws the Lamplight wash behind it across the window's full width.
@@ -82,6 +84,14 @@ struct PostRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(model.reading(of: post)))
         .accessibilityAction(named: Text(ComposerViewModel.replyButtonTitle), reply)
+        .accessibilityActions {
+            if !post.isYours {
+                Button(ProfileViewModel.showProfileTitle) {
+                    model.postSelected(post.id)
+                    model.showProfileChosen()
+                }
+            }
+        }
         .accessibilityIdentifier("postRow")
     }
 
@@ -89,8 +99,9 @@ struct PostRow: View {
         HStack(alignment: .firstTextBaseline, spacing: Layout.headerGap) {
             switch post.author {
             case let .resident(name):
-                Text(verbatim: name)
-                    .font(.headline)
+                ResidentNameButton(name: name, postID: post.id, model: model) {
+                    focus.wrappedValue = post.id
+                }
 
             case let .you(name, marker):
                 if let name {
