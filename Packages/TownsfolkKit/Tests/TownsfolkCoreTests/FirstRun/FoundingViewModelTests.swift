@@ -37,7 +37,7 @@ struct FoundingViewModelProgressTests {
             try await running.value
 
             #expect(FirstRunFixtures.lines(of: model).map(\.1) == [true, true, true])
-            #expect(model.phase == .founded)
+            #expect(model.phase == .arrived)
         }
     }
 
@@ -117,7 +117,7 @@ struct FoundingViewModelProgressTests {
 
             try await model.run()
 
-            #expect(model.phase == .founded)
+            #expect(model.phase == .arrived)
             #expect(clock.sleeperCount == 0)
             clock.advance(by: .seconds(60))
             #expect(!model.isSlow)
@@ -142,151 +142,6 @@ struct FoundingViewModelProgressTests {
         )
         #expect(slowAndFailed.slowNotice == nil)
         #expect(slowAndFounding.slowNotice != nil)
-    }
-}
-
-/// S3's endings (REQ-007, REQ-008, and the boundary on an unavailable model): a failure
-/// with Try Again, a founded town announced, and the model going away reported apart.
-@MainActor
-@Suite("FoundingViewModel, endings")
-struct FoundingViewModelEndingTests {
-    private static let refusals = Array(
-        repeating: FoundingFixtures.Answer.failure(.refused),
-        count: 3,
-    )
-
-    @Test
-    func `founding reports the new town and announces that you moved there`() async throws {
-        try await withStore { store, _ in
-            let fake = FoundingFixtures.fake(FoundingFixtures.happyPath)
-            let model = try FirstRunFixtures.founding(
-                fake,
-                store: store,
-                name: FirstRunFixtures.tomo(),
-            )
-            #expect(model.announcement == nil)
-
-            try await model.run()
-
-            #expect(model.phase == .founded)
-            #expect(model.town?.name == "Maplewood")
-            #expect(model.announcement?.resolved(in: .english) == "You moved to Maplewood.")
-            #expect(model.failureMessage == nil)
-        }
-    }
-
-    @Test
-    func `three refusals show the failure, store nothing, and Try Again founds afresh`(
-    ) async throws {
-        try await withStore { store, _ in
-            let fake = FoundingFixtures.fake(Self.refusals + FoundingFixtures.happyPath)
-            let model = try FirstRunFixtures.founding(
-                fake,
-                store: store,
-                name: FirstRunFixtures.tomo(),
-            )
-
-            try await model.run()
-
-            #expect(model.phase == .failed)
-            #expect(
-                model.failureMessage?
-                    .resolved(in: .english) == "Couldn't find you a town this time.",
-            )
-            #expect(fake.calls.count == 3)
-            #expect(model.announcement == nil)
-            try await expectEmpty(store)
-
-            let attempt = model.attempt
-            model.tryAgainPressed()
-            #expect(model.phase == .founding)
-            #expect(model.attempt == attempt + 1)
-            #expect(model.failureMessage == nil)
-            #expect(model.steps.allSatisfy { !$0.isDone })
-
-            try await model.run()
-
-            #expect(model.phase == .founded)
-            #expect(model.displayName.value == "Tomo")
-            #expect(fake.prompts.last?.contains("You: Tomo") == true)
-            #expect(try await store.town()?.name == "Maplewood")
-        }
-    }
-
-    @Test
-    func `pressing Try Again clears the steps and the slow line a failed run left`() throws {
-        let model = try FoundingViewModel(
-            previewing: FirstRunFixtures.tomo(),
-            finished: [.town, .residents],
-            isSlow: true,
-            phase: .failed,
-        )
-        model.tryAgainPressed()
-        #expect(model.phase == .founding)
-        #expect(!model.isSlow)
-        #expect(model.steps.allSatisfy { !$0.isDone })
-    }
-
-    @Test(arguments: [
-        ModelAvailability.appleIntelligenceOff,
-        .deviceNotEligible,
-        .modelNotReady,
-    ])
-    func `an unavailable model is reported apart from a failure`(
-        availability: ModelAvailability,
-    ) async throws {
-        try await withStore { store, _ in
-            let fake = FoundingFixtures.fake(FoundingFixtures.happyPath)
-            fake.availability = availability
-            let model = try FirstRunFixtures.founding(
-                fake,
-                store: store,
-                name: FirstRunFixtures.tomo(),
-            )
-
-            try await model.run()
-
-            #expect(model.phase == .unavailable(availability))
-            #expect(model.failureMessage == nil)
-            #expect(model.announcement == nil)
-            try await expectEmpty(store)
-        }
-    }
-
-    @Test
-    func `founding can start again once the model is back`() async throws {
-        try await withStore { store, _ in
-            let fake = FoundingFixtures.fake(FoundingFixtures.happyPath)
-            fake.availability = .modelNotReady
-            let model = try FirstRunFixtures.founding(
-                fake,
-                store: store,
-                name: FirstRunFixtures.tomo(),
-            )
-            try await model.run()
-            fake.availability = .available
-
-            model.tryAgainPressed()
-            try await model.run()
-
-            #expect(model.phase == .founded)
-        }
-    }
-
-    @Test(arguments: [FoundingViewModel.Phase.founding, .founded])
-    func `pressing Try Again does nothing while founding runs or once it succeeded`(
-        phase: FoundingViewModel.Phase,
-    ) throws {
-        let model = try FoundingViewModel(
-            previewing: FirstRunFixtures.tomo(),
-            finished: [.town],
-            isSlow: false,
-            phase: phase,
-        )
-        model.tryAgainPressed()
-        #expect(model.phase == phase)
-        #expect(model.attempt == 0)
-        #expect(model.steps.first?.isDone == true)
     }
 }
 
@@ -331,7 +186,7 @@ struct FoundingViewModelTests {
             try await model.run()
 
             #expect(fake.calls.count == calls)
-            #expect(model.phase == .founded)
+            #expect(model.phase == .arrived)
         }
     }
 

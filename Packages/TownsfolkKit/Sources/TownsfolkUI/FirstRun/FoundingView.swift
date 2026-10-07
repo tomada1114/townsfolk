@@ -116,8 +116,9 @@ struct FoundingContent: View {
 ///
 /// It renders ``FoundingViewModel`` and decides nothing: `.task(id:)` runs founding for as
 /// long as the view is on screen, again after each Try Again, and the end of founding is
-/// announced politely. Where the window goes next — S1 once founded, S7 while the model is
-/// unavailable — is the owner's (#27).
+/// announced politely before the model reports ``FoundingViewModel/Phase/founded``. Where
+/// the window goes next — S1 on `.founded`, S7 while the model is unavailable — is the
+/// owner's (#27).
 public struct FoundingView: View {
     private let model: FoundingViewModel
 
@@ -128,12 +129,14 @@ public struct FoundingView: View {
                 // screen stays as it was.
                 try? await model.run()
             }
-            .onChange(of: model.announcement) { _, announcement in
+            .onChange(of: model.announcement, initial: true) { _, announcement in
+                // Posted while S3 is still on screen; only then may the owner leave it.
                 if let announcement {
                     // The default announcement priority is the polite one.
                     AccessibilityNotification
                         .Announcement(AttributedString(localized: announcement))
                         .post()
+                    model.announcementPosted()
                 }
             }
             .accessibilityIdentifier("foundingView")

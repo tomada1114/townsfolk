@@ -216,7 +216,7 @@ struct FirstRunViewModelTests {
 
             try await founding.run()
 
-            #expect(founding.phase == .founded)
+            #expect(founding.phase == .arrived)
             #expect(fake.prompts.last?.contains("You: Tomo") == true)
             #expect(defaults.string(forKey: StoredKey.displayName) == "Tomo")
             #expect(try await store.town()?.name == "Maplewood")

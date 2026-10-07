@@ -8,10 +8,18 @@ import Observation
 /// After 60 s of founding, "This is taking longer than usual." joins the steps; there is
 /// no cancel, since quitting is always possible and keeps nothing. A failure after the
 /// founder's last attempt shows "Couldn't find you a town this time." with Try Again,
-/// which founds afresh. Success reports the new town in ``town`` — the owner then opens
-/// S1 (#27) — and asks the view to announce "You moved to {town}." politely. An
-/// unavailable model is ``Phase/unavailable(_:)``, apart from a failure, so the owner
-/// shows S7 instead.
+/// which founds afresh. An unavailable model is ``Phase/unavailable(_:)``, apart from a
+/// failure, so the owner shows S7 instead.
+///
+/// Success is a hand-off in two steps, so VoiceOver hears "You moved to {town}." before S3
+/// goes away: the founded town first moves the phase to ``Phase/arrived`` — S3 still
+/// shows, all three lines checked, ``town`` set, and ``announcement`` ready — and only
+/// once the view has posted the announcement and called ``announcementPosted()`` does the
+/// phase become ``Phase/founded``. **The owner (#27) navigates to S1 on
+/// ``Phase/founded`` alone**, never on ``Phase/arrived`` or on ``town`` being set; leaving
+/// S3 earlier could remove the view before it posts the announcement. When the town
+/// cannot be read back there is nothing to announce, and the phase goes straight to
+/// ``Phase/founded``.
 ///
 /// ``run()`` is the one action that waits: the view runs it from `.task(id: attempt)`, so
 /// SwiftUI cancels it with the view and starts it again after Try Again. One run at a
@@ -22,9 +30,12 @@ import Observation
 public final class FoundingViewModel {
     /// Where founding stands.
     public enum Phase: Sendable, Equatable {
+        /// The town is stored and S3 still shows, until the view posts ``announcement``
+        /// and calls ``announcementPosted()``. The owner stays on S3.
+        case arrived
         /// The founder gave up after its last attempt; Try Again founds afresh.
         case failed
-        /// The town is stored; the owner opens S1.
+        /// The town is stored and announced: the signal the owner opens S1 on.
         case founded
         /// Founding runs, or is about to — the steps show.
         case founding
@@ -174,13 +185,22 @@ public final class FoundingViewModel {
         case .failed, .unavailable:
             break
 
-        case .founding, .founded:
+        case .founding, .arrived, .founded:
             return
         }
         finished = []
         isSlow = false
         phase = .founding
         attempt += 1
+    }
+
+    /// The view posted ``announcement``: S3 hands over to S1 by moving to
+    /// ``Phase/founded``. Does nothing before the town arrived, or a second time.
+    public func announcementPosted() {
+        guard phase == .arrived else {
+            return
+        }
+        phase = .founded
     }
 
     // MARK: Founding
@@ -211,9 +231,12 @@ public final class FoundingViewModel {
         case .founded:
             let founded = await foundedTown()
             town = founded
-            phase = .founded
+            isSlow = false
             if let founded {
                 announcement = FirstRunWording.movedTo(town: founded.name)
+                phase = .arrived
+            } else {
+                phase = .founded
             }
 
         case .failed:
