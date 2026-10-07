@@ -48,4 +48,9 @@ public enum AppLog {
     /// refusals, with its reason and counts `.public`. No prompt, post, name, or generated
     /// text is ever in it.
     public static let scenes = Logger(subsystem: subsystem, category: "scenes")
+
+    /// The town-engine concern: each step's outcome — a scene stored, a turn skipped and
+    /// why, the model unavailable, a store failure's case — with counts, all `.public`. No
+    /// post, name, or tag is ever in it.
+    public static let engine = Logger(subsystem: subsystem, category: "engine")
 }
