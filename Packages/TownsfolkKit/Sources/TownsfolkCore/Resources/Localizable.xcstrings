@@ -45,6 +45,72 @@
         }
       }
     },
+    "composer.counter.left" : {
+      "comment" : "Composer: under the field once 20 or fewer characters remain before the limit. The argument is how many characters may still be typed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld left"
+          }
+        }
+      }
+    },
+    "composer.counter.over" : {
+      "comment" : "Composer: under the field, after a warning symbol, when the text is longer than a post may be; Return then does nothing. The argument is how many characters too many there are.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld over"
+          }
+        }
+      }
+    },
+    "composer.placeholder" : {
+      "comment" : "Composer: the placeholder of the one-line field where you post to the town. The argument is the town's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say something to %@…"
+          }
+        }
+      }
+    },
+    "composer.reply.cancel" : {
+      "comment" : "Composer: the label of the ✕ button on the replying chip, read by VoiceOver and shown as a tooltip. It leaves reply mode and keeps what you typed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Reply"
+          }
+        }
+      }
+    },
+    "composer.reply.chip" : {
+      "comment" : "Composer: the chip above the field while you reply, after a reply symbol. The arguments are the name of the post's author and its text, which is cut short to one line.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replying to %@ \"%@\""
+          }
+        }
+      }
+    },
+    "composer.reply.reading" : {
+      "comment" : "VoiceOver: the composer's chip while you reply. The arguments are the name of the post's author and its text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replying to %@: %@"
+          }
+        }
+      }
+    },
     "firstRun.continue" : {
       "comment" : "First run: the default button that keeps the typed name and founds the town.",
       "localizations" : {
@@ -432,6 +498,17 @@
         }
       }
     },
+    "timeline.post.replyButton" : {
+      "comment" : "Timeline: the label of the reply-symbol button that appears at the end of a post's header on hover, read by VoiceOver and shown as a tooltip.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
+          }
+        }
+      }
+    },
     "timeline.post.you" : {
       "comment" : "Timeline: the name on your own posts and quotes of them when no name is stored.",
       "localizations" : {
@@ -494,6 +571,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "now"
+          }
+        }
+      }
+    },
+    "town.menu.newPost" : {
+      "comment" : "Menu bar: the Town menu command (⌘N) that puts the cursor in the composer to write a new post, leaving any reply.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Post"
+          }
+        }
+      }
+    },
+    "town.menu.reply" : {
+      "comment" : "Menu bar: the Town menu command (⌘R) that replies to the selected post.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
           }
         }
       }

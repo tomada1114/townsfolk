@@ -107,7 +107,8 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        } + timelineCases() + availabilityCases() + firstRunCases()
+        } + timelineCases() + availabilityCases() + composerCases()
+            + firstRunCases()
     }
 
     /// The first-run screens' resources (S2, S3): each step's line, and its symbol's
@@ -178,6 +179,29 @@ struct LocalizationTests {
             .map { Case(resource: $0, arguments: []) }
             + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
             + [Case(resource: FoundingWording.movedTo(town: "Maplewood"), arguments: ["Maplewood"])]
+    }
+
+    /// The composer's, the hover Reply button's, and the Town menu's New Post and Reply.
+    static func composerCases() -> [Case] {
+        let (town, name, text) = ("Maplewood", "Mika", "The oven made a goose noise again.")
+        let count = 12
+        return [
+            Case(resource: ComposerWording.placeholder(townName: town), arguments: [town]),
+            Case(resource: ComposerWording.charactersLeft(count), arguments: [count]),
+            Case(resource: ComposerWording.charactersOver(count), arguments: [count]),
+            Case(
+                resource: ComposerWording.replyChip(name: name, text: text),
+                arguments: [name, text],
+            ),
+            Case(
+                resource: ComposerWording.replyReading(name: name, text: text),
+                arguments: [name, text],
+            ),
+            Case(resource: ComposerWording.cancelReply, arguments: []),
+            Case(resource: ComposerWording.replyButton, arguments: []),
+            Case(resource: ComposerWording.newPost, arguments: []),
+            Case(resource: ComposerWording.reply, arguments: []),
+        ]
     }
 
     /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.
