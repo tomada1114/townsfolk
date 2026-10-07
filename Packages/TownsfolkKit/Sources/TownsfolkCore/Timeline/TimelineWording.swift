@@ -30,6 +30,19 @@ package enum TimelineWording {
         )
     }
 
+    /// The marker after your name on a post of yours.
+    package static var youMarker: LocalizedStringResource {
+        LocalizedStringResource(
+            "timeline.post.youMarker",
+            defaultValue: "(you)",
+            bundle: .module,
+            comment: """
+            Timeline: shown after your own name on your posts, in a lighter color, so they \
+            are told apart from the residents'.
+            """,
+        )
+    }
+
     /// The Town menu's title.
     package static var townMenu: LocalizedStringResource {
         LocalizedStringResource(
@@ -47,16 +60,6 @@ package enum TimelineWording {
             defaultValue: "Scroll to Latest",
             bundle: .module,
             comment: "Menu bar: the Town menu command (⌘↑) that scrolls the timeline to its newest posts.",
-        )
-    }
-
-    /// The name on a post of yours: your current name and "(you)".
-    package static func yourName(_ name: String) -> LocalizedStringResource {
-        LocalizedStringResource(
-            "timeline.post.yourName",
-            defaultValue: "\(name) (you)",
-            bundle: .module,
-            comment: "Timeline: the name on your own posts. The argument is the name the town calls you.",
         )
     }
 

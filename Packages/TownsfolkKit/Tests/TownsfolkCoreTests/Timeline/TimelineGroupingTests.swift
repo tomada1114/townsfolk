@@ -18,8 +18,8 @@ struct TimelineGroupingTests {
             case let .resident(name):
                 name
 
-            case let .you(label):
-                label.resolved(in: .english)
+            case let .you(name, marker):
+                [name, marker.resolved(in: .english)].compactMap(\.self).joined(separator: " ")
             }
         }
     }
@@ -170,12 +170,12 @@ struct TimelineGroupingTests {
     }
 
     @Test
-    func `with no name stored, your posts read You`() throws {
+    func `with no name stored, your posts carry (you) alone`() throws {
         let snapshot = try TimelineSnapshot(entries: [
             .post(Fixtures.yours("12:00:00", "Learning Rust today.")),
         ])
         let model = Fixtures.model(snapshot, clock: clock, displayName: nil)
-        #expect(Self.names(in: model) == ["You"])
+        #expect(Self.names(in: model) == ["(you)"])
     }
 
     @Test(arguments: [("Maplewood", "Maplewood"), (nil, "Townsfolk")] as [(String?, String)])

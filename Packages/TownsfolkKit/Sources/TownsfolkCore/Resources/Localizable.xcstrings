@@ -212,13 +212,13 @@
         }
       }
     },
-    "timeline.post.yourName" : {
-      "comment" : "Timeline: the name on your own posts. The argument is the name the town calls you.",
+    "timeline.post.youMarker" : {
+      "comment" : "Timeline: shown after your own name on your posts, in a lighter color, so they are told apart from the residents'.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ (you)"
+            "value" : "(you)"
           }
         }
       }

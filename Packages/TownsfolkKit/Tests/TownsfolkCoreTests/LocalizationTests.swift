@@ -119,7 +119,7 @@ struct LocalizationTests {
         return [
             Case(resource: TimelineWording.now, arguments: []),
             Case(resource: TimelineWording.you, arguments: []),
-            Case(resource: TimelineWording.yourName(name), arguments: [name]),
+            Case(resource: TimelineWording.youMarker, arguments: []),
             Case(
                 resource: TimelineWording.postReading(name: name, time: time, text: text),
                 arguments: [name, time, text],

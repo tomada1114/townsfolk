@@ -26,8 +26,8 @@ public struct TimelinePost: Identifiable, Sendable, Equatable {
         /// A resident's name, as the town invented it — not wording, so it is not looked
         /// up in the catalog.
         case resident(String)
-        /// Your current name followed by "(you)" — or "You" with no name stored.
-        case you(LocalizedStringResource)
+        /// Your current name — `nil` with none stored — followed by `marker`, "(you)".
+        case you(name: String?, marker: LocalizedStringResource)
     }
 
     public let id: Post.ID

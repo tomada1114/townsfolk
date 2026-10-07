@@ -45,11 +45,6 @@ struct TimelineGrouping {
         return String(localized: resource)
     }
 
-    /// Your name as a post's header shows it.
-    private var yourLabel: LocalizedStringResource {
-        displayName.map { TimelineWording.yourName($0.value) } ?? TimelineWording.you
-    }
-
     private static func isOlder(_ lhs: Post, _ rhs: Post) -> Bool {
         if lhs.happenedAt != rhs.happenedAt {
             return lhs.happenedAt < rhs.happenedAt
@@ -127,7 +122,7 @@ struct TimelineGrouping {
             .resident(residentNames[id] ?? "")
 
         case .you:
-            .you(yourLabel)
+            .you(name: displayName?.value, marker: TimelineWording.youMarker)
         }
         return TimelinePost(
             id: post.id,
