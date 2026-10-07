@@ -121,6 +121,173 @@
           }
         }
       }
+    },
+    "timeline.announcement.repliedToYou" : {
+      "comment" : "VoiceOver announcement when a resident's post replying to one of yours appears. The argument is the resident's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ replied to you"
+          }
+        }
+      }
+    },
+    "timeline.event.reading" : {
+      "comment" : "VoiceOver: something that happened in town. The arguments are the event's one-line text and its relative time (\"now\", \"5m\").",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
+          }
+        }
+      }
+    },
+    "timeline.group.reading" : {
+      "comment" : "VoiceOver: a conversation of one or more posts. The argument is how many posts it holds.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Conversation, %lld post"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Conversation, %lld posts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "timeline.newPosts" : {
+      "comment" : "Timeline: the button above the posts, after an up-arrow symbol, counting the posts that arrived while you were reading older ones. Clicking it scrolls to the newest. The argument is how many arrived.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld new post"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld new posts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "timeline.post.reading" : {
+      "comment" : "VoiceOver: a resident's post. The arguments are the resident's name, the relative time (\"now\", \"5m\"), and the post's text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@: %@"
+          }
+        }
+      }
+    },
+    "timeline.post.you" : {
+      "comment" : "Timeline: the name on your own posts and quotes of them when no name is stored.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        }
+      }
+    },
+    "timeline.post.yourName" : {
+      "comment" : "Timeline: the name on your own posts. The argument is the name the town calls you.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (you)"
+          }
+        }
+      }
+    },
+    "timeline.post.yourReading" : {
+      "comment" : "VoiceOver: one of your own posts. The arguments are the relative time (\"now\", \"5m\") and the post's text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You, %@: %@"
+          }
+        }
+      }
+    },
+    "timeline.quote.line" : {
+      "comment" : "Timeline: the one-line quote of the older post a conversation replies to, after a reply symbol. The arguments are its author's name and its text, which is cut short to one line.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: \"%@\""
+          }
+        }
+      }
+    },
+    "timeline.quote.reading" : {
+      "comment" : "VoiceOver: the quote of the older post a conversation replies to. The arguments are its author's name and its text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replying to %@: %@"
+          }
+        }
+      }
+    },
+    "timeline.time.now" : {
+      "comment" : "Timeline: the relative time of a post or event less than a minute old, after the name (\"Jun · now\").",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "now"
+          }
+        }
+      }
+    },
+    "town.menu.scrollToLatest" : {
+      "comment" : "Menu bar: the Town menu command (⌘↑) that scrolls the timeline to its newest posts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll to Latest"
+          }
+        }
+      }
+    },
+    "town.menu.title" : {
+      "comment" : "Menu bar: the title of the Town menu, which holds the timeline's commands.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Town"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

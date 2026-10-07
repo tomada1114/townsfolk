@@ -197,8 +197,11 @@ enum StoreFixtures {
 }
 
 /// Runs `body` with a directory of its own, removed afterwards, so tests running in
-/// parallel never share a file (`.claude/rules/testing.md` › Hygiene).
-func withTownDirectory(_ body: (TownDirectory) async throws -> Void) async throws {
+/// parallel never share a file (`.claude/rules/testing.md` › Hygiene). `body` runs on the
+/// caller's actor, so a `@MainActor` test can hand it a view model.
+nonisolated(nonsending) func withTownDirectory(
+    _ body: (TownDirectory) async throws -> Void,
+) async throws {
     let root = FileManager.default.temporaryDirectory
         .appending(path: "TownsfolkTests-\(UUID().uuidString)", directoryHint: .isDirectory)
     try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -207,7 +210,9 @@ func withTownDirectory(_ body: (TownDirectory) async throws -> Void) async throw
 }
 
 /// Runs `body` with a store opened on a fresh directory.
-func withStore(_ body: (TownStore, TownDirectory) async throws -> Void) async throws {
+nonisolated(nonsending) func withStore(
+    _ body: (TownStore, TownDirectory) async throws -> Void,
+) async throws {
     try await withTownDirectory { directory in
         let store = try TownStore(directory: directory.town)
         try await body(store, directory)
@@ -215,7 +220,7 @@ func withStore(_ body: (TownStore, TownDirectory) async throws -> Void) async th
 }
 
 /// Runs `body` with a store holding ``StoreFixtures/founding()``.
-func withFoundedStore(
+nonisolated(nonsending) func withFoundedStore(
     _ body: (TownStore, TownStore.FoundingStep, TownDirectory) async throws -> Void,
 ) async throws {
     try await withStore { store, directory in
