@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
   while you use other apps; every change applies at once with no Save button, and a
   name outside 1–20 characters is kept in the field with "Use 1–20 characters." under it
+- The town's timeline, ready for the town window to show: posts newest first, one
+  conversation per group joined by a thread line, a one-line quote above a reply to an
+  older post, your posts marked "(you)", event rows with their symbol, relative times
+  refreshed every minute, a scene's posts appearing one at a time on a fading Lamplight
+  wash, a "↑ n new posts" pill while you read older posts, older posts loading as you
+  scroll, ↑ and ↓ to move between posts, and a Town menu with Scroll to Latest (⌘↑)
 
 ### Changed
 
