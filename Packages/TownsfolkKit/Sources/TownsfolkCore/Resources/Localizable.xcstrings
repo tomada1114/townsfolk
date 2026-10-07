@@ -133,6 +133,182 @@
         }
       }
     },
+    "firstRun.continue" : {
+      "comment" : "First run: the default button that keeps the typed name and founds the town.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        }
+      }
+    },
+    "firstRun.founding.announcement.movedTo" : {
+      "comment" : "Founding: VoiceOver announcement once the person's town is founded. The argument is the town's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You moved to %@."
+          }
+        }
+      }
+    },
+    "firstRun.founding.failed" : {
+      "comment" : "Founding: shown in place of the steps when founding failed after every retry.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't find you a town this time."
+          }
+        }
+      }
+    },
+    "firstRun.founding.heading" : {
+      "comment" : "Founding: the heading while the person's town is being made, step by step.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding you a town…"
+          }
+        }
+      }
+    },
+    "firstRun.founding.slow" : {
+      "comment" : "Founding: added under the steps once founding has run for a minute.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is taking longer than usual."
+          }
+        }
+      }
+    },
+    "firstRun.founding.step.done" : {
+      "comment" : "Founding: VoiceOver label of a step's check mark, once the step is finished.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "firstRun.founding.step.firstScene" : {
+      "comment" : "Founding: the third step's line, checked once the residents' first posts exist.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saying hello"
+          }
+        }
+      }
+    },
+    "firstRun.founding.step.pending" : {
+      "comment" : "Founding: VoiceOver label of a step's dotted circle, while the step is not finished.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not yet"
+          }
+        }
+      }
+    },
+    "firstRun.founding.step.residents" : {
+      "comment" : "Founding: the second step's line, checked once the first residents exist.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting the neighbors"
+          }
+        }
+      }
+    },
+    "firstRun.founding.step.town" : {
+      "comment" : "Founding: the first step's line, checked once the town itself exists.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drawing the streets"
+          }
+        }
+      }
+    },
+    "firstRun.founding.tryAgain" : {
+      "comment" : "Founding: the default button that starts founding again after it failed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
+          }
+        }
+      }
+    },
+    "firstRun.machineryNote" : {
+      "comment" : "First run: the one line that says the town's people are written by Apple's on-device language model, which runs on this Mac only.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its residents are written by Apple's on-device model, right on this Mac."
+          }
+        }
+      }
+    },
+    "firstRun.name.help" : {
+      "comment" : "First run: helper text under the name field.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Residents see this name on your posts."
+          }
+        }
+      }
+    },
+    "firstRun.name.over" : {
+      "comment" : "First run: shown under the name field while the name is too long. The argument is how many characters over the limit it is.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld over"
+          }
+        }
+      }
+    },
+    "firstRun.name.prompt" : {
+      "comment" : "First run: the question above the name field, also the field's label.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What should the town call you?"
+          }
+        }
+      }
+    },
+    "firstRun.welcome" : {
+      "comment" : "First run: the heading of the screen that asks for the person's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A small town is waiting for you."
+          }
+        }
+      }
+    },
     "founding.event.movedTo" : {
       "comment" : "Timeline: the first row of every town, stored when it is founded. The argument is the town's name.",
       "localizations" : {
