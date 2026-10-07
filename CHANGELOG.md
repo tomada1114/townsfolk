@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refreshed every minute, a scene's posts appearing one at a time on a fading Lamplight
   wash, a "↑ n new posts" pill while you read older posts, older posts loading as you
   scroll, ↑ and ↓ to move between posts, and a Town menu with Scroll to Latest (⌘↑)
+- The first-run screens, ready for the town window to show: "A small town is waiting
+  for you." asks only for your name — Continue stays disabled until it is 1–20
+  characters, with "{n} over" past the limit — then "Finding you a town…" checks off
+  Drawing the streets, Meeting the neighbors, and Saying hello as the town is really
+  founded, adds "This is taking longer than usual." after a minute, offers Try Again
+  after "Couldn't find you a town this time.", and announces "You moved to {town}." to
+  VoiceOver; a name already chosen before the app quit mid-founding goes straight to
+  founding
 
 ### Changed
 
