@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
   while you use other apps; every change applies at once with no Save button, and a
   name outside 1–20 characters is kept in the field with "Use 1–20 characters." under it
+- When Apple Intelligence is off, its model is still downloading, or this Mac cannot run
+  it, a full-window message and a banner say what is missing — with an Open System
+  Settings button when Apple Intelligence is off — and check again whenever the window
+  becomes active
 
 ### Changed
 
