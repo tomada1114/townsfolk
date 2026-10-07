@@ -243,6 +243,24 @@ extension SQLiteConnection {
         return posts
     }
 
+    /// The topic tags of posts not excluded that happened from `start` through `end`,
+    /// newest post first and in each post's order, each tag once.
+    func includedTopicTags(from start: Date, through end: Date) throws(TownStoreError) -> [String] {
+        let tags = try rows(
+            """
+            SELECT tags.tag FROM post_topic_tags AS tags
+            JOIN posts ON posts.id = tags.post_id
+            WHERE posts.excluded = 0 AND posts.happened_at >= ? AND posts.happened_at <= ?
+            ORDER BY posts.happened_at DESC, posts.id DESC, tags.position
+            """,
+            [.date(start), .date(end)],
+        ) { row throws(TownStoreError) in
+            try row.text()
+        }
+        var seen: Set<String> = []
+        return tags.filter { seen.insert($0).inserted }
+    }
+
     private func resident(from draft: ResidentRow) throws(TownStoreError) -> Resident {
         let id = SQLValue.id(draft.id)
         let relationships = try rows(
