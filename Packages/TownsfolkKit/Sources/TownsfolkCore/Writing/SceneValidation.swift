@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import NaturalLanguage
 
 /// Turns the model's answer into a ``WrittenScene``, or the reason it is discarded
 /// (REQ-008–REQ-010). The model only writes; whether what it wrote may be shown is
@@ -7,6 +8,8 @@ import FoundationModels
 struct SceneValidation {
     /// The prefix of a label naming an earlier post of the same scene, "S1".
     private static let scenePostPrefix = "S"
+    /// How many sentences a post may hold (requirements.md:168).
+    private static let sentenceCount = 1 ... 2
 
     let request: SceneRequest
     let seed: SceneSeed
@@ -16,6 +19,14 @@ struct SceneValidation {
 
     private static func trimmed(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The sentences in `text`. `NLTokenizer` rather than Foundation's `.bySentences`,
+    /// which splits after "Dr." and "Mrs." and so would discard a valid two-sentence post.
+    private static func sentences(in text: String) -> Int {
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+        return tokenizer.tokens(for: text.startIndex ..< text.endIndex).count
     }
 
     /// The checked scene `content` holds, or why there is none.
@@ -31,8 +42,11 @@ struct SceneValidation {
         }
         var speakers: [Resident.ID] = []
         for post in draft.posts {
-            let name = Self.trimmed(post.speaker)
-            guard let speaker = request.speakingResidents.first(where: { $0.name == name }) else {
+            // Compared as the prompt shows names, folded onto one line.
+            let name = ScenePromptBuilder.oneLine(Self.trimmed(post.speaker))
+            guard let speaker = request.speakingResidents
+                .first(where: { ScenePromptBuilder.oneLine($0.name) == name })
+            else {
                 return .skipped(.invalidSpeaker)
             }
             speakers.append(speaker.id)
@@ -43,7 +57,10 @@ struct SceneValidation {
         var posts: [WrittenPost] = []
         for (index, (post, speaker)) in zip(draft.posts, speakers).enumerated() {
             let text = Self.trimmed(post.text)
-            guard !text.isEmpty, text.count <= tuning.timeline.residentPostMaxLength else {
+            guard !text.isEmpty,
+                  text.count <= tuning.timeline.residentPostMaxLength,
+                  Self.sentenceCount.contains(Self.sentences(in: text))
+            else {
                 return .skipped(.invalidPosts)
             }
             let target = replyTarget(post.replyTo, at: index)

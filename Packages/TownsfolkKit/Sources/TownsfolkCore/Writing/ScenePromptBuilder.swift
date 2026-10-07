@@ -12,21 +12,21 @@ struct ScenePromptBuilder {
     let tuning: Tuning
 
     private var you: String {
-        request.you.value
+        Self.oneLine(request.you.value)
     }
 
     private var townSection: String {
         let town = request.town
         return """
-        Town: \(town.name)
+        Town: \(Self.oneLine(town.name))
         Setting: \(Self.oneLine(town.setting))
-        Places: \(town.places.joined(separator: ", "))
+        Places: \(town.places.map(Self.oneLine).joined(separator: ", "))
         """
     }
 
     private var rosterSection: String {
-        let living = request.residents.filter { $0.status == .living }.map(\.name)
-        let past = request.residents.filter { $0.status == .movedOut }.map(\.name)
+        let living = request.residents.filter { $0.status == .living }.map { Self.oneLine($0.name) }
+        let past = request.residents.filter { $0.status == .movedOut }.map { Self.oneLine($0.name) }
         var lines = ["Residents: \(living.joined(separator: ", "))"]
         if !past.isEmpty {
             lines.append("Past residents: \(past.joined(separator: ", "))")
@@ -38,11 +38,14 @@ struct ScenePromptBuilder {
     private var speakersSection: String {
         let lines = request.speakingResidents.map { resident in
             let profile = resident.profile
-            var line = "- \(resident.name): \(profile.ageGroup), \(profile.occupation)."
-            line += " Hobby: \(profile.hobby). Worry: \(profile.worry)."
-            line += " Personality: \(profile.personality)."
+            let name = Self.oneLine(resident.name)
+            var line = "- \(name): \(Self.oneLine(profile.ageGroup)), "
+            line += "\(Self.oneLine(profile.occupation))."
+            line += " Hobby: \(Self.oneLine(profile.hobby))."
+            line += " Worry: \(Self.oneLine(profile.worry))."
+            line += " Personality: \(Self.oneLine(profile.personality))."
             let interests = resident.interests.compactMap { id in
-                context.interests.first { $0.id == id }?.term
+                context.interests.first { $0.id == id }.map { Self.oneLine($0.term) }
             }
             if !interests.isEmpty {
                 line += " Interests: \(interests.joined(separator: ", "))."
@@ -79,8 +82,10 @@ struct ScenePromptBuilder {
         """
     }
 
-    /// The text with every line break turned into a space, so it stays one prompt line.
-    private static func oneLine(_ text: String) -> String {
+    /// The text with every line break turned into a space, so it stays one prompt line:
+    /// every value the prompt carries goes through it, since a town value may span lines
+    /// and a line of its own could pass for a section such as `Seed:`.
+    static func oneLine(_ text: String) -> String {
         text.split(whereSeparator: \.isNewline).joined(separator: " ")
     }
 
@@ -91,16 +96,16 @@ struct ScenePromptBuilder {
     ) -> String {
         switch aspect {
         case .hobby:
-            "hobby: \(profile.hobby)"
+            "hobby: \(oneLine(profile.hobby))"
 
         case .occupation:
-            "occupation: \(profile.occupation)"
+            "occupation: \(oneLine(profile.occupation))"
 
         case .personality:
-            "personality: \(profile.personality)"
+            "personality: \(oneLine(profile.personality))"
 
         case .worry:
-            "worry: \(profile.worry)"
+            "worry: \(oneLine(profile.worry))"
         }
     }
 
@@ -156,7 +161,7 @@ struct ScenePromptBuilder {
         guard !names.isEmpty else {
             return nil
         }
-        return (["Names:"] + names.map { "- \($0.term)" }).joined(separator: "\n")
+        return (["Names:"] + names.map { "- \(Self.oneLine($0.term))" }).joined(separator: "\n")
     }
 
     private func seedSection(labels: [String: Post.ID]) -> String {
@@ -165,12 +170,13 @@ struct ScenePromptBuilder {
             return "Seed: the ongoing event \"\(Self.oneLine(event.description))\""
 
         case let .name(interest):
-            return "Seed: \(interest.term), a name \(you) brought up."
+            return "Seed: \(Self.oneLine(interest.term)), a name \(you) brought up."
 
         case let .profile(id, aspect):
             // SceneRequest refuses a profile seed of someone not in the roster.
             let resident = request.residents.first { $0.id == id }
-            let about = resident.map { "\($0.name)'s \(Self.describe(aspect, in: $0.profile))" }
+            let about = resident
+                .map { "\(Self.oneLine($0.name))'s \(Self.describe(aspect, in: $0.profile))" }
             return "Seed: \(about ?? "a resident")."
 
         case let .topic(topic):
@@ -183,7 +189,7 @@ struct ScenePromptBuilder {
                 ? "Seed: \(you)'s post \(label), \"\(text)\" The first post replies to it."
                 : "Seed: what \(you) said in \(label), \"\(text)\""
             if let lead, let name = request.residents.first(where: { $0.id == lead })?.name {
-                line += " \(name) writes the first post."
+                line += " \(Self.oneLine(name)) writes the first post."
             }
             return line
         }
@@ -208,7 +214,8 @@ struct ScenePromptBuilder {
     private func author(of post: Post) -> String {
         switch post.author {
         case let .resident(id):
-            request.residents.first { $0.id == id }?.name ?? "A former resident"
+            request.residents.first { $0.id == id }.map { Self.oneLine($0.name) }
+                ?? "A former resident"
 
         case .you:
             you
