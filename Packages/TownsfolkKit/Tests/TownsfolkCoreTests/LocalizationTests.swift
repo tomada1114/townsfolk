@@ -89,6 +89,7 @@ struct LocalizationTests {
             .compactMap(AvailabilityWording.message)
             .map { Case(resource: $0, arguments: []) }
             + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
+            + [Case(resource: FoundingWording.movedTo(town: "Maplewood"), arguments: ["Maplewood"])]
     }
 
     /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.

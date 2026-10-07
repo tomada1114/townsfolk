@@ -39,6 +39,11 @@ public enum AppLog {
     /// in it — only whether a submitted name was taken.
     public static let settings = Logger(subsystem: subsystem, category: "settings")
 
+    /// The founding concern: each step finished, each failed attempt with its reason and
+    /// counts, and how founding ended — all `.public`. Your name, the town's, a
+    /// resident's, and anything else the model wrote are never in it.
+    public static let founding = Logger(subsystem: subsystem, category: "founding")
+
     /// The on-device model concern: availability and the case a failed call maps to, both
     /// `.public` because they are states. No instructions, prompt, or generated text is
     /// ever in it.
