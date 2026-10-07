@@ -150,7 +150,7 @@ struct EngineHarness {
     let store: TownStore
     let directory: TownDirectory
     let model: FakeLanguageModelProvider
-    let clock: ManualClock
+    let clock: EngineClock
     let thermal: ThermalReading
     let defaults: UserDefaults
     let residents: [Resident]
@@ -251,7 +251,7 @@ private func makeEngine(
     _ setup: EngineSetup,
     store: TownStore,
     model: FakeLanguageModelProvider,
-    world: (clock: ManualClock, thermal: ThermalReading),
+    world: (clock: EngineClock, thermal: ThermalReading),
     suite: String,
 ) throws -> TownEngine {
     let start = EngineFixtures.start
@@ -291,7 +291,7 @@ func withEngine(_ setup: EngineSetup, _ body: (EngineHarness) async throws -> Vo
             outcomes: setup.outcomes,
             holdsResponses: setup.holdsResponses,
         )
-        let clock = ManualClock()
+        let clock = EngineClock()
         let thermal = ThermalReading(setup.thermalState)
         let engine = try makeEngine(
             setup,

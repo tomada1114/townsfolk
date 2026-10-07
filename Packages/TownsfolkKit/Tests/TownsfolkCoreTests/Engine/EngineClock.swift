@@ -3,7 +3,7 @@ import os
 /// A clock that moves only when a test advances it (`designing-core-logic` › Inject
 /// time), so a wait of six fake minutes takes no real time and no `sleep`. A test waits
 /// for the engine to start sleeping with ``waitForSleepers(count:)``, then advances.
-final class ManualClock: Clock, Sendable {
+final class EngineClock: Clock, Sendable {
     /// A point on the fake timeline: how far it lies from where the clock started.
     struct Instant: InstantProtocol {
         let offset: Duration
