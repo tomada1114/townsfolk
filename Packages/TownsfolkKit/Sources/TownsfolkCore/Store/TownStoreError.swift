@@ -5,6 +5,10 @@
 /// Foundation error codes, versions, and counts — never SQL, a stored text, or a path,
 /// which holds the user's home folder (`designing-errors` › No user data).
 public enum TownStoreError: Error, Equatable, Sendable {
+    /// The calling task was cancelled before the step began, so nothing of it was
+    /// written. Not a failure: a caller that throws plain `throws` turns it back into
+    /// `CancellationError` (`designing-errors` › Cancellation propagates).
+    case cancelled
     /// Moving away closed the store but could not remove the `Town` directory; `code` is
     /// Foundation's file error code.
     case cannotDelete(code: Int32)

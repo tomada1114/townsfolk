@@ -39,6 +39,11 @@ public enum AppLog {
     /// in it — only whether a submitted name was taken.
     public static let settings = Logger(subsystem: subsystem, category: "settings")
 
+    /// The founding concern: each step finished, each failed attempt with its reason and
+    /// counts, and how founding ended — all `.public`. Your name, the town's, a
+    /// resident's, and anything else the model wrote are never in it.
+    public static let founding = Logger(subsystem: subsystem, category: "founding")
+
     /// The on-device model concern: availability and the case a failed call maps to, both
     /// `.public` because they are states. No instructions, prompt, or generated text is
     /// ever in it.
@@ -52,6 +57,11 @@ public enum AppLog {
     /// The timeline concern: pages read and reads that failed, as row counts and error
     /// cases, both `.public`. No post text, name, or town name is ever in it.
     public static let timeline = Logger(subsystem: subsystem, category: "timeline")
+
+    /// The town-engine concern: each step's outcome — a scene stored, a turn skipped and
+    /// why, the model unavailable, a store failure's case — with counts, all `.public`. No
+    /// post, name, or tag is ever in it.
+    public static let engine = Logger(subsystem: subsystem, category: "engine")
 
     /// The composer concern: whether your post was stored, and the error case when it was
     /// not, both `.public`. What you typed, and whom you replied to, are never in it.

@@ -111,6 +111,17 @@
         }
       }
     },
+    "founding.event.movedTo" : {
+      "comment" : "Timeline: the first row of every town, stored when it is founded. The argument is the town's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You moved to %@."
+          }
+        }
+      }
+    },
     "settings.keepsMoving.help" : {
       "comment" : "Settings: helper text under the keep-moving toggle. \"Rests\" means the town pauses.",
       "localizations" : {

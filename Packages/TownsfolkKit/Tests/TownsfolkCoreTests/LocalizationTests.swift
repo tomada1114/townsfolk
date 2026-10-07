@@ -154,6 +154,7 @@ struct LocalizationTests {
             .compactMap(AvailabilityWording.message)
             .map { Case(resource: $0, arguments: []) }
             + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
+            + [Case(resource: FoundingWording.movedTo(town: "Maplewood"), arguments: ["Maplewood"])]
     }
 
     /// The composer's, the hover Reply button's, and the Town menu's New Post and Reply.

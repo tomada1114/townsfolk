@@ -63,6 +63,20 @@ struct TownStoreTransactionTests {
     }
 
     @Test
+    func `a founding stored from a cancelled task keeps nothing`() async throws {
+        try await withStore { store, directory in
+            let founding = try StoreFixtures.founding()
+            try await Self.expectRolledBack(store, in: directory, throwing: .cancelled) {
+                try await Task {
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    try await store.found(founding)
+                }.value
+            }
+            #expect(try await store.town() == nil)
+        }
+    }
+
+    @Test
     func `a second founding over a stored town is refused`() async throws {
         try await withFoundedStore { store, _, directory in
             let again = try StoreFixtures.founding()
@@ -73,6 +87,25 @@ struct TownStoreTransactionTests {
     }
 
     // MARK: A scene
+
+    @Test
+    func `a scene stored from a cancelled task keeps nothing`() async throws {
+        try await withFoundedStore { store, founding, directory in
+            let speaker = try #require(founding.residents.first).id
+            let post = try ResidentPostDraft(author: speaker, time: StoreFixtures.minutes(30))
+                .make()
+            let scene = TownStore.SceneStep(
+                posts: [post],
+                nextOrdinarySceneDue: StoreFixtures.minutes(40),
+            )
+            try await Self.expectRolledBack(store, in: directory, throwing: .cancelled) {
+                try await Task {
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    try await store.storeScene(scene)
+                }.value
+            }
+        }
+    }
 
     @Test
     func `a scene whose second post replies to an unknown post keeps nothing`() async throws {
