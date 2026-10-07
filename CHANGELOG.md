@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refreshed every minute, a scene's posts appearing one at a time on a fading Lamplight
   wash, a "↑ n new posts" pill while you read older posts, older posts loading as you
   scroll, ↑ and ↓ to move between posts, and a Town menu with Scroll to Latest (⌘↑)
+- The composer, ready for the town window to show: post one line as yourself, new or in
+  reply to any post through its ↩ Reply button or Town › Reply (⌘R), with Town › New
+  Post (⌘N) to start typing, Return to post, and Esc to cancel a reply and then leave
+  the field. Pasted line breaks become spaces, a counter appears once 20 characters
+  remain ("12 left", "3 over"), and your post shows at once at the top of the timeline,
+  scrolling back up to it if you were reading older posts
 
 ### Changed
 

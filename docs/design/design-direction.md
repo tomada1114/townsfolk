@@ -131,7 +131,7 @@ The values every screen obeys, one row per design-lock field (`designing-ui` ›
 | Accent color | System default: `AccentColor.colorset` keeps no value. Used by system controls only (default buttons, text selection, Settings' controls, the focus ring). |
 | Custom colors | `SecondaryText` — Any #666666, Dark #A3A3A3, Any High Contrast #4D4D4D, Dark High Contrast #C2C2C2: metadata text and its symbols (roles above). `Lamplight` — Any #FFEED6, Dark #3D3221, its High Contrast variants the same values (it is decoration; the stronger High Contrast text colors keep the pairs passing): the arrival wash; the app icon's glow takes its hue. Everything else is a semantic system color. Both Color Sets live in `Packages/TownsfolkKit/Sources/TownsfolkUI/Resources/Colors.xcassets` and are read with `Color(_:bundle: .module)`: a named color in the app's own asset catalog is looked up in the main bundle, which a `#Preview` host (`XCPreviewAgent.app`) does not have, so there it resolves to clear (checked 2026-09-30, #7; moved 2026-10-06, #37). |
 | Type | System font only; no fixed sizes. `.body`: post text (2 pt extra line spacing), the composer, first-run and founding text, Settings. `.headline`: resident names in post headers and the profile's full name. Post times: `.body` in SecondaryText after the name ("Jun · 1m"). `.callout`: the status line (primary color; the resting line in SecondaryText), quote lines, event rows, labeled dividers ("While you were away"), the replying chip, the counter, helper text, the profile's details. `.title3`: the heading of a full-window state (S2, S3, S7). Nothing larger, and nothing below 12 pt. |
-| Spacing scale | 4, 8, 12, 16, 32 pt. 4 between a post's header and its text; 8 between the posts of a group, between a quote line and its first post, and between the status line and the composer; 12 on each side of the hairline between groups and event rows; 16 from the window edge to the content, and as the gutter; 32 as the margin of a full-window state (S2, S3, S7) and between its blocks. The profile popover pads 16 and separates its rows by 8. Settings keeps the system form's spacing. |
+| Spacing scale | 4, 8, 12, 16, 32 pt. 4 between a post's header and its text; 8 between the posts of a group, between a quote line and its first post, and between the status line and the composer; 12 on each side of the hairline between groups and event rows, and from the composer down to the hairline over the timeline; 4 between the replying chip, the composer's field, and its counter; 16 from the window edge to the content, and as the gutter; 32 as the margin of a full-window state (S2, S3, S7) and between its blocks. The profile popover pads 16 and separates its rows by 8. Settings keeps the system form's spacing. |
 | Timeline metrics | The text column, gutter included, is capped at 560 pt and centered. The thread line, a quote line's symbol, and an event row's symbol hang in the 16 pt gutter left of the shared text edge. Thread line: 2 pt wide with round caps, from the group's first header to its last line. Hover ↩ Reply: a 28 × 28 pt borderless button at the trailing end of the post's header line. The Lamplight wash is a square-cornered band across the window's full width, covering the new post's row. |
 | Density | A compact rhythm from the spacing scale with regular-size controls (the default `.controlSize(.regular)`; no scene-level modifier). Posts take no fill on hover or selection. |
 | Corner radius | System default for every control. No custom containers: the new-posts pill is the glass style's capsule, and the thread line has round caps. |
@@ -186,14 +186,20 @@ fg       bg       kind  ratio  required  result   what it is
 #A3A3A3  #464646  text  3.74   4.50      FAIL     SecondaryText on the dark unemphasized selection fill
 ```
 
+The composer's placeholder is SecondaryText through the field's prompt
+(`TextField(text:prompt:label:)`, the prompt's `foregroundStyle`), and the system field
+honors that color, so it is the "SecondaryText on canvas" pair above (5.74:1 light,
+6.61:1 dark) rather than the system placeholder gray (#808080, 3.95:1): no raised color
+was needed (#23). Checked on the field hosted in an `NSHostingView` with a prompt in
+SecondaryText's values (Sources); the `#Preview`s themselves are still to be looked at in
+both appearances.
+
 ## Open
 
 - The popover and grouped-form backgrounds are approximations: re-measure SecondaryText
   on S4 and S5 as rendered, in both appearances.
 - The glass pill's label contrast depends on the posts beneath it: check it over light
   and dark content, with Reduce Transparency on and off.
-- The composer's placeholder takes SecondaryText through the field's prompt; if the
-  system text field ignores the prompt's color, raise it rather than ship #808080.
 - Whether the wash (20% / 14%) is visible enough at a glance from a second display is
   settled by using the app. A stronger wash re-runs this contrast pass first:
   SecondaryText on the wash is the tightest pair (5.05 light, 4.97 dark).
@@ -219,6 +225,13 @@ Checked 2026-09-30.
   appropriate for foreground separator or border lines".
 - <https://developer.apple.com/design/human-interface-guidelines/app-icons> — layered
   icons made in Icon Composer; default, dark, clear, and tinted appearances on macOS.
+- Run on macOS 27.0 (26A428), 2026-10-07 (#23): a throwaway, uncommitted Swift script
+  hosting a `TextField` in an `NSHostingView`, in the light and dark appearances. With
+  the prompt styled #666666 / #A3A3A3, the underlying `NSTextField` carried them as its
+  `placeholderAttributedString` foreground color, and its rendered placeholder glyphs
+  were darker in light (darkest pixel #797979) and lighter in dark (#B2B2B2) than an
+  unstyled prompt's (#888888, #AEAEAE), which leaves a plain `placeholderString` in the
+  system placeholder color.
 - Run on macOS 27.0 (26A428), 2026-10-06 (#10): a throwaway, uncommitted Swift script
   passing each of the 16 distinct event symbol names to
   `NSImage(systemSymbolName:accessibilityDescription:)` found all of them, and did not
