@@ -8,7 +8,16 @@ import TownsfolkTestSupport
 /// progress after each step.
 @Suite("Founder")
 struct FounderTests {
-    private static let second: TimeInterval = 1
+    private static let millisecondsPerSecond = 1_000.0
+    /// The founding time: two milliseconds before now, so the two-post first scene ends
+    /// exactly at now.
+    private static let foundedAt = millisecondsBeforeNow(2)
+
+    /// `count` milliseconds before ``FoundingFixtures/now``, as the store reads it back.
+    private static func millisecondsBeforeNow(_ count: Int) -> Date {
+        let now = (FoundingFixtures.now.timeIntervalSince1970 * millisecondsPerSecond).rounded()
+        return Date(timeIntervalSince1970: (now - Double(count)) / millisecondsPerSecond)
+    }
 
     @Test
     func `founding reports each step in order and commits one transaction`() async throws {
@@ -33,7 +42,7 @@ struct FounderTests {
             #expect(town.name == "Maplewood")
             #expect(town.setting == "A small town by a slow river. Mornings smell of bread.")
             #expect(town.places == ["the bakery", "the river", "the station"])
-            #expect(town.foundedAt == FoundingFixtures.now)
+            #expect(town.foundedAt == Self.foundedAt)
         }
     }
 
@@ -72,7 +81,7 @@ struct FounderTests {
             #expect(residents["Sora"]?.relationships.isEmpty == true)
             for resident in residents.values {
                 #expect(resident.status == .living)
-                #expect(resident.movedInAt == FoundingFixtures.now)
+                #expect(resident.movedInAt == Self.foundedAt)
                 #expect(resident.movedOutAt == nil)
                 #expect(resident.interests.isEmpty)
             }
@@ -90,15 +99,16 @@ struct FounderTests {
             }
             #expect(event.kind == .founding)
             #expect(event.description == "You moved to Maplewood.")
-            #expect(event.startsAt == FoundingFixtures.now)
-            #expect(event.endsAt == FoundingFixtures.now)
+            #expect(event.startsAt == Self.foundedAt)
+            #expect(event.endsAt == Self.foundedAt)
             #expect(event.status == .ended)
             #expect(event.relatedResident == nil)
         }
     }
 
     @Test
-    func `the first scene's posts follow the founding row a second apart`() async throws {
+    func `the first scene's posts follow the founding row a millisecond apart, the last at now`(
+    ) async throws {
         try await withFoundedTown { store in
             let mika = try #require(try await residentsByName(in: store)["Mika"])
             let posts = try await storedPosts(in: store)
@@ -106,11 +116,11 @@ struct FounderTests {
             let (reply, first) = (posts[0], posts[1])
             #expect(first.author == .resident(mika.id))
             #expect(first.text == "Fresh loaves are out.")
-            #expect(first.happenedAt == FoundingFixtures.now.addingTimeInterval(Self.second))
+            #expect(first.happenedAt == Self.millisecondsBeforeNow(1))
             #expect(first.replyTarget == nil)
             #expect(reply.author == .resident(mika.id))
             #expect(reply.text == "Come early tomorrow.")
-            #expect(reply.happenedAt == FoundingFixtures.now.addingTimeInterval(2 * Self.second))
+            #expect(reply.happenedAt == FoundingFixtures.now)
             #expect(reply.replyTarget == first.id)
             #expect(posts.map(\.origin) == [.ordinary, .ordinary])
             #expect(first.sceneID != nil)
@@ -118,12 +128,40 @@ struct FounderTests {
         }
     }
 
+    @Test(arguments: [1, 2, 3])
+    func `every first-scene post is already due, above the founding row in order`(
+        count: Int,
+    ) async throws {
+        try await withStore { store, _ in
+            let posts = (1 ... count).map { DraftPost(speaker: "Mika", text: "Line \($0).") }
+            var answers = Array(FoundingFixtures.happyPath.prefix(4))
+            answers.append(.scene(posts))
+            let fake = FoundingFixtures.fake(answers)
+
+            #expect(try await found(with: founder(fake, store: store)) == .founded)
+
+            let entries = try await timeline(in: store)
+            try #require(entries.count == count + 1)
+            guard case let .event(event) = entries.last else {
+                Issue.record("the oldest row is not the founding row: \(entries)")
+                return
+            }
+            let stored = try await storedPosts(in: store)
+            #expect(stored.map(\.text) == (1 ... count).reversed().map { "Line \($0)." })
+            for post in stored {
+                #expect(post.happenedAt <= FoundingFixtures.now)
+                #expect(post.happenedAt > event.startsAt)
+            }
+            #expect(zip(stored, stored.dropFirst()).allSatisfy { $0.happenedAt > $1.happenedAt })
+        }
+    }
+
     @Test
     func `the schedule starts with nothing pending, due at the founding`() async throws {
         try await withFoundedTown { store in
             let schedule = try #require(try await store.schedule())
-            #expect(schedule.nextOrdinarySceneDue == FoundingFixtures.now)
-            #expect(schedule.lastRanAt == FoundingFixtures.now)
+            #expect(schedule.nextOrdinarySceneDue == Self.foundedAt)
+            #expect(schedule.lastRanAt == Self.foundedAt)
             #expect(schedule.pendingResponses.isEmpty)
         }
     }

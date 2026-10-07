@@ -171,7 +171,8 @@ public actor Founder {
         }
         await progress(.firstScene)
 
-        try Task.checkCancellation()
+        // The store itself refuses a cancelled task, so a cancellation that lands while
+        // the write waits its turn still keeps nothing.
         try await save(town: town, residents: residents, scene: scene)
     }
 
@@ -290,30 +291,42 @@ public actor Founder {
         }
     }
 
-    /// Stores the founded town in one transaction, every time set to now.
-    /// - Throws: ``Ending/failed`` when the write fails, which leaves the store as it was.
+    /// Stores the founded town in one transaction, the last post of the first scene at
+    /// now.
+    /// - Throws: `CancellationError` when the store refused a cancelled task, and
+    ///   ``Ending/failed`` when the write fails otherwise; either leaves the store as it
+    ///   was.
     private func save(town: Town, residents: [Resident], scene: WrittenScene) async throws {
-        do {
-            let step = try TownStore.FoundingStep(
+        let step: TownStore.FoundingStep
+        do throws(TownValueError) {
+            step = try TownStore.FoundingStep(
                 town: town,
                 residents: residents,
                 firstScene: scene,
-                foundedAt: now(),
+                storedAt: now(),
                 tuning: tuning,
             )
-            try await store.found(step)
-            AppLog.founding.info(
-                """
-                town founded: \(step.residents.count, privacy: .public) residents, \
-                \(step.firstScene.posts.count, privacy: .public) posts
-                """,
-            )
         } catch {
-            // A TownValueError or TownStoreError, which carry only fields and codes.
+            AppLog.founding.error(
+                "could not build the founded town: \(String(describing: error), privacy: .public)",
+            )
+            throw Ending.failed
+        }
+        do throws(TownStoreError) {
+            try await store.found(step)
+        } catch .cancelled {
+            throw CancellationError()
+        } catch {
             AppLog.founding.error(
                 "could not store the founded town: \(String(describing: error), privacy: .public)",
             )
             throw Ending.failed
         }
+        AppLog.founding.info(
+            """
+            town founded: \(step.residents.count, privacy: .public) residents, \
+            \(step.firstScene.posts.count, privacy: .public) posts
+            """,
+        )
     }
 }

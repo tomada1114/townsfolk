@@ -87,7 +87,16 @@ extension TownStore {
     /// Stores a founded town: the town, its residents, the founding event, the schedule,
     /// and the first scene. A town that already exists is refused (`1555`): moving away
     /// deletes it first.
+    ///
+    /// Checked for cancellation here, inside the store, as ``storeScene(_:)`` is: a call
+    /// queued behind another step still runs after the caller's task was cancelled, and a
+    /// founding cancelled midway keeps nothing (requirements.md:148).
+    /// - Throws: ``TownStoreError/cancelled`` when the calling task was cancelled before
+    ///   the transaction began; nothing is written.
     public func found(_ founding: FoundingStep) throws(TownStoreError) {
+        guard !Task.isCancelled else {
+            throw .cancelled
+        }
         try commit(.founded) { connection throws(TownStoreError) in
             try connection.insert(founding.town)
             for resident in founding.residents {

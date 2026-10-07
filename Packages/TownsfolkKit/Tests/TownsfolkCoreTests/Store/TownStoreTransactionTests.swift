@@ -63,6 +63,20 @@ struct TownStoreTransactionTests {
     }
 
     @Test
+    func `a founding stored from a cancelled task keeps nothing`() async throws {
+        try await withStore { store, directory in
+            let founding = try StoreFixtures.founding()
+            try await Self.expectRolledBack(store, in: directory, throwing: .cancelled) {
+                try await Task {
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    try await store.found(founding)
+                }.value
+            }
+            #expect(try await store.town() == nil)
+        }
+    }
+
+    @Test
     func `a second founding over a stored town is refused`() async throws {
         try await withFoundedStore { store, _, directory in
             let again = try StoreFixtures.founding()

@@ -103,6 +103,29 @@ struct FounderEndingTests {
     }
 
     @Test
+    func `cancelling once the first scene is written, before the store commits, stores nothing`(
+    ) async throws {
+        try await withStore { store, _ in
+            let fake = FoundingFixtures.fake(FoundingFixtures.happyPath)
+            let founder = try founder(fake, store: store)
+            let task = Task {
+                try await founder.found(displayName: DisplayName("Tomo")) { step in
+                    // The last thing before the write: the store must still refuse it.
+                    if step == .firstScene {
+                        withUnsafeCurrentTask { $0?.cancel() }
+                    }
+                }
+            }
+
+            await #expect(throws: CancellationError.self) {
+                try await task.value
+            }
+            #expect(fake.calls.count == 5)
+            try await expectEmpty(store)
+        }
+    }
+
+    @Test
     func `a task cancelled before founding starts makes no call`() async throws {
         try await withStore { store, _ in
             let fake = FoundingFixtures.fake(FoundingFixtures.happyPath)
