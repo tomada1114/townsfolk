@@ -38,7 +38,7 @@ struct TimelineReplyTargetTests {
         let board = try Board(displayName: DisplayName("Tomo"))
         #expect(board.model.replyTarget(for: board.mikas.id) == ReplyTarget(
             postID: board.mikas.id,
-            name: "Mika",
+            author: .resident(name: "Mika"),
             text: "Bread is out.",
         ))
     }
@@ -46,11 +46,34 @@ struct TimelineReplyTargetTests {
     @Test
     func `your post is replied to under your name, or You with none stored`() throws {
         let named = try Board(displayName: DisplayName("Tomo"))
-        #expect(named.model.replyTarget(for: named.yours.id)?.name == "Tomo")
+        #expect(named.model.replyTarget(for: named.yours.id)?.author == .you)
         #expect(named.model.replyTarget(for: named.yours.id)?.text == "Learning Rust today.")
+        #expect(named.model.yourName == "Tomo")
 
         let unnamed = try Board(displayName: nil)
-        #expect(unnamed.model.replyTarget(for: unnamed.yours.id)?.name == "You")
+        #expect(unnamed.model.yourName == "You")
+    }
+
+    @Test
+    func `replying to your own post, a name change shows in the chip at once`() throws {
+        // Requirements §3.10: a display-name change shows everywhere at once.
+        let board = try Board(displayName: DisplayName("Tomo"))
+        let timeline = board.model
+        let composer = ComposerViewModel(text: "", replyTarget: nil)
+        let target = try #require(timeline.replyTarget(for: board.yours.id))
+        composer.replyChosen(to: target)
+        #expect(composer.replyChip(yourName: timeline.yourName)?.resolved(in: .english)
+            == "Replying to Tomo \"Learning Rust today.\"")
+
+        try timeline.displayNameChanged(DisplayName("Tomoyuki"))
+        #expect(composer.replyChip(yourName: timeline.yourName)?.resolved(in: .english)
+            == "Replying to Tomoyuki \"Learning Rust today.\"")
+        #expect(composer.replyChipReading(yourName: timeline.yourName)?.resolved(in: .english)
+            == "Replying to Tomoyuki: Learning Rust today.")
+
+        timeline.displayNameChanged(nil)
+        #expect(composer.replyChip(yourName: timeline.yourName)?.resolved(in: .english)
+            == "Replying to You \"Learning Rust today.\"")
     }
 
     @Test

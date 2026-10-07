@@ -17,14 +17,14 @@ struct ComposerReplyTests {
         model.replyChosen(to: target)
         #expect(model.replyTarget == target)
         #expect(model.focusRequest == focus + 1)
-        #expect(model.replyChip?.key == "composer.reply.chip")
+        #expect(model.replyChip(yourName: "Tomo")?.key == "composer.reply.chip")
         #expect(
-            model.replyChip?.resolved(in: .english)
+            model.replyChip(yourName: "Tomo")?.resolved(in: .english)
                 == "Replying to Mika \"The oven made a goose noise again.\"",
         )
-        #expect(model.replyChipReading?.key == "composer.reply.reading")
+        #expect(model.replyChipReading(yourName: "Tomo")?.key == "composer.reply.reading")
         #expect(
-            model.replyChipReading?.resolved(in: .english)
+            model.replyChipReading(yourName: "Tomo")?.resolved(in: .english)
                 == "Replying to Mika: The oven made a goose noise again.",
         )
     }
@@ -32,8 +32,8 @@ struct ComposerReplyTests {
     @Test
     func `no chip shows while not replying`() {
         let model = ComposerViewModel(text: "", replyTarget: nil)
-        #expect(model.replyChip == nil)
-        #expect(model.replyChipReading == nil)
+        #expect(model.replyChip(yourName: "Tomo") == nil)
+        #expect(model.replyChipReading(yourName: "Tomo") == nil)
     }
 
     @Test
@@ -41,7 +41,9 @@ struct ComposerReplyTests {
         try await withFoundedStore { store, founding, _ in
             let model = Fixtures.composer(store: store)
             let mikas = founding.firstScene.posts[0]
-            model.replyChosen(to: ReplyTarget(postID: mikas.id, name: "Mio", text: mikas.text))
+            model.replyChosen(
+                to: ReplyTarget(postID: mikas.id, author: .resident(name: "Mio"), text: mikas.text),
+            )
             model.textChanged(to: "Poor oven. Maybe it wants a name?")
             await model.returnPressed()
 
@@ -50,7 +52,7 @@ struct ComposerReplyTests {
             #expect(posts[0].replyTarget == mikas.id)
             #expect(posts[0].text == "Poor oven. Maybe it wants a name?")
             #expect(model.replyTarget == nil)
-            #expect(model.replyChip == nil)
+            #expect(model.replyChip(yourName: "Tomo") == nil)
             #expect(model.text.isEmpty)
         }
     }
@@ -61,8 +63,8 @@ struct ComposerReplyTests {
             let mine = try YourPostDraft(time: Fixtures.now, text: "Learning Rust today.").make()
             try await store.storeYourPost(mine)
             let model = Fixtures.composer(store: store)
-            model.replyChosen(to: ReplyTarget(postID: mine.id, name: "Tomo", text: mine.text))
-            #expect(model.replyChip?.resolved(in: .english)
+            model.replyChosen(to: ReplyTarget(postID: mine.id, author: .you, text: mine.text))
+            #expect(model.replyChip(yourName: "Tomo")?.resolved(in: .english)
                 == "Replying to Tomo \"Learning Rust today.\"")
             model.textChanged(to: "Day two.")
             await model.returnPressed()
@@ -116,7 +118,11 @@ struct ComposerReplyTests {
     func `choosing Reply on another post replaces the target`() {
         let model = ComposerViewModel(text: "", replyTarget: nil)
         model.replyChosen(to: Fixtures.mikasOven())
-        let juns = ReplyTarget(postID: Post.ID(), name: "Jun", text: "Is that… good?")
+        let juns = ReplyTarget(
+            postID: Post.ID(),
+            author: .resident(name: "Jun"),
+            text: "Is that… good?",
+        )
         model.replyChosen(to: juns)
         #expect(model.replyTarget == juns)
     }

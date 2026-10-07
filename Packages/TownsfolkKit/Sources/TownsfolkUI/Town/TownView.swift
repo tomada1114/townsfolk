@@ -187,7 +187,7 @@ public struct TownView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            ComposerView(model: composer, townName: model.title)
+            ComposerView(model: composer, townName: model.title, yourName: model.yourName)
                 .frame(maxWidth: Layout.columnWidth)
                 .padding(.horizontal, Layout.edge)
                 .frame(maxWidth: .infinity)

@@ -9,6 +9,17 @@ extension TimelineViewModel {
         selectedPostID.flatMap(replyTarget(for:))
     }
 
+    /// Your name as a quote or the composer's chip shows it: your current name, or "You"
+    /// with none stored. Read when drawn, so a change in Settings shows at once.
+    public var yourName: String {
+        if let displayName {
+            return displayName.value
+        }
+        var resource = TimelineWording.you
+        resource.locale = environment.locale
+        return String(localized: resource)
+    }
+
     /// The posts top to bottom, skipping event rows — the order ↑, ↓, and leaving the
     /// composer select in.
     var postOrder: [Post.ID] {
@@ -24,26 +35,21 @@ extension TimelineViewModel {
     public func replyTarget(for id: Post.ID) -> ReplyTarget? {
         for case let .group(group) in items {
             if let post = group.posts.first(where: { $0.id == id }) {
-                return ReplyTarget(postID: post.id, name: name(of: post.author), text: post.text)
+                return ReplyTarget(postID: post.id, author: author(of: post), text: post.text)
             }
         }
         return nil
     }
 
-    /// The author's name as the chip shows it: a resident's name, or your current name
-    /// without "(you)" — "You" with none stored, as a quote line shows it.
-    private func name(of author: TimelinePost.Author) -> String {
-        switch author {
+    /// The post's author for the chip: a resident by name, or you, whose name is read
+    /// when the chip is drawn.
+    private func author(of post: TimelinePost) -> ReplyTarget.Author {
+        switch post.author {
         case let .resident(name):
-            return name
+            .resident(name: name)
 
-        case let .you(name, _):
-            if let name {
-                return name
-            }
-            var resource = TimelineWording.you
-            resource.locale = environment.locale
-            return String(localized: resource)
+        case .you:
+            .you
         }
     }
 }

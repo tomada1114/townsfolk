@@ -17,7 +17,7 @@ private enum ComposerPreviewData {
 
     static let mikasOven = ReplyTarget(
         postID: Post.ID(),
-        name: "Mika",
+        author: .resident(name: "Mika"),
         text: "The oven made a goose noise again.",
     )
 
@@ -31,6 +31,7 @@ private enum ComposerPreviewData {
         ComposerView(
             model: ComposerViewModel(text: text, replyTarget: target),
             townName: "Maplewood",
+            yourName: "Tomo",
         )
         .padding(PreviewSize.margin)
         .background(.background)

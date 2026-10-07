@@ -78,12 +78,15 @@ struct ComposerView: View {
     let model: ComposerViewModel
     /// The town's name, for the placeholder.
     let townName: String
+    /// Your current name, for the chip when you reply to a post of yours.
+    let yourName: String
     @FocusState private var isFocused: Bool
 
     var body: some View {
         let placeholder = ComposerViewModel.placeholder(townName: townName)
+        let chip = model.replyChip(yourName: yourName)
         VStack(alignment: .leading, spacing: Layout.gap) {
-            if let chip = model.replyChip, let reading = model.replyChipReading {
+            if let chip, let reading = model.replyChipReading(yourName: yourName) {
                 ReplyChip(title: chip, reading: reading) {
                     model.cancelReplyChosen()
                 }

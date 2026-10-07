@@ -31,6 +31,10 @@ enum ComposerFixtures {
 
     /// Mika's post a reply may target, as the composer's chip shows it.
     static func mikasOven() -> ReplyTarget {
-        ReplyTarget(postID: Post.ID(), name: "Mika", text: "The oven made a goose noise again.")
+        ReplyTarget(
+            postID: Post.ID(),
+            author: .resident(name: "Mika"),
+            text: "The oven made a goose noise again.",
+        )
     }
 }

@@ -18,6 +18,10 @@ import Observation
 @MainActor
 @Observable
 public final class ComposerViewModel {
+    /// How a post reaches the store: ``TownStore/storeYourPost(_:)`` in the app, and in a
+    /// test a write it can hold open.
+    package typealias Write = @Sendable (Post) async throws(TownStoreError) -> Void
+
     /// The Town menu's New Post command (⌘N).
     public static var newPostTitle: LocalizedStringResource {
         ComposerWording.newPost
@@ -51,7 +55,7 @@ public final class ComposerViewModel {
     /// Whether a post is being stored, so a second Return meanwhile stores nothing.
     private var isPosting = false
 
-    @ObservationIgnored private let store: TownStore?
+    @ObservationIgnored private let write: Write?
     @ObservationIgnored private let tuning: Tuning
     @ObservationIgnored private let now: @Sendable () -> Date
 
@@ -63,16 +67,6 @@ public final class ComposerViewModel {
     /// Whether Return would post: 1–140 characters after trimming.
     public var canPost: Bool {
         tuning.yourPost.yourPostLength.contains(trimmedLength)
-    }
-
-    /// The chip's text while replying, "Replying to {name} "{text}"", or `nil`.
-    public var replyChip: LocalizedStringResource? {
-        replyTarget.map { ComposerWording.replyChip(name: $0.name, text: $0.text) }
-    }
-
-    /// What VoiceOver reads for the chip, "Replying to {name}: {text}", or `nil`.
-    public var replyChipReading: LocalizedStringResource? {
-        replyTarget.map { ComposerWording.replyReading(name: $0.name, text: $0.text) }
     }
 
     private var trimmedLength: Int {
@@ -90,24 +84,36 @@ public final class ComposerViewModel {
         tuning: Tuning = .default,
         now: @escaping @Sendable () -> Date = { Date.now },
     ) {
-        self.init(store: Optional(store), text: "", replyTarget: nil, tuning: tuning, now: now)
+        self.init(
+            write: { post throws(TownStoreError) in try await store.storeYourPost(post) },
+            text: "",
+            replyTarget: nil,
+            tuning: tuning,
+            now: now,
+        )
+    }
+
+    /// Creates a composer with an empty field that stores through `write` — for a test that
+    /// holds the store call open.
+    package convenience init(write: @escaping Write, now: @escaping @Sendable () -> Date) {
+        self.init(write: write, text: "", replyTarget: nil, tuning: .default, now: now)
     }
 
     /// Creates a composer already showing `text` and replying to `replyTarget`, with no
     /// store behind it, so Return stores nothing — for a preview, and for a test of what
     /// the composer shows.
     package convenience init(text: String, replyTarget: ReplyTarget?) {
-        self.init(store: nil, text: text, replyTarget: replyTarget, tuning: .default) { Date.now }
+        self.init(write: nil, text: text, replyTarget: replyTarget, tuning: .default) { Date.now }
     }
 
     private init(
-        store: TownStore?,
+        write: Write?,
         text: String,
         replyTarget: ReplyTarget?,
         tuning: Tuning,
         now: @escaping @Sendable () -> Date,
     ) {
-        self.store = store
+        self.write = write
         self.text = text
         self.replyTarget = replyTarget
         self.tuning = tuning
@@ -117,6 +123,24 @@ public final class ComposerViewModel {
     /// The field's placeholder, "Say something to {town}…".
     public static func placeholder(townName: String) -> LocalizedStringResource {
         ComposerWording.placeholder(townName: townName)
+    }
+
+    /// The chip's text while replying, "Replying to {name} "{text}"", or `nil`.
+    /// `yourName` is your current name, shown when the post replied to is yours.
+    public func replyChip(yourName: String) -> LocalizedStringResource? {
+        replyTarget.map { target in
+            ComposerWording.replyChip(name: name(of: target, yourName: yourName), text: target.text)
+        }
+    }
+
+    /// What VoiceOver reads for the chip, "Replying to {name}: {text}", or `nil`.
+    public func replyChipReading(yourName: String) -> LocalizedStringResource? {
+        replyTarget.map { target in
+            ComposerWording.replyReading(
+                name: name(of: target, yourName: yourName),
+                text: target.text,
+            )
+        }
     }
 
     // MARK: Actions
@@ -130,10 +154,12 @@ public final class ComposerViewModel {
     /// Return in the field. With 1–140 characters after trimming, stores your post — you
     /// as author, the trimmed text, the reply target if replying, now — then clears the
     /// field and leaves reply mode. Otherwise, or when the store refuses the write, does
-    /// nothing and keeps the input as typed.
+    /// nothing and keeps the input as typed. The field stays editable while the store
+    /// works: text typed, or a reply chosen, meanwhile is kept, and only what still
+    /// matches the post just stored is cleared.
     public func returnPressed() async {
         guard !isPosting,
-              let store,
+              let write,
               let post = try? Post(
                   id: Post.ID(),
                   author: .you,
@@ -145,16 +171,21 @@ public final class ComposerViewModel {
         else {
             return
         }
+        let submitted = (text: text, replyTarget: replyTarget)
         isPosting = true
         defer { isPosting = false }
         do {
-            try await store.storeYourPost(post)
+            try await write(post)
         } catch {
             AppLog.composer.error("post not stored: \(String(describing: error), privacy: .public)")
             return
         }
-        text = ""
-        replyTarget = nil
+        if text == submitted.text {
+            text = ""
+        }
+        if replyTarget == submitted.replyTarget {
+            replyTarget = nil
+        }
         AppLog.composer.debug("post stored, reply: \(post.replyTarget != nil, privacy: .public)")
     }
 
@@ -183,6 +214,17 @@ public final class ComposerViewModel {
             replyTarget = nil
         } else {
             focusLeaveRequest += 1
+        }
+    }
+
+    /// The name the chip shows for `target`'s author.
+    private func name(of target: ReplyTarget, yourName: String) -> String {
+        switch target.author {
+        case let .resident(name):
+            name
+
+        case .you:
+            yourName
         }
     }
 }
