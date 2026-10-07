@@ -142,9 +142,9 @@ public final class FoundingViewModel {
 
     // MARK: Actions
 
-    /// Founds the town, checking each line as its step finishes and turning slow after
-    /// the slow wait, until the founder returns. Does nothing unless the steps show and
-    /// no other run is going.
+    /// Founds the town from its first step, checking each line as its step finishes and
+    /// turning slow after the slow wait, until the founder returns. Does nothing unless
+    /// the steps show and no other run is going.
     ///
     /// - Throws: `CancellationError` when the calling task is cancelled — the view went
     ///   away, or the app is quitting — with nothing stored and the screen left as it was.
@@ -154,6 +154,10 @@ public final class FoundingViewModel {
         }
         isRunning = true
         defer { isRunning = false }
+        // The founder starts over from the town, so a run cancelled earlier — the view
+        // went away and came back — leaves no step checked and no slow line behind.
+        finished = []
+        isSlow = false
         let watch = Task { await self.watchForSlow() }
         defer { watch.cancel() }
         let outcome = try await founder.found(displayName: displayName) { step in

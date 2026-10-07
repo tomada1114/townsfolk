@@ -359,6 +359,32 @@ struct FoundingViewModelTests {
     }
 
     @Test
+    func `a run after a cancelled one starts its steps afresh`() async throws {
+        try await withStore { store, _ in
+            let fake = FirstRunFixtures
+                .heldFake(FoundingFixtures.happyPath + FoundingFixtures.happyPath)
+            let model = try FirstRunFixtures.founding(
+                fake,
+                store: store,
+                name: FirstRunFixtures.tomo(),
+            )
+            let cancelled = Task { try await model.run() }
+            await fake.waitUntilHeld(count: 1)
+            fake.releaseHeld()
+            await fake.waitUntilHeld(count: 1)
+            cancelled.cancel()
+            await #expect(throws: CancellationError.self) { try await cancelled.value }
+
+            let running = Task { try await model.run() }
+            await fake.waitUntilHeld(count: 1)
+
+            #expect(FirstRunFixtures.lines(of: model).map(\.1) == [false, false, false])
+            running.cancel()
+            await #expect(throws: CancellationError.self) { try await running.value }
+        }
+    }
+
+    @Test
     func `a preview screen never founds`() async throws {
         let model = try FirstRunFixtures.idleFounding(FirstRunFixtures.tomo())
         try await model.run()
