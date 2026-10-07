@@ -178,4 +178,35 @@ struct EngineNewsTests {
             #expect(try await harness.livingNames() == ["Mika", "Jun", "Aki", "Ren"])
         }
     }
+
+    @Test
+    func `a move's news stays until a scene about it is stored`() async throws {
+        // The scene after Ren moves in fails to store; the next step at the same time
+        // counts no running time, so it draws nothing and casts the news again.
+        var setup = try EngineSetup(residents: ChangeFixtures.residents(living: [
+            "Mika",
+            "Jun",
+            "Aki",
+        ]))
+        setup.generator = ScriptedGenerator(
+            [ChangeFixtures.noEvent] + ChangeFixtures.aMove + [0.5, 0.0, 0.0, 0.0, 0.0],
+        )
+        setup.outcomes = [
+            ChangeFixtures.newcomer("Ren"),
+            .content(EngineFixtures.scene(by: "Ren", ["Hello, everyone."], tags: [])),
+        ] + WritingFixtures.refusals(3)
+        try await withEngine(setup) { harness in
+            let raw = try harness.directory.raw()
+            try raw.execute(EngineFailureTests.refuseEveryPost)
+
+            let failed = try await harness.stepAfterOpeningTurn()
+            try raw.execute("DROP TRIGGER refuse_every_post")
+            _ = try await harness.engine.step()
+
+            #expect(failed == .failed(EngineFailureTests.refusedByTrigger))
+            let retried = try #require(harness.model.calls.dropFirst(2).first).prompt
+            #expect(EngineFixtures.seed(in: retried) == #"Seed: the news "Ren moved in.""#)
+            #expect(EngineFixtures.speakers(in: retried).first == "Ren")
+        }
+    }
 }

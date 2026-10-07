@@ -105,8 +105,8 @@ public actor TownEngine {
     let residentDraw: ResidentSeedDraw
     var generator: any RandomNumberGenerator & Sendable
     var pending: Pending?
-    /// The move the next scene is about, until a scene is handed to the writer (REQ-009 of
-    /// #25). Kept in memory, like ``pending``.
+    /// The move the next scene is about, until a scene is stored (REQ-009 of #25). Kept in
+    /// memory, like ``pending``.
     var news: SceneCasting.News?
     /// When the previous turn of this run ran, which the next one measures its running
     /// time from; `nil` before the first, so a turn after launch draws no event or move.

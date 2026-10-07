@@ -110,12 +110,16 @@ extension TownEngine {
             return .modelUnavailable
 
         case let .skipped(reason):
-            news = nil
             return await skip(.writer(reason), at: now)
 
         case let .written(scene):
-            news = nil
-            return try await storeWritten(scene, at: now)
+            let stored = try await storeWritten(scene, at: now)
+            // The news stays until a scene is stored: a scene discarded, refused by the
+            // store, or cancelled leaves the next turn to tell it.
+            if case .sceneStored = stored {
+                news = nil
+            }
+            return stored
         }
     }
 
