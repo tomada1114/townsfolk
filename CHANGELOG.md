@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it, a full-window message and a banner say what is missing — with an Open System
   Settings button when Apple Intelligence is off — and check again whenever the window
   becomes active
+- The town's timeline, ready for the town window to show: posts newest first, one
+  conversation per group joined by a thread line, a one-line quote above a reply to an
+  older post, your posts marked "(you)", event rows with their symbol, relative times
+  refreshed every minute, a scene's posts appearing one at a time on a fading Lamplight
+  wash, a "↑ n new posts" pill while you read older posts, older posts loading as you
+  scroll, ↑ and ↓ to move between posts, and a Town menu with Scroll to Latest (⌘↑)
 
 ### Changed
 

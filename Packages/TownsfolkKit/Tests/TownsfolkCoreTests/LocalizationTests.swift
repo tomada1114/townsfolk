@@ -28,12 +28,34 @@ private struct CatalogEntry: Decodable {
     }
 }
 
+/// One language's value for a key: a single `stringUnit`, or — for a plural — one per
+/// plural form under `variations.plural`.
 private struct CatalogLocalization: Decodable {
     struct StringUnit: Decodable {
         let value: String
     }
 
+    struct Variations: Decodable {
+        let plural: [String: CatalogLocalization]
+    }
+
     let stringUnit: StringUnit?
+    let variations: Variations?
+
+    /// The plural form `form` ("one", "other") reads in, or `nil` for a single string.
+    func plural(_ form: String) -> String? {
+        variations?.plural[form]?.stringUnit?.value
+    }
+
+    /// The value a resource formatted with `arguments` reads in English: the single
+    /// string, or — for a plural — the form English picks for its first argument.
+    func englishValue(for arguments: [any CVarArg]) -> String? {
+        if let stringUnit {
+            return stringUnit.value
+        }
+        let count = arguments.first as? Int
+        return plural(count == 1 ? "one" : "other")
+    }
 }
 
 /// The String Catalog plumbing (`Sources/TownsfolkCore/Resources/Localizable.xcstrings`).
@@ -85,7 +107,50 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        } + [ModelAvailability.appleIntelligenceOff, .modelNotReady, .deviceNotEligible]
+        } + timelineCases() + availabilityCases()
+    }
+
+    /// The timeline's and the Town menu's resources. A plural is listed with a count of
+    /// more than one: under `swift test` a resource renders its `defaultValue`, which is
+    /// the `other` form, so the `one` form is held by its own test below.
+    static func timelineCases() -> [Case] {
+        let (name, time, text) = ("Jun", "1m", "Told you.")
+        let count = 3
+        return [
+            Case(resource: TimelineWording.now, arguments: []),
+            Case(resource: TimelineWording.you, arguments: []),
+            Case(resource: TimelineWording.youMarker, arguments: []),
+            Case(
+                resource: TimelineWording.postReading(name: name, time: time, text: text),
+                arguments: [name, time, text],
+            ),
+            Case(
+                resource: TimelineWording.yourPostReading(time: time, text: text),
+                arguments: [time, text],
+            ),
+            Case(
+                resource: TimelineWording.quoteLine(name: name, text: text),
+                arguments: [name, text],
+            ),
+            Case(
+                resource: TimelineWording.quoteReading(name: name, text: text),
+                arguments: [name, text],
+            ),
+            Case(resource: TimelineWording.groupReading(count: count), arguments: [count]),
+            Case(
+                resource: TimelineWording.eventReading(text: text, time: time),
+                arguments: [text, time],
+            ),
+            Case(resource: TimelineWording.newPosts(count: count), arguments: [count]),
+            Case(resource: TimelineWording.repliedToYou(name: name), arguments: [name]),
+            Case(resource: TimelineWording.townMenu, arguments: []),
+            Case(resource: TimelineWording.scrollToLatest, arguments: []),
+        ]
+    }
+
+    /// The model-unavailable screen's and banner's resources.
+    static func availabilityCases() -> [Case] {
+        [ModelAvailability.appleIntelligenceOff, .modelNotReady, .deviceNotEligible]
             .compactMap(AvailabilityWording.message)
             .map { Case(resource: $0, arguments: []) }
             + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
@@ -169,13 +234,32 @@ struct LocalizationTests {
         let catalog = try Self.catalog()
         for testCase in Self.everyCase() {
             let key = testCase.resource.key
+            let localization = catalog.strings[key]?.localizations[catalog.sourceLanguage]
             let english = try #require(
-                catalog.strings[key]?.localizations[catalog.sourceLanguage]?.stringUnit?.value,
+                localization?.englishValue(for: testCase.arguments),
                 "\(key) has no English value",
             )
             let formatted = String(format: english, arguments: testCase.arguments)
             #expect(formatted == testCase.resource.resolved(in: .english), "\(key)")
         }
+    }
+
+    @Test(arguments: [
+        ("timeline.newPosts", 1, "1 new post", 2, "2 new posts"),
+        ("timeline.group.reading", 1, "Conversation, 1 post", 2, "Conversation, 2 posts"),
+    ])
+    func `a plural entry holds the English one and other forms`(
+        key: String,
+        one: Int,
+        oneReads: String,
+        other: Int,
+        otherReads: String,
+    ) throws {
+        let english = try #require(try Self.catalog().strings[key]?.localizations["en"])
+        let oneForm = try #require(english.plural("one"), "\(key) has no one form")
+        let otherForm = try #require(english.plural("other"), "\(key) has no other form")
+        #expect(String(format: oneForm, one) == oneReads)
+        #expect(String(format: otherForm, other) == otherReads)
     }
 
     @Test
