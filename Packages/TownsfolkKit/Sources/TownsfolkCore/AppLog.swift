@@ -38,4 +38,9 @@ public enum AppLog {
     /// The settings concern: each change ``SettingsViewModel`` stores. Your name is never
     /// in it — only whether a submitted name was taken.
     public static let settings = Logger(subsystem: subsystem, category: "settings")
+
+    /// The on-device model concern: availability and the case a failed call maps to, both
+    /// `.public` because they are states. No instructions, prompt, or generated text is
+    /// ever in it.
+    public static let model = Logger(subsystem: subsystem, category: "model")
 }

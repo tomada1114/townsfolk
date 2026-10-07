@@ -21,10 +21,10 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 ## Where an error type lives
 
 - Declare every error a caller can observe in `TownsfolkCore`, next to the port or model
-  that throws it — `SeedTablesError` sits beside `SeedTables`, and the on-device model's
-  port (provisionally `LanguageModelProviding`, `docs/architecture.md` › The on-device
-  model) would sit beside a `ModelCallError` (not `LanguageModelError`, a type the
-  macOS 27 SDK declares and Core imports). Core, `TownsfolkUI`, and `App/` switch
+  that throws it — `SeedTablesError` sits beside `SeedTables`, and `ModelCallError`
+  beside the on-device model's port `LanguageModelProviding` (`Sources/TownsfolkCore/Model/`;
+  not `LanguageModelError`, a type the macOS 27 SDK declares and Core imports). Core,
+  `TownsfolkUI`, and `App/` switch
   on it, and a Core test's fake throws it, so it cannot live in `TownsfolkPlatform`
   (Core never imports Platform).
 - One `enum` per failure domain, `Error, Equatable, Sendable`. Cases name what went
@@ -38,16 +38,15 @@ Logging); the error-path test rule (`.claude/rules/testing.md` › What to Test)
 /// Why a model call returned nothing usable — the engine recovers differently from each
 /// case, which is why this is an enum and not a message string.
 public enum ModelCallError: Error, Equatable, Sendable {
+    /// The instructions and prompt did not fit the context; the engine retries once with
+    /// fewer posts.
+    case contextSizeExceeded
+    /// Any other failure; the app has no recovery for it beyond skipping the turn.
+    case other
     /// A guardrail violation or a refusal; the engine retries with a new seed.
     case refused
-    /// The prompt did not fit the context; the engine retries once with half the posts.
-    case contextSizeExceeded
     /// The model stopped being available; the town rests until it is back.
     case unavailable
-    /// The caller stopped waiting (see Cancellation propagates); never a failure.
-    case cancelled
-    /// The framework reported a failure the app has no recovery for; `code` is for logs.
-    case systemFailure(code: Int32)
 }
 ```
 
@@ -66,24 +65,23 @@ Typed throws (`throws(ModelCallError)`, SE-0413) needs Swift 6; this package is
 - Never `throws(any Error)` (it is plain `throws`) and never a catch-all case such as
   `.unknown(any Error)` to make a typed throw compile — map to a real case instead.
 
-```swift
-public protocol LanguageModelProviding: Sendable {
-    func respond(to prompt: String) async throws(ModelCallError) -> GeneratedContent
-}
+`LanguageModelProviding.respond` is the worked example of the exception: its caller
+switches over `ModelCallError`, but the call awaits cancellable work, so it stays on
+plain `throws` and documents that it throws `ModelCallError` or `CancellationError`
+(see Cancellation propagates). The caller catches the two apart:
 
-// In the engine: the switch is exhaustive over ModelCallError. `AppLog.model` is
-// the logger this port would add to `AppLog`.
+```swift
+// In the engine, inside a throwing function: the switch is exhaustive over ModelCallError.
 do {
-    content = try await model.respond(to: prompt)
-} catch {
+    content = try await model.respond(instructions: instructions, prompt: prompt, schema: schema)
+} catch is CancellationError {
+    return
+} catch let error as ModelCallError {
     switch error {
     case .refused: next = .retryWithNewSeed
-    case .contextSizeExceeded: next = .retryWithHalfThePosts
+    case .contextSizeExceeded: next = .retryWithFewerPosts
     case .unavailable: next = .rest
-    case .cancelled: return
-    case let .systemFailure(code):
-        AppLog.model.error("scene call failed: \(code, privacy: .public)")
-        next = .skipTurn
+    case .other: next = .skipTurn
     }
 }
 ```
@@ -128,8 +126,8 @@ do {
   `Task.isCancelled` and returning a half result silently.
 - Typed throws and cancellation: a function that awaits cancellable work and declares
   `throws(E)` cannot throw `CancellationError`. Keep such functions on plain `throws`,
-  or give `E` an explicit `.cancelled` case the caller treats as a no-op, as
-  `ModelCallError` above does — never drop the cancellation on the floor.
+  as `LanguageModelProviding.respond` does, or give `E` an explicit `.cancelled` case
+  the caller treats as a no-op — never drop the cancellation on the floor.
 - A test asserts cancellation with `#expect(throws: CancellationError.self)`.
 
 ## Mapping OS errors in an adapter
@@ -152,19 +150,13 @@ error to a Core case is translation; choosing what the app does about it is Core
 import FoundationModels
 import TownsfolkCore
 
-extension ModelCallError {
-    /// Translation only: which Core case a framework error means. The case names are
-    /// those of the SDK the adapter builds with (`docs/architecture.md` › The on-device
-    /// model).
-    init(_ error: LanguageModelSession.GenerationError) {
-        switch error {
-        case .guardrailViolation, .refusal: self = .refused
-        case .exceededContextWindowSize: self = .contextSizeExceeded
-        case .assetsUnavailable: self = .unavailable
-        default:
-            self = .systemFailure(code: Int32(truncatingIfNeeded: (error as NSError).code))
-        }
-    }
+// From `SystemLanguageModelTranslation` (`Sources/TownsfolkPlatform/`), abridged:
+// translation only, under the case names of the SDK the adapter builds with, each listed
+// in `docs/architecture.md` › The on-device model.
+switch error {
+case .contextSizeExceeded: .contextSizeExceeded
+case .guardrailViolation, .refusal: .refused
+default: .other
 }
 ```
 
