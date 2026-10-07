@@ -53,15 +53,20 @@ extension TimelineViewModel {
             return
         }
         isLoadingOlder = true
-        defer { isLoadingOlder = false }
+        let page: TimelinePage
         do {
-            let page = try await store.page(before: cursor, limit: pageSize)
-            pageLoaded(page)
-            AppLog.timeline.debug("older page loaded: \(page.entries.count, privacy: .public) rows")
+            page = try await store.page(before: cursor, limit: pageSize)
         } catch {
+            isLoadingOlder = false
             AppLog.timeline
                 .error("older page failed: \(String(describing: error), privacy: .public)")
+            return
         }
+        // Cleared before the quotes are read, so the row that is now last can ask for the
+        // next page as soon as it appears.
+        isLoadingOlder = false
+        pageLoaded(page)
+        AppLog.timeline.debug("older page loaded: \(page.entries.count, privacy: .public) rows")
         await fetchMissingQuotes(from: store)
     }
 
