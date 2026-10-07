@@ -7,11 +7,33 @@ private enum Layout {
     static let headerGap = DesignLock.Spacing.extraSmall
     static let lineSpacing = DesignLock.Timeline.postLineSpacing
     static let fadeIn = DesignLock.Motion.postFadeIn
+    static let replyButtonSide = DesignLock.Timeline.replyButtonSide
+}
+
+/// The hover ↩ Reply: a 28 × 28 pt borderless button at the trailing end of the header
+/// line, labeled "Reply" for VoiceOver and as its tooltip.
+private struct PostReplyButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(ComposerViewModel.replyButtonTitle, systemImage: "arrowshape.turn.up.left")
+                .labelStyle(.iconOnly)
+                .frame(width: Layout.replyButtonSide, height: Layout.replyButtonSide)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(DesignLock.Palette.secondaryText)
+        .help(Text(ComposerViewModel.replyButtonTitle))
+        .accessibilityIdentifier("postReplyButton")
+    }
 }
 
 /// One post (ux-flows S1): the header — the name, then the relative time — and the text,
 /// which always wraps and is never cut short. Selectable with the keyboard and shown
-/// selected by the system focus ring alone, with no fill.
+/// selected by the system focus ring alone, with no fill. Hovering it shows ↩ Reply at
+/// the header's trailing end; VoiceOver offers the same as the row's Reply action, and
+/// the keyboard as Town › Reply (⌘R).
 ///
 /// A post that arrives live fades in over 200 ms and reports its bounds, so the timeline
 /// draws the Lamplight wash behind it across the window's full width.
@@ -19,12 +41,21 @@ struct PostRow: View {
     let post: TimelinePost
     let model: TimelineViewModel
     let focus: FocusState<Post.ID?>.Binding
+    /// Replies to this post from the composer.
+    let reply: () -> Void
     @State private var hasFadedIn = false
+    @State private var isHovering = false
 
     var body: some View {
         let isArriving = model.isArrivingLive(post.id)
         VStack(alignment: .leading, spacing: Layout.headerToText) {
             header
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .trailing) {
+                    if isHovering {
+                        PostReplyButton(action: reply)
+                    }
+                }
             Text(verbatim: post.text)
                 .font(.body)
                 .lineSpacing(Layout.lineSpacing)
@@ -43,10 +74,14 @@ struct PostRow: View {
         .anchorPreference(key: ArrivalWashes.self, value: .bounds) { bounds in
             isArriving ? [ArrivalWashes.Wash(id: post.id, bounds: bounds)] : []
         }
+        .onHover { hovering in
+            isHovering = hovering
+        }
         .focusable()
         .focused(focus, equals: post.id)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(model.reading(of: post)))
+        .accessibilityAction(named: Text(ComposerViewModel.replyButtonTitle), reply)
         .accessibilityIdentifier("postRow")
     }
 

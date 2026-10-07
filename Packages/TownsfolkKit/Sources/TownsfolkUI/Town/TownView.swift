@@ -11,6 +11,8 @@ private enum Layout {
     static let pillGap = DesignLock.Spacing.small
     static let pillFade = DesignLock.Motion.pillFade
     static let pillScroll = DesignLock.Motion.pillScroll
+    /// Below the composer, down to the hairline over the timeline.
+    static let composerToHairline = DesignLock.Spacing.medium
     /// How close to the top, in points, still counts as being at the top.
     static let topTolerance: CGFloat = 1
     /// The scroll target before the first row, so a scroll to the top shows the edge too.
@@ -23,6 +25,7 @@ private enum Layout {
 private struct TimelineRows: View {
     let model: TimelineViewModel
     let focus: FocusState<Post.ID?>.Binding
+    let reply: (Post.ID) -> Void
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
@@ -35,6 +38,7 @@ private struct TimelineRows: View {
                     isFirst: item.id == model.items.first?.id,
                     model: model,
                     focus: focus,
+                    reply: reply,
                 )
                 .id(item.id)
                 .task { await model.rowAppeared(item.id) }
@@ -55,9 +59,11 @@ private struct TimelineRows: View {
 }
 
 /// The scrolling timeline: its rows, the new-posts pill over them, the scroll position
-/// reported to the model, and ↑ and ↓ moving the selection.
+/// reported to the model, ↑ and ↓ moving the selection, and focus coming back from the
+/// composer.
 private struct TimelineList: View {
     let model: TimelineViewModel
+    let reply: (Post.ID) -> Void
     @FocusState private var focusedPost: Post.ID?
     @Environment(\.accessibilityReduceMotion)
     private var reduceMotion
@@ -65,16 +71,14 @@ private struct TimelineList: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                TimelineRows(model: model, focus: $focusedPost)
+                TimelineRows(model: model, focus: $focusedPost, reply: reply)
             }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top <= Layout.topTolerance
             } action: { _, isAtTop in
                 model.scrollPositionChanged(isAtTop: isAtTop)
             }
-            .overlay(alignment: .top) {
-                PillSlot(model: model)
-            }
+            .overlay(alignment: .top) { PillSlot(model: model) }
             .onAppear {
                 // A selection made before the rows appeared (a preview's) takes focus.
                 focusedPost = model.selectedPostID
@@ -82,6 +86,7 @@ private struct TimelineList: View {
             .onChange(of: model.scrollToTopRequest) {
                 scrollToTop(proxy)
             }
+            .onChange(of: model.focusRequest) { _ = followSelection(proxy) }
             .onChange(of: focusedPost) { _, post in
                 model.postSelected(post)
             }
@@ -127,6 +132,7 @@ private struct TimelineRow: View {
     let isFirst: Bool
     let model: TimelineViewModel
     let focus: FocusState<Post.ID?>.Binding
+    let reply: (Post.ID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -139,7 +145,7 @@ private struct TimelineRow: View {
                 EventRow(row: row, model: model)
 
             case let .group(group):
-                PostGroupView(group: group, model: model, focus: focus)
+                PostGroupView(group: group, model: model, focus: focus, reply: reply)
             }
         }
         .frame(maxWidth: Layout.columnWidth, alignment: .leading)
@@ -167,35 +173,54 @@ private struct PillSlot: View {
     }
 }
 
-/// The town window's main content (ux-flows S1): the timeline, newest first, with the
-/// new-posts pill above it, titled with the town's name. The status line and the
-/// composer join it later.
+/// The town window's main content (ux-flows S1): the composer at the top, then the
+/// timeline, newest first, with the new-posts pill above it, titled with the town's name.
+/// The status line joins it later, 8 pt above the composer.
 ///
-/// It renders ``TimelineViewModel`` and decides nothing; `.task` runs the model for as
-/// long as the view is on screen, and each live arrival's polite announcement is posted
-/// as it comes.
+/// It renders ``TimelineViewModel`` and ``ComposerViewModel`` and decides nothing; `.task`
+/// runs the timeline for as long as the view is on screen, each live arrival's polite
+/// announcement is posted as it comes, ↩ Reply on a post hands the composer that post,
+/// and Esc leaving the composer hands focus to the timeline.
 public struct TownView: View {
     @State private var model: TimelineViewModel
+    @State private var composer: ComposerViewModel
 
     public var body: some View {
-        TimelineList(model: model)
-            .frame(minWidth: Layout.minimumWidth, minHeight: Layout.minimumHeight)
-            .background(.background)
-            .navigationTitle(model.title)
-            .task { await model.run() }
-            .onChange(of: model.announcement) { _, announcement in
-                if let announcement {
-                    AccessibilityNotification
-                        .Announcement(AttributedString(localized: announcement.text))
-                        .post()
+        VStack(spacing: 0) {
+            ComposerView(model: composer, townName: model.title, yourName: model.yourName)
+                .frame(maxWidth: Layout.columnWidth)
+                .padding(.horizontal, Layout.edge)
+                .frame(maxWidth: .infinity)
+                .padding(.top, Layout.edge)
+                .padding(.bottom, Layout.composerToHairline)
+            Divider()
+            TimelineList(model: model) { id in
+                if let target = model.replyTarget(for: id) {
+                    composer.replyChosen(to: target)
                 }
             }
-            .accessibilityIdentifier("townView")
+        }
+        .frame(minWidth: Layout.minimumWidth, minHeight: Layout.minimumHeight)
+        .background(.background)
+        .navigationTitle(model.title)
+        .task { await model.run() }
+        .onChange(of: model.announcement) { _, announcement in
+            if let announcement {
+                AccessibilityNotification
+                    .Announcement(AttributedString(localized: announcement.text))
+                    .post()
+            }
+        }
+        .onChange(of: composer.focusLeaveRequest) {
+            model.composerDismissed()
+        }
+        .accessibilityIdentifier("townView")
     }
 
-    /// Creates the town window's content over `model`, which `App/` builds over the
-    /// town's store and a preview builds in a state.
-    public init(model: TimelineViewModel) {
+    /// Creates the town window's content over `model` and `composer`, which `App/` builds
+    /// over the town's store and a preview builds in a state.
+    public init(model: TimelineViewModel, composer: ComposerViewModel) {
         _model = State(initialValue: model)
+        _composer = State(initialValue: composer)
     }
 }
