@@ -44,7 +44,9 @@ public struct ModelUnavailableView: View {
     private let model: AvailabilityViewModel
 
     public var body: some View {
-        Group {
+        // A container that exists in every state, unlike a `Group`, whose modifiers reach
+        // only its children: with no notice there would be none, and nothing would refresh.
+        VStack(spacing: 0) {
             if let notice = model.notice {
                 ModelUnavailableContent(notice: notice)
             }
