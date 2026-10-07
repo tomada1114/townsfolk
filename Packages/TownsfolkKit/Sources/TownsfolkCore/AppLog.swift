@@ -43,4 +43,9 @@ public enum AppLog {
     /// `.public` because they are states. No instructions, prompt, or generated text is
     /// ever in it.
     public static let model = Logger(subsystem: subsystem, category: "model")
+
+    /// The scene-writing concern: each skipped turn and each item left out after repeated
+    /// refusals, with its reason and counts `.public`. No prompt, post, name, or generated
+    /// text is ever in it.
+    public static let scenes = Logger(subsystem: subsystem, category: "scenes")
 }
