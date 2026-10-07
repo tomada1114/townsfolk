@@ -247,6 +247,20 @@ struct StatusLineViewModelTests {
     }
 
     @Test
+    func `one store change reads the store once`() async throws {
+        try await withFoundedStore { store, _, _ in
+            let clock = ManualClock(start: StoreFixtures.minutes(5))
+            let model = Self.model(store: store, clock: clock)
+            try await Self.running(model, on: clock) {
+                let before = model.readCount
+                let rain = try EventDraft(time: StoreFixtures.minutes(4)).make()
+                try await Self.commit(on: clock) { try await store.startEvent(rain) }
+                #expect(model.readCount == before + 1)
+            }
+        }
+    }
+
+    @Test
     func `moving away clears the line`() async throws {
         try await withFoundedStore { store, _, _ in
             let clock = ManualClock(start: StoreFixtures.minutes(5))

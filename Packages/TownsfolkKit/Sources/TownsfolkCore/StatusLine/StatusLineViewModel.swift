@@ -34,7 +34,9 @@ public final class StatusLineViewModel {
     /// Counts up with each read begun, so an older read returning late is dropped.
     @ObservationIgnored private var readGeneration = 0
     /// The sleep ``run()`` is in, cancelled to recount the wait after a change.
-    @ObservationIgnored private var sleeper: Task<Void, Never>?
+    @ObservationIgnored private var sleeper: Task<Bool, Never>?
+    /// How many times the store has been read, for a test that the reads are not doubled.
+    @ObservationIgnored package private(set) var readCount = 0
 
     /// The line to show, in the environment's locale, or `nil` before there is a town.
     public var text: LocalizedStringResource? {
@@ -134,10 +136,17 @@ public final class StatusLineViewModel {
         while !Task.isCancelled {
             let wait = nextWait()
             let clock = environment.clock
-            // A cancelled sleep is the early wake, not a failure, so its error is dropped.
-            let nap = Task<Void, Never> { try? await clock.sleep(for: wait) }
+            // `false` when cancelled: a change was just read, so the wait is only recounted.
+            let nap = Task<Bool, Never> {
+                do {
+                    try await clock.sleep(for: wait)
+                    return true
+                } catch {
+                    return false
+                }
+            }
             sleeper = nap
-            await withTaskCancellationHandler {
+            let elapsed = await withTaskCancellationHandler {
                 await nap.value
             } onCancel: {
                 nap.cancel()
@@ -146,7 +155,9 @@ public final class StatusLineViewModel {
             guard !Task.isCancelled else {
                 return
             }
-            await read(from: store)
+            if elapsed {
+                await read(from: store)
+            }
         }
     }
 
@@ -162,6 +173,7 @@ public final class StatusLineViewModel {
 
     private func read(from store: TownStore) async {
         readGeneration += 1
+        readCount += 1
         let generation = readGeneration
         let now = environment.now()
         do {
