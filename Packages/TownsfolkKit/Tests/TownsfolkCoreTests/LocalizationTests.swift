@@ -107,7 +107,7 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        } + timelineCases()
+        } + timelineCases() + availabilityCases()
     }
 
     /// The timeline's and the Town menu's resources. A plural is listed with a count of
@@ -146,6 +146,14 @@ struct LocalizationTests {
             Case(resource: TimelineWording.townMenu, arguments: []),
             Case(resource: TimelineWording.scrollToLatest, arguments: []),
         ]
+    }
+
+    /// The model-unavailable screen's and banner's resources.
+    static func availabilityCases() -> [Case] {
+        [ModelAvailability.appleIntelligenceOff, .modelNotReady, .deviceNotEligible]
+            .compactMap(AvailabilityWording.message)
+            .map { Case(resource: $0, arguments: []) }
+            + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
     }
 
     /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.

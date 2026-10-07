@@ -44,6 +44,11 @@ public enum AppLog {
     /// ever in it.
     public static let model = Logger(subsystem: subsystem, category: "model")
 
+    /// The scene-writing concern: each skipped turn and each item left out after repeated
+    /// refusals, with its reason and counts `.public`. No prompt, post, name, or generated
+    /// text is ever in it.
+    public static let scenes = Logger(subsystem: subsystem, category: "scenes")
+
     /// The timeline concern: pages read and reads that failed, as row counts and error
     /// cases, both `.public`. No post text, name, or town name is ever in it.
     public static let timeline = Logger(subsystem: subsystem, category: "timeline")

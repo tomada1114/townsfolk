@@ -1,6 +1,50 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "availability.appleIntelligenceOff.message" : {
+      "comment" : "Model unavailable: Apple Intelligence is turned off. \"Apple Intelligence & Siri\" is the name of the System Settings pane and must match the system's own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Townsfolk needs Apple Intelligence to write the town. Turn it on in System Settings › Apple Intelligence & Siri."
+          }
+        }
+      }
+    },
+    "availability.deviceNotEligible.message" : {
+      "comment" : "Model unavailable: this Mac cannot run Apple Intelligence at all.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Mac can't run Apple Intelligence, which Townsfolk needs."
+          }
+        }
+      }
+    },
+    "availability.modelNotReady.message" : {
+      "comment" : "Model unavailable: Apple Intelligence is on but its model is not downloaded yet.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The on-device model is still downloading. The town starts when it's ready."
+          }
+        }
+      }
+    },
+    "availability.openSystemSettings" : {
+      "comment" : "Model unavailable: the button that opens the System Settings app.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        }
+      }
+    },
     "settings.keepsMoving.help" : {
       "comment" : "Settings: helper text under the keep-moving toggle. \"Rests\" means the town pauses.",
       "localizations" : {
