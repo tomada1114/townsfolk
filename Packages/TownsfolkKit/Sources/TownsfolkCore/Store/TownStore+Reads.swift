@@ -47,14 +47,26 @@ extension TownStore {
         guard limit >= 1 else {
             throw .invalidLimit(limit)
         }
-        let window = tuning.generation.recentContextWindow.components
-        let seconds = Double(window.seconds) + Double(window.attoseconds) / Self
-            .attosecondsPerSecond
         return try liveConnection().includedPosts(
-            from: date.addingTimeInterval(-seconds),
+            from: recentWindowStart(before: date),
             through: date,
             limit: limit,
             tuning: tuning,
         )
+    }
+
+    /// The topics still going: the topic tags of the posts in the recent window at or
+    /// before `date`, newest post first, each once — what an ordinary scene may be seeded
+    /// from (requirements.md:163).
+    public func recentTopicTags(before date: Date) throws(TownStoreError) -> [String] {
+        try liveConnection().includedTopicTags(from: recentWindowStart(before: date), through: date)
+    }
+
+    /// Where the recent window before `date` starts.
+    private func recentWindowStart(before date: Date) -> Date {
+        let window = tuning.generation.recentContextWindow.components
+        let seconds = Double(window.seconds) + Double(window.attoseconds) / Self
+            .attosecondsPerSecond
+        return date.addingTimeInterval(-seconds)
     }
 }

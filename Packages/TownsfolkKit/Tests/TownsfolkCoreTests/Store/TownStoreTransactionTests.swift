@@ -75,6 +75,25 @@ struct TownStoreTransactionTests {
     // MARK: A scene
 
     @Test
+    func `a scene stored from a cancelled task keeps nothing`() async throws {
+        try await withFoundedStore { store, founding, directory in
+            let speaker = try #require(founding.residents.first).id
+            let post = try ResidentPostDraft(author: speaker, time: StoreFixtures.minutes(30))
+                .make()
+            let scene = TownStore.SceneStep(
+                posts: [post],
+                nextOrdinarySceneDue: StoreFixtures.minutes(40),
+            )
+            try await Self.expectRolledBack(store, in: directory, throwing: .cancelled) {
+                try await Task {
+                    withUnsafeCurrentTask { $0?.cancel() }
+                    try await store.storeScene(scene)
+                }.value
+            }
+        }
+    }
+
+    @Test
     func `a scene whose second post replies to an unknown post keeps nothing`() async throws {
         try await withFoundedStore { store, founding, directory in
             let owed = try await Self.fortyTwoPosts(in: store)
