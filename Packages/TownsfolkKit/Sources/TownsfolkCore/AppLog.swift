@@ -49,6 +49,10 @@ public enum AppLog {
     /// text is ever in it.
     public static let scenes = Logger(subsystem: subsystem, category: "scenes")
 
+    /// The timeline concern: pages read and reads that failed, as row counts and error
+    /// cases, both `.public`. No post text, name, or town name is ever in it.
+    public static let timeline = Logger(subsystem: subsystem, category: "timeline")
+
     /// The town-engine concern: each step's outcome — a scene stored, a turn skipped and
     /// why, the model unavailable, a store failure's case — with counts, all `.public`. No
     /// post, name, or tag is ever in it.
