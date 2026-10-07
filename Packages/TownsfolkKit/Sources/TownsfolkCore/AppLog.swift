@@ -48,4 +48,8 @@ public enum AppLog {
     /// refusals, with its reason and counts `.public`. No prompt, post, name, or generated
     /// text is ever in it.
     public static let scenes = Logger(subsystem: subsystem, category: "scenes")
+
+    /// The timeline concern: pages read and reads that failed, as row counts and error
+    /// cases, both `.public`. No post text, name, or town name is ever in it.
+    public static let timeline = Logger(subsystem: subsystem, category: "timeline")
 }
