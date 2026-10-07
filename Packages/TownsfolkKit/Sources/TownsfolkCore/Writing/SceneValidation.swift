@@ -74,11 +74,14 @@ struct SceneValidation {
         return .earlierInScene(number - 1)
     }
 
-    /// The tags that are not blank and fit ``Post/topicTagMaxLength``, trimmed, at most
+    /// The tags that are not blank and fit ``Post/topicTagMaxLength``, trimmed, each once
+    /// — a repeat in any case is dropped, the first spelling kept — at most
     /// ``Post/maxTopicTags`` of them.
     private func tags(_ tags: [String]) -> [String] {
+        var seen: Set<String> = []
         let kept = tags.map(Self.trimmed).filter { tag in
-            !tag.isEmpty && tag.count <= Post.topicTagMaxLength
+            !tag.isEmpty && tag.count <= Post.topicTagMaxLength && seen.insert(tag.lowercased())
+                .inserted
         }
         return Array(kept.prefix(Post.maxTopicTags))
     }

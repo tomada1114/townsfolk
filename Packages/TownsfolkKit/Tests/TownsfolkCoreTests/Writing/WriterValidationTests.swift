@@ -73,6 +73,25 @@ struct WriterValidationTests {
         }
     }
 
+    @Test
+    func `a repeated tag is dropped in any case, the first spelling kept, before the cap`(
+    ) async throws {
+        try await withWritingStore { store, cast in
+            let content = WritingFixtures.content(
+                [DraftPost(speaker: "Mika", text: "Rain again.")],
+                tags: ["Rain", "rain", " RAIN ", "town", "Town", "river"],
+            )
+
+            let outcome = try await Self.write(content, store: store, cast: cast)
+
+            #expect(outcome == .written(WrittenScene(
+                seed: .topic("rain"),
+                posts: [WrittenPost(speaker: cast.mika.id, text: "Rain again.", replyTarget: nil)],
+                topicTags: ["Rain", "town", "river"],
+            )))
+        }
+    }
+
     @Test(arguments: ["Aki", "Sora", "mika", "Tomo", ""])
     func `a post by anyone but the speakers passed in discards the scene`(
         speaker: String,

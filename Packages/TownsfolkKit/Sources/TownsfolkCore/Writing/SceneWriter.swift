@@ -37,6 +37,8 @@ public actor SceneWriter {
 
     /// An overflow is retried with the posts divided by this (requirements.md:351).
     private static let overflowDivisor = 2
+    /// Bisection splits the range of post counts still in question in two.
+    private static let bisectionDivisor = 2
 
     private let model: any LanguageModelProviding
     private let store: TownStore
@@ -67,6 +69,14 @@ public actor SceneWriter {
     /// A skipped turn is an answer, not an error: the model unavailable, a store read
     /// failing, the prompt not fitting, every seed refused, or a scene the rules discard
     /// each return ``SceneOutcome/skipped(_:)`` with its reason, logged.
+    ///
+    /// One turn at a time per writer: a caller must not start a second `write` on the same
+    /// writer before the first returns. The actor keeps the calls data-race free, but each
+    /// suspends at every token count, model call, and store write, so two overlapping turns
+    /// would interleave the shared refusal streaks — counting one refusal against the other
+    /// turn's context, or resetting a streak mid-count. The engine (#19) writes one scene
+    /// after another (`docs/architecture.md` › Principles, "One writer at a time"), so the
+    /// writer adds no queue of its own.
     ///
     /// - Throws: `CancellationError` when the calling task is cancelled — never mapped to
     ///   a skip (`designing-errors` › Cancellation propagates).
@@ -165,7 +175,7 @@ public actor SceneWriter {
             var fitting = 0
             var overflowing = available
             while overflowing - fitting > 1 {
-                let middle = (fitting + overflowing) / Self.overflowDivisor
+                let middle = (fitting + overflowing) / Self.bisectionDivisor
                 if try await tokens(in: builder.prompt(keeping: middle)) <= budget {
                     fitting = middle
                 } else {
@@ -175,6 +185,12 @@ public actor SceneWriter {
             return .fits(builder.prompt(keeping: fitting))
         } catch let error as ModelCallError {
             return .skip(error == .unavailable ? .unavailable : .modelFailed)
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            // Beyond the port's promise; mapped rather than thrown, so `write` throws only
+            // cancellation.
+            return .skip(.modelFailed)
         }
     }
 
@@ -203,6 +219,12 @@ public actor SceneWriter {
             case .unavailable:
                 .failed(.unavailable)
             }
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            // Beyond the port's promise; mapped rather than thrown, so `write` throws only
+            // cancellation.
+            return .failed(.modelFailed)
         }
     }
 
