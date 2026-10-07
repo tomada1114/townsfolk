@@ -417,8 +417,19 @@ macOS 27's `LanguageModel` protocol is the first place to look.
   `SystemLanguageModelProviderTests` prints the size it reads under `just test-local`.
 - Unverified: whether the owner's Mac gets only the smaller on-device model; read at run
   time.
-- Unverified: an Apple-documented way to open System Settings at the Apple Intelligence
-  pane for ux-flows S7; none was found, so the message names where the setting is.
+- Settled: opening System Settings for ux-flows S7. Apple documents no URL that opens
+  System Settings at the Apple Intelligence pane (searched 2026-09-30; the
+  `x-apple.systempreferences:` pane identifiers in circulation are undocumented), so the
+  Apple Intelligence off message names the pane — "Turn it on in System Settings ›
+  Apple Intelligence & Siri." — and its Open System Settings button opens the app
+  itself: `AvailabilityNotice.systemSettingsURL`,
+  `file:///System/Applications/System%20Settings.app`, passed to SwiftUI's `openURL`.
+  On macOS 27.0 that app is present with bundle id `com.apple.systempreferences`, and
+  its Siri pane (`SiriPreferenceExtension.appex`) titles itself "Apple Intelligence &
+  Siri" on a Mac that can run Apple Intelligence (its `SIRI_SIDEBAR_TITLE_SAE` string;
+  "Siri" otherwise, where the message is never shown) — checked on this Mac 2026-10-07.
+  If a later SDK or Apple page documents a URL for the pane, the button uses it and the
+  message drops the location.
 - The error cases the macOS 27.0 SDK declares, each with the `ModelCallError` case
   `SystemLanguageModelTranslation` maps it to (the SDK's `FoundationModels.swiftinterface`,
   Xcode 27.0 27A266a, checked 2026-10-06):

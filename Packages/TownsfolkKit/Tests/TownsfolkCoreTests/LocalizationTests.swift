@@ -85,7 +85,10 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        }
+        } + [ModelAvailability.appleIntelligenceOff, .modelNotReady, .deviceNotEligible]
+            .compactMap(AvailabilityWording.message)
+            .map { Case(resource: $0, arguments: []) }
+            + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
     }
 
     /// `Sources/TownsfolkCore/Resources/Localizable.xcstrings`.
