@@ -72,7 +72,7 @@ already covered -- do not also file that.
 python3 ${CLAUDE_SKILL_DIR}/scripts/file_followup.py \
     --title "<type(scope): summary>" --body-file <path> \
     --tier P2 --area <area> --touches <paths> --label <type label> \
-    --found-while <n> [--needs-design]
+    --found-while <n> [--blocked-by <n,n>] [--needs-design]
 ```
 
 The title follows this repository's Conventional Commits convention, and the
@@ -81,8 +81,14 @@ The title follows this repository's Conventional Commits convention, and the
 `--needs-design` -- the moment the design is decided the issue must already rank
 correctly. `--area` and `--touches` become the issue's
 [ship contract](ship-contract.md). `--needs-design` is for an open design
-question, not a verified fix ([below](#design-not-settled)). Exit 2
-(`NO_WRITE_ACCESS`) -> report the finding at step 10 instead.
+question, not a verified fix ([below](#design-not-settled)). `--blocked-by` writes
+what `triaging-issues` asks of a waiting issue: a `## Dependencies` section with a
+`Depends on: #N` line per blocker, and the `blocked: dependency` label. Exit 2
+(`NO_WRITE_ACCESS`) -> report the finding at step 10 instead. Exit 4 -> a label it
+needs is not defined in the repository, so nothing was filed: fix a misspelled
+`--label`; for a label `.github/labels.yml` declares, creating it is `just labels`,
+which needs the owner's sign-off -- ask, or report the finding at step 10. The script
+never creates a label definition itself.
 
 File as you go, right after the PR that surfaced it lands; record
 `--event followup`, and pass `--refresh` on the next plan so the new issue is in
@@ -111,6 +117,11 @@ on only when all three hold:
 In `all` mode these join the existing queue with no privilege over the backlog's
 own issues. With no argument or an explicit number, this step is the *only*
 thing that extends the run past its first merge.
+
+A PR held at step 5 because its Codex review never arrived gets its one second look
+here too: `codex_review.py <pr> --timeout 0`. Completed by now, it resumes at step 5
+like any other PR; still missing, it stays held for the step 10 report
+([recovery.md](recovery.md#the-codex-review-never-arrives-or-fails)).
 
 ## What is not an issue
 

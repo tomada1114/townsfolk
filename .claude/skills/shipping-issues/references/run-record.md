@@ -11,7 +11,14 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/run_record.py --repo <owner>/<repo> --event 
 Appends one line (or, for `run-start`, a heading plus a line) to `<runstate>/run.md`,
 where **`<runstate>`** is
 `${AGENT_SKILL_STATE_DIR:-$HOME/.local/state/agent-skills}/shipping-issues/<owner>__<repo>/`
--- never rewritten or deleted, so a stopped run keeps what already landed.
+-- never rewritten or deleted, so a stopped run keeps what already landed. A leading
+`~` in `AGENT_SKILL_STATE_DIR` is expanded by every script. `preflight.sh` and
+`issue_digest.py` read `<owner>/<repo>` from the origin URL identically -- git's
+scp-style `[user@]host:[/]owner/repo` (a bare ssh host alias too) or `https`, `http`,
+`ssh`, `git`, `git+ssh`, `ssh+git` as `scheme://[user@]host[:port]/owner/repo`, `.git`
+and a trailing `/` optional; anything else, `file://` included, is `UNKNOWN` -- and
+`scripts/tests/test_runstate_parity.py` holds them equal. `run_record.py` instead
+takes `--repo` or asks `gh repo view` (as do `file_followup.py` and `link_check.sh`).
 
 Every other file this run generates lives there too, and **never inside a
 repo checkout** -- the main one or a worktree: issue bodies for follow-ups,
@@ -31,10 +38,18 @@ priority-rubric.md via `--body-file`), `labels`, `design`, `parallel-group`,
 `note`.
 
 `design` records a settled -- or deliberately deferred -- design, from either
-path: `--field issue=<n> --field mode=<inline|background> --field
-verdict=<DECIDED|DEFERRED>`. A `DEFERRED` line is the more valuable of the two
-to read back: it is a question waiting on a human, and the label still says
-blocked.
+path: `--field issue=<n> --field step=<2b|8b> --field mode=<inline|background>
+--field verdict=<DECIDED|DEFERRED>`. `step` tells a step 2b decision (the design
+gating the issue being implemented) from a step 8b one. A `DEFERRED` line is the
+more valuable of the two to read back: it is a question waiting on a human, and
+the label still says blocked.
+
+`review` records the PR's one Codex review once its findings are answered
+([implement-and-review.md](implement-and-review.md#recording-it)); after a context
+compaction, a `review` line for a PR is what says not to wait for, or fix against,
+a review again. `blocked` carries the reason a PR is held: `codex-review-missing`,
+`codex-review-failed`, `review-decision`, `review-required`, `not-linked`,
+`linear-history`, `merge-conflict`.
 
 `parallel-group` records the plan's grouping decision once per batch (plan.py
 --record writes it) --

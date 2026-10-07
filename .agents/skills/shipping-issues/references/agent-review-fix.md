@@ -1,17 +1,15 @@
-# Review fix, parallel mode (sub-agent prompt)
+# Review fix, parallel mode (brief)
 
-Spawned at [SKILL.md step 4](../../SKILL.md#4-review-the-branch) in parallel
-mode -- only for findings this session has already read and accepted, one
-**`executor`** per branch that has any.
-
-`/code-review --fix` writes to the session's own working tree, which in
-parallel mode is the main checkout sitting on the default branch -- the wrong
-tree -- so the review runs read-only and the writing is delegated here
-instead. Zero accepted findings -> no spawn.
+Spawned at [SKILL.md step 5](../SKILL.md#5-the-codex-review) in parallel mode -- only
+for the PR's Codex review findings this session has already read and accepted, one
+**`executor`** per branch that has any. Serial mode applies them inline in the main
+checkout; in parallel mode the main checkout sits on the default branch, so the
+writing happens here, in the branch's own worktree. Zero accepted findings -> no
+spawn. This is the review's one fix pass: nothing re-reviews what it pushes.
 
 ```
-Branch {branch} implements issue #{n} in {owner}/{repo} and is, or is about to
-become, a PR. A review has already run against it and I have triaged the findings
+Branch {branch} implements issue #{n} in {owner}/{repo} and is PR #{pr}. The
+automatic Codex review has already run against it and I have triaged its findings
 myself; below are the ones I accepted. Apply exactly these and nothing else.
 
 Work only inside {workdir} -- not any sibling checkout or worktree of the same
@@ -27,12 +25,14 @@ That read is the ONLY GitHub command you are permitted to run.
 </context>
 
 <findings>
-{one per line, pre-numbered by me as `F<n> file:line -- what is wrong -- why it
-matters`. Findings I rejected are not listed here and must not be inferred.}
+{one per line, pre-numbered by me as `F<n> [P<k>] file:line -- what is wrong --
+why it matters`, the Codex finding restated in my words. Findings I rejected are
+not listed here and must not be inferred.}
 </findings>
 
-Project conventions: read {workdir}/CLAUDE.md and {workdir}/AGENTS.md before
-changing anything.
+Project conventions: read {workdir}/AGENTS.md (and the host's own instruction
+file, if any) before changing anything, and load the skills its Skills table
+names for tests, commits, and the areas the findings touch.
 Verification command: {verify_command}
 
 Do:
@@ -48,7 +48,8 @@ Do:
    background where you then have to poll it -- then commit and push. Push
    before you return.
 5. No GitHub write of any kind beyond the read above -- no `gh pr`, no
-   `gh issue edit/comment/close`, no label change. Never `rm`: undo a probe
+   `gh issue edit/comment/close`, no label change, no reply to or resolution of a
+   review thread, and never an `@codex` comment. Never `rm`: undo a probe
    inside the checkout with `git checkout --`, or move it aside with `mv`
    into {holding_dir}, and name any scratch file -- including a throwaway fixture or repository
    you created under a temp directory -- you left behind in your report.
