@@ -107,7 +107,31 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedName(speed), arguments: []),
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
-        } + timelineCases() + availabilityCases() + composerCases() + profileCases()
+        } + timelineCases() + availabilityCases() + composerCases()
+            + firstRunCases() + profileCases()
+    }
+
+    /// The first-run screens' resources (S2, S3): each step's line, and its symbol's
+    /// label both done and not yet.
+    static func firstRunCases() -> [Case] {
+        let (over, town) = (3, "Maplewood")
+        return [
+            Case(resource: FirstRunWording.welcome, arguments: []),
+            Case(resource: FirstRunWording.namePrompt, arguments: []),
+            Case(resource: FirstRunWording.nameHelp, arguments: []),
+            Case(resource: FirstRunWording.machineryNote, arguments: []),
+            Case(resource: FirstRunWording.continueTitle, arguments: []),
+            Case(resource: FirstRunWording.over(over), arguments: [over]),
+            Case(resource: FirstRunWording.foundingHeading, arguments: []),
+            Case(resource: FirstRunWording.stepStatus(isDone: true), arguments: []),
+            Case(resource: FirstRunWording.stepStatus(isDone: false), arguments: []),
+            Case(resource: FirstRunWording.slow, arguments: []),
+            Case(resource: FirstRunWording.failed, arguments: []),
+            Case(resource: FirstRunWording.tryAgain, arguments: []),
+            Case(resource: FirstRunWording.movedTo(town: town), arguments: [town]),
+        ] + [FoundingProgress.town, .residents, .firstScene].map { step in
+            Case(resource: FirstRunWording.step(step), arguments: [])
+        }
     }
 
     /// The timeline's and the Town menu's resources. A plural is listed with a count of
