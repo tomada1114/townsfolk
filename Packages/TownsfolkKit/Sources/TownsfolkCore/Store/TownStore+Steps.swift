@@ -101,7 +101,15 @@ extension TownStore {
 
     /// Stores one scene: its posts with their tags, the interests it touched, the pending
     /// response it delivers, and the next ordinary scene's due time.
+    ///
+    /// A scene is checked for cancellation here, inside the store, because a call queued
+    /// behind another step still runs after the caller's task was cancelled.
+    /// - Throws: ``TownStoreError/cancelled`` when the calling task was cancelled before
+    ///   the transaction began; nothing is written.
     public func storeScene(_ scene: SceneStep) throws(TownStoreError) {
+        guard !Task.isCancelled else {
+            throw .cancelled
+        }
         let change = TownStoreChange.sceneStored(posts: scene.posts.map(\.id))
         try commit(change) { connection throws(TownStoreError) in
             try connection.insert(scene)

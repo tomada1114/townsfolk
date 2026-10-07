@@ -135,9 +135,10 @@ extension TownEngine {
             return await skip(.invalidScene, at: now)
         }
         let due = pace.due(after: last, speed: speed, factor: factor)
-        try Task.checkCancellation()
         do throws(TownStoreError) {
             try await store.storeScene(TownStore.SceneStep(posts: posts, nextOrdinarySceneDue: due))
+        } catch .cancelled {
+            throw CancellationError()
         } catch {
             return .failed(error)
         }

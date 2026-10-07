@@ -123,6 +123,30 @@ struct EngineScheduleTests {
     }
 
     @Test
+    func `with nobody living in town a topic still going does not cast a scene`(
+    ) async throws {
+        let sora = try EngineCast.sora()
+        var setup = EngineSetup(residents: [sora])
+        let flood = try ResidentPostDraft(
+            author: sora.id,
+            time: StoreFixtures.date("2026-10-01T09:30:00Z"),
+            topicTags: ["the flood"],
+        ).make()
+        setup.priorPosts = [flood]
+        setup.outcomes = [.content(WritingFixtures.mikaSpeaks)]
+        try await withEngine(setup) { harness in
+            let outcome = try await harness.engine.step()
+
+            #expect(outcome == .skipped(
+                .noSpeakers,
+                nextDue: EngineFixtures.time("10:13:26.963"),
+            ))
+            #expect(harness.model.calls.isEmpty)
+            #expect(try await harness.storedDue() == EngineFixtures.time("10:13:26.963"))
+        }
+    }
+
+    @Test
     func `a store with no town founded does nothing`() async throws {
         try await withStore { store, _ in
             let model = WritingFixtures.fake([.content(WritingFixtures.mikaSpeaks)])

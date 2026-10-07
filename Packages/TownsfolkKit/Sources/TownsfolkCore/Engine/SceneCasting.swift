@@ -48,6 +48,10 @@ struct SceneCasting {
     /// The cast of one scene, or `nil` when nobody lives in town.
     func cast(using generator: inout some RandomNumberGenerator) -> Cast? {
         let living = residents.filter { $0.status == .living }.map(\.id)
+        // Before any draw: a topic is a seed even with nobody left to speak about it.
+        guard !living.isEmpty else {
+            return nil
+        }
         let topicSeeds = topics.map(SceneSeed.topic)
         var profiles = Self.profileSeeds(of: living)
         var openTopics = topicSeeds
