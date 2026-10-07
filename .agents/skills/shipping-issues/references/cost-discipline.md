@@ -2,13 +2,12 @@
 
 What this skill keeps out of the main context, why the run count is what it
 is, and why each spawn gets the tier it gets. Read it when deciding whether
-to delegate a step, before changing a run count, or before picking a
-`/code-review` effort.
+to delegate a step, before changing a run count, or before deciding who reviews
+a branch.
 
 ## Table of Contents
 
-- [Code review effort](#code-review-effort)
-  - [Why never `low`: a diff it cannot see](#why-never-low-a-diff-it-cannot-see)
+- [Review: the PR's one Codex review](#review-the-prs-one-codex-review)
 - [What the startup costs](#what-the-startup-costs)
 - [Run budget](#run-budget)
 - [Model tiers](#model-tiers)
@@ -30,52 +29,24 @@ On a labeled backlog the whole ranking step is `--select`, three lines, no
 spawn at all. Never re-read bodies to reconstruct a priority a label already
 carries; if a label looks wrong, fix the label.
 
-## Code review effort
+## Review: the PR's one Codex review
 
-Only for [step 4](../SKILL.md#4-review-the-branch)'s local pass.
+[Step 5](../SKILL.md#5-the-codex-review)'s review costs this run nothing to produce:
+the GitHub integration runs it on Codex's side as soon as the PR opens, and all that
+reaches this context is `codex_review.py`'s verdict block -- a few lines and one line per
+finding. That is why the owner made it the only review: a local pass (`/code-review`, or
+a review sub-agent) would spend this run's budget on a second opinion of the same diff,
+and the step that once ran it is gone, not optional.
 
-`/code-review <effort> <branch> --fix` forks and runs entirely outside this
-session's context -- the finders' reads never reach here, only the findings
-do. Effort controls how much of that runs:
+What the run still pays for is the wait -- usually a few minutes, bounded at 900 s, and
+spent while CI runs anyway -- and one targeted read of each finding's body during
+triage. The run never buys a second review round: fixes are verified by `just check` and
+CI, not re-reviewed, and the step 10 report says the final head was not re-reviewed
+instead of implying it was.
 
-**`medium` is this repository's default effort.** The owner set it as the
-standing choice for every branch this skill reviews; use it unless the `high`
-row below genuinely applies, and never drop to `low` to save time on a diff
-that looks small.
-
-| effort | pipeline | when |
-|---|---|---|
-| `low` | one pass, no verify sub-pass, at most 4 findings, skips test/fixture hunks | **never** in this skill -- see below |
-| `medium` | 8 finder angles x 6 candidates, 1-vote verify, at most 8 findings (precision-biased) | **the default** -- every branch, unless the next row applies |
-| `high` | same 8 angles, 1-vote verify biased toward recall, at most 10 findings | the change can lose or corrode state that already exists -- a persistence format, a migration of stored user data, a released public contract real consumers are on -- or it rewrites a gate (a test that decides what "green" means, a lint rule, a workflow), or the user asked for one |
-
-Diff size or file count alone is not a reason to escalate -- `medium` already
-reads the whole diff for scope and correctness, and a big mechanical rename is
-exactly the shape it handles well. Never `ultra`: it runs in the cloud, is
-billed per use, and the prompt that defines it says explicitly that a model
-cannot launch it itself.
-
-### Why never `low`: a diff it cannot see
-
-`low` **skips test and fixture hunks**. That is wrong whenever a file under
-`Tests/` or `scripts/tests/` *is* the gate rather than a consumer of one --
-`ArchitectureBoundaryTests`, a harness check, a script test that pins a failure
-contract -- and it fails silently: a diff confined to such a file comes back
-`(none)` in a few seconds, which reads exactly like a clean review and is not
-one. Observed cost: a gate change reviewed at `low` returned no findings;
-re-run at `medium` it returned four, all reproduced against the branch, one of
-them a security rule that silently accepted three of the four YAML spellings
-it existed to reject.
-
-Whatever the effort, ask what the review actually read before accepting a
-clean verdict:
-
-- **A clean verdict that names what it skipped is not a clean verdict.** A
-  result like "the entire diff is confined to X, which this review level skips"
-  is the review telling you it abstained. Read the sentence, not the empty
-  findings list.
-- A run that escalated to `high` says so in the step 10 report, with the
-  reason -- otherwise it looks like drift away from the standing default.
+Whatever the review returns, read what it covered before believing it: a `CLEAN` with
+`reviewed_head: no` reviewed an earlier commit, and a review that never arrived is a held
+PR, not a clean one.
 
 ## What the startup costs
 
@@ -103,13 +74,13 @@ call, and it is bounded by K.
 
 Run count scales with issue count, not with thoroughness: one triage spawn
 (optional), one implementation sub-agent per issue plus up to 2 resume/patch
-runs when this session's judgment finds the first incomplete, one
-`/code-review` per branch, in parallel mode one fix sub-agent per branch that
-had accepted findings (none when a review came back clean), one repair
-sub-agent per failing CI attempt (capped at 3). This session's own
-judgment calls -- reading the implementation diff, reading `--fix`'s diff,
-deciding what CI failure means -- cost targeted reads in this context, never a
-spawn. Filing a follow-up (step 8) never adds a run either: whatever found it
+runs when this session's judgment finds the first incomplete, one fix pass per
+PR whose Codex review had accepted findings (inline in serial mode, one `executor`
+in parallel mode; none when the review came back clean), one repair sub-agent per
+failing CI attempt (capped at 3). The review itself is not a run of this skill's.
+This session's own judgment calls -- reading the implementation diff, triaging the
+review's findings, reading a fix agent's diff, deciding what CI failure means -- cost
+targeted reads in this context, never a spawn. Filing a follow-up (step 8) never adds a run either: whatever found it
 already returned the lead under `FOLLOW-UPS`, and confirming it costs a
 couple of targeted reads.
 
@@ -142,8 +113,7 @@ default and loses the tier's instructions.
 | 2 priority research | `architect` | ranking needs judgment: verifying unblock edges, overriding the heuristic, and a wrong label costs every later run |
 | 3 implementation (and its resumes) | `executor` | a settled spec with a clear pass/fail |
 | 3 implementation of a foundational or design-bearing issue | `architect` | [below](#the-foundation-exception-architect-for-what-the-backlog-builds-on) |
-| 4 review fix (parallel mode) | `executor` | applying already-triaged findings |
-| 4 review fallback | `architect` | review and bug-finding is judgment work with an unresolved spec |
+| 5 review fix (parallel mode) | `executor` | applying Codex findings this session already triaged |
 | 6 CI repair, attempts 1-2 | `executor` | a failing check with a log is usually a settled fix |
 | 6 CI repair, once the same failure survived two attempts | `architect` | persistent failure means the spec (or the fix) needs judgment, not another mechanical retry |
 | 8b design decision | `architect` | deciding an approach nobody has decided is the least mechanical work here, and a bad decision recorded on an issue outlives the run |
@@ -154,10 +124,6 @@ agent by `SendMessage` while it is reachable
 ([implement-and-review.md](implement-and-review.md#resuming-a-run)). The design
 agent is also the only sub-agent here that writes to GitHub (one comment, one
 label) and the only one that writes no code at all.
-
-Under Codex CLI, which reads nothing under `.claude/agents/`, there is no tier
-to name: each of these steps runs inline in the main session, with the same
-prompt body as its brief.
 
 ### The foundation exception: `architect` for what the backlog builds on
 
@@ -234,8 +200,8 @@ set up first.
 **Added, per issue in a parallel batch:** one dependency install and one
 baseline verify (`worktree_setup.sh`), both outside this context -- the parent
 reads one `verdict:` line each. Plus, per branch with accepted review
-findings, one `executor` fix run that serial mode gets for free from
-`/code-review --fix`.
+findings, one `executor` fix run that serial mode does inline in the main
+checkout.
 
 **Saved:** the implementations overlap instead of queueing, which is the
 longest stretch of a run, and nothing in this context grows to pay for it --

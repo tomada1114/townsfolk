@@ -2,18 +2,35 @@ import SwiftUI
 import TownsfolkCore
 import TownsfolkUI
 
-/// The Town menu (ux-flows S8): the timeline's commands, acting on the focused town
-/// window's timeline through `FocusedValues.timeline`. It starts with Scroll to Latest
-/// (⌘↑); New Post, Reply, Show Profile, and Move to Another Town… join it later.
+/// The Town menu (ux-flows S8): New Post (⌘N), Reply (⌘R), and Scroll to Latest (⌘↑),
+/// acting on the focused town window's composer and timeline through
+/// `FocusedValues.composer` and `FocusedValues.timeline`. Show Profile and Move to
+/// Another Town… join it later.
 ///
 /// Every title is a Core resource. A command is disabled, not hidden, while it cannot
-/// act: with no timeline focused, or with the timeline already at its top.
+/// act: New Post with no town window focused; Reply with no post selected, which includes
+/// focus on an event row (it cannot be selected); Scroll to Latest with the timeline
+/// already at its top.
 struct TownCommands: Commands {
     @FocusedValue(\.timeline)
     private var timeline
+    @FocusedValue(\.composer)
+    private var composer
 
     var body: some Commands {
         CommandMenu(Text(TimelineViewModel.townMenuTitle)) {
+            Button(ComposerViewModel.newPostTitle) {
+                composer?.newPostChosen()
+            }
+            .keyboardShortcut("n", modifiers: .command)
+            .disabled(composer == nil)
+            Button(ComposerViewModel.replyTitle) {
+                if let target = timeline?.selectedReplyTarget {
+                    composer?.replyChosen(to: target)
+                }
+            }
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(composer == nil || timeline?.selectedReplyTarget == nil)
             Button(TimelineViewModel.scrollToLatestTitle) {
                 timeline?.scrollToLatestChosen()
             }

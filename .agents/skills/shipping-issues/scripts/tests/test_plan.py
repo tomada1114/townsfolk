@@ -32,12 +32,12 @@ origin: git@github.com:acme/widgets.git
 repo_slug: acme/widgets
 default_branch: main
 runstate: /state/acme__widgets
-pkg_manager: pnpm
-lockfile: pnpm-lock.yaml
+pkg_manager: uv
+lockfile: uv.lock
 lockfile_hash: abc123def456
-verify_command: pnpm run verify
-verify_source: package.json:scripts.verify
-hooks: lefthook
+verify_command: just verify
+verify_source: justfile:verify
+hooks: pre-commit
 gh_auth: ok
 gh_write: yes
 worktree_viable: unknown
@@ -48,7 +48,7 @@ verdict: READY
 """
 
 
-def rank_row(number, tier="P1", readiness="READY", touches=None, title=None,
+def rank_row(number, tier="P1", readiness="READY", touches=None, *, title=None,
              depends=(), unblocks=()):
     return {
         "number": number, "title": title or f"fix(core): thing {number}",
@@ -60,7 +60,8 @@ def rank_row(number, tier="P1", readiness="READY", touches=None, title=None,
     }
 
 
-def digest_payload(rows, needs_design=(), issues=None, stale_dependency=None):
+def digest_payload(rows, needs_design=(), issues=None, stale_dependency=None,
+                   tracking=()):
     """`stale_dependency`, when given, maps issue number -> the stale label
     names it carries, and only affects the default `issues` records built
     here (an explicit `issues=` overrides it entirely, same as it does with
@@ -75,6 +76,7 @@ def digest_payload(rows, needs_design=(), issues=None, stale_dependency=None):
                               "missing": [r["number"] for r in rows],
                               "incomplete": {}},
         "needs_design": list(needs_design),
+        "tracking_issues": sorted(tracking),
         "stale_dependency_labels": sorted(stale_dependency),
         "ranking": rows,
         "issues": issues if issues is not None else [
@@ -113,7 +115,7 @@ class SlugTest(unittest.TestCase):
 class PathCollisionTest(unittest.TestCase):
     def test_identical_and_prefix_paths_collide(self):
         self.assertTrue(plan.paths_collide(["src/"], ["src/"]))
-        self.assertTrue(plan.paths_collide(["src/"], ["src/api/handler.ts"]))
+        self.assertTrue(plan.paths_collide(["src/"], ["src/api/handler.py"]))
 
     def test_disjoint_paths_do_not(self):
         self.assertFalse(plan.paths_collide(["src/api/"], ["tests/unit/"]))
@@ -135,7 +137,7 @@ class PathCollisionTest(unittest.TestCase):
         self.assertFalse(plan.paths_collide(["lib"], ["library"]))
 
     def test_a_file_and_its_directory_collide(self):
-        self.assertTrue(plan.paths_collide(["src/api/handler.ts"], ["src/api/"]))
+        self.assertTrue(plan.paths_collide(["src/api/handler.py"], ["src/api/"]))
 
     def test_an_undeclared_side_does_not_collide_on_its_own(self):
         # Emptiness is handled by the PARTIAL confidence signal, not by
@@ -195,16 +197,17 @@ class MainTest(unittest.TestCase):
     boundary -- the two are covered by their own test modules, and what matters
     here is how plan.py combines them."""
 
-    def _run(self, argv, rows, preflight=PREFLIGHT, preflight_rc=0,
+    def _run(self, argv, rows, preflight=PREFLIGHT, preflight_rc=0, *,
              needs_design=(), issues=None, worktrees=(), worktree_paths=(),
-             stale_dependency=None):
+             stale_dependency=None, tracking=()):
         self.recorded: list[list[str]] = []
         paths = [f"/state/acme__widgets/worktrees/{n}" for n in worktrees]
         paths += list(worktree_paths)
         self.worktree_list = "".join(
             f"worktree {path}\nHEAD abc\n\n" for path in paths)
         payload = json.dumps(
-            digest_payload(rows, needs_design, issues, stale_dependency))
+            digest_payload(rows, needs_design, issues, stale_dependency,
+                           tracking))
 
         self.preflight_calls: list[list[str]] = []
 
@@ -249,23 +252,23 @@ class MainTest(unittest.TestCase):
         self.assertIn("grouping: MECHANICAL", out)
         self.assertIn("--spec 85:fix/85-thing-85", out)
         self.assertIn("--spec 106:fix/106-thing-106", out)
-        self.assertIn('--verify "pnpm run verify"', out)
+        self.assertIn('--verify "just verify"', out)
 
     def test_the_next_command_never_decides_viability_for_the_caller(self):
         rows = [rank_row(1, touches=["a/"]), rank_row(2, touches=["b/"])]
         rc, out, err = self._run(["--mode", "all"], rows)
-        self.assertIn('--verify "pnpm run verify"', out)
+        self.assertIn('--verify "just verify"', out)
         self.assertNotIn("--gate-first", out)
         self.assertIn("PROPOSAL, not a decision", out)
 
     def test_the_verify_command_is_flagged_for_confirmation(self):
         rc, out, err = self._run([], [rank_row(1, touches=["a/"])])
-        self.assertIn("verify-check: 'pnpm run verify'", out)
-        self.assertIn("package.json:scripts.verify", out)
+        self.assertIn("verify-check: 'just verify'", out)
+        self.assertIn("justfile:verify", out)
         self.assertIn("confirm it is this repo's real gate", out)
 
     def test_no_verify_command_says_so_rather_than_going_quiet(self):
-        pre = PREFLIGHT.replace("verify_command: pnpm run verify",
+        pre = PREFLIGHT.replace("verify_command: just verify",
                                 "verify_command: NONE")
         rc, out, err = self._run([], [rank_row(1, touches=["a/"])], preflight=pre)
         self.assertIn("verify-check: NONE found", out)
@@ -307,6 +310,73 @@ class MainTest(unittest.TestCase):
         self.assertIn("select: #42", out)
         self.assertIn("plan: serial", out)
         self.assertIn("--include-design", self.digest_cmd)
+
+    def test_explicit_issue_that_is_not_ready_is_never_selected(self):
+        # Naming an issue overrides the design hold and nothing else: the
+        # readiness strings are the ones issue_digest.py prints for an open
+        # blocker, an `on hold` label, a `blocked: external` label, and an
+        # open PR.
+        for readiness in ("BLOCKED-BY:#2", "LABEL:on hold",
+                          "LABEL:blocked: external", "HAS-PR:#7"):
+            with self.subTest(readiness=readiness):
+                rows = [rank_row(2, touches=["b/"]),
+                        rank_row(1, readiness=readiness, touches=["a/"])]
+                rc, out, err = self._run(["--mode", "1"], rows)
+                self.assertEqual(rc, 0, err)
+                self.assertIn(f"select: none -- #1 is not ready: {readiness}\n",
+                              out)
+                self.assertNotIn("git switch -c", out)
+                self.assertIn(f"next: nothing to ship -- #1 is not ready: "
+                              f"{readiness}", out)
+
+    def test_explicit_issue_not_ready_reaches_the_json_and_the_record(self):
+        rows = [rank_row(1, readiness="LABEL:on hold")]
+        rc, out, err = self._run(["--mode", "1", "--json", "--record"], rows)
+        self.assertEqual(rc, 0, err)
+        payload = json.loads(out)
+        self.assertIsNone(payload["select"])
+        self.assertEqual(payload["batches"], [])
+        self.assertEqual(payload["select_hold"],
+                         "#1 is not ready: LABEL:on hold")
+        events = [cmd[cmd.index("--event") + 1] for cmd in self.recorded]
+        self.assertEqual(events, ["run-start"])
+
+    def test_explicit_issue_missing_from_the_digest_is_not_selected(self):
+        rc, out, err = self._run(["--mode", "#9"], [rank_row(1, touches=["a/"])])
+        self.assertEqual(rc, 0, err)
+        self.assertIn("select: none -- #9 is not an open, shippable issue", out)
+        self.assertNotIn("select: #1", out)
+
+    def test_explicit_tracking_issue_is_not_selected_and_says_why(self):
+        rc, out, err = self._run(["--mode", "9", "--json"],
+                                 [rank_row(1, touches=["a/"])], tracking=[9])
+        self.assertEqual(rc, 0, err)
+        payload = json.loads(out)
+        self.assertIsNone(payload["select"])
+        self.assertEqual(payload["tracking_issues"], [9])
+        self.assertEqual(payload["select_hold"],
+                         "#9 is a tracking issue -- ship one of its sub-issues "
+                         "instead")
+
+    def test_tracking_issues_are_listed_beside_the_pick(self):
+        rc, out, err = self._run([], [rank_row(1, touches=["a/"])],
+                                 tracking=[9, 4])
+        self.assertEqual(rc, 0, err)
+        self.assertIn("select: #1", out)
+        self.assertIn("tracking: #4,#9 -> never ranked; ship their sub-issues",
+                      out)
+
+    def test_no_tracking_issue_prints_no_tracking_line(self):
+        rc, out, err = self._run([], [rank_row(1, touches=["a/"])])
+        self.assertNotIn("tracking:", out)
+
+    def test_explicit_design_held_issue_is_still_selectable(self):
+        # The digest is asked --include-design for a named issue, so its row
+        # reads READY; a DESIGN: readiness never reaches here for one.
+        rc, out, err = self._run(["--mode", "5"], [rank_row(5, touches=["a/"])])
+        self.assertEqual(rc, 0, err)
+        self.assertIn("select: #5", out)
+        self.assertIn("git switch -c fix/5-thing-5", out)
 
     def test_nothing_ready_says_so_instead_of_proposing_a_branch(self):
         rows = [rank_row(1, readiness="BLOCKED-BY:#2")]
@@ -370,7 +440,7 @@ class MainTest(unittest.TestCase):
         self.assertEqual(payload["batches"], [[1, 2]])
         self.assertEqual(payload["grouping"], "MECHANICAL")
         self.assertEqual(payload["branches"]["1"], "fix/1-thing-1")
-        self.assertEqual(payload["preflight"]["hooks"], "lefthook")
+        self.assertEqual(payload["preflight"]["hooks"], "pre-commit")
 
     def test_json_output_carries_stale_dependency_labels(self):
         rows = [rank_row(1, touches=["a/"])]

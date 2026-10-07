@@ -1,6 +1,6 @@
-# CI repair (sub-agent prompt)
+# CI repair (brief)
 
-Spawned at [SKILL.md step 6](../../SKILL.md#6-ci-to-green), only after
+Spawned at [SKILL.md step 6](../SKILL.md#6-ci-to-green), only after
 `ci_watch.sh` returns `FAIL`, one PR at a time. **`executor` by default; a
 fresh `architect` once the same failure has survived two attempts in a row.**
 Attempt 2 is a `SendMessage` to the attempt-1 agent while it is reachable --
@@ -33,8 +33,9 @@ the GitHub API otherwise, do not watch CI, do not sleep or poll.
 
 Base branch: {base_branch}
 Verification command: {verify_command, from step 3's smoke run}
-Project conventions: read {workdir}/CLAUDE.md and {workdir}/AGENTS.md
-before changing anything.
+Project conventions: read {workdir}/AGENTS.md (and CLAUDE.md, if any) before
+changing anything, and load the skills its Skills table names for tests,
+commits, gates, and the area the failure is in.
 
 The failing output is in:
   {log_path}

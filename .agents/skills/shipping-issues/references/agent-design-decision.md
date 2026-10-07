@@ -1,6 +1,6 @@
-# Design decision (sub-agent prompt)
+# Design decision (brief)
 
-Spawned at [SKILL.md step 8b](../../SKILL.md#8b-unblock-held-designs-in-the-background),
+Spawned at [SKILL.md step 8b](../SKILL.md#8b-unblock-held-designs-in-the-background),
 one **`architect`** per design-blocked issue, **in the background** -- this
 session spawns a round in one message and goes straight back to shipping.
 
@@ -18,7 +18,8 @@ in the repository, and run no `rm`.
 Read, in this order:
   - the issue and its thread:
     gh issue view {n} --repo {owner}/{repo} --json title,body,labels,comments
-  - the project's own conventions: {workdir}/CLAUDE.md, {workdir}/AGENTS.md
+  - the project's own conventions: {workdir}/AGENTS.md (and CLAUDE.md, if
+    any), plus the skills its Skills table names for the areas the issue touches
   - the code the issue names, and the nearest thing this repo already does that
     solves a similar problem -- your design has to look like it, not like a
     greenfield design

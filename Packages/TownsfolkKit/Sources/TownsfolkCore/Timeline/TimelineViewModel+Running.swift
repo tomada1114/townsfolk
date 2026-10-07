@@ -107,6 +107,9 @@ extension TimelineViewModel {
             everythingDeleted()
             return
         }
+        if case .yourPostStored = change {
+            yourPostStored()
+        }
         if log.isEmpty {
             await loadNewest(from: store)
             return
@@ -128,6 +131,16 @@ extension TimelineViewModel {
                 .error("change read failed: \(String(describing: error), privacy: .public)")
         }
         await fetchMissingQuotes(from: store)
+    }
+
+    /// Your post shows at once, at the top (requirements.md:224): scrolled away, the
+    /// timeline goes back to the top first, showing what waited, so the post arrives there
+    /// rather than counting in the pill.
+    private func yourPostStored() {
+        guard !isAtTop else {
+            return
+        }
+        scrollToLatestChosen()
     }
 
     /// Sleeps until the next post is due or the times need refreshing, whichever is

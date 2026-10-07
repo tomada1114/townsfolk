@@ -62,4 +62,8 @@ public enum AppLog {
     /// why, the model unavailable, a store failure's case — with counts, all `.public`. No
     /// post, name, or tag is ever in it.
     public static let engine = Logger(subsystem: subsystem, category: "engine")
+
+    /// The composer concern: whether your post was stored, and the error case when it was
+    /// not, both `.public`. What you typed, and whom you replied to, are never in it.
+    public static let composer = Logger(subsystem: subsystem, category: "composer")
 }

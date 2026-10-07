@@ -213,13 +213,13 @@ private enum TownPreviewData {
     }
 }
 
-/// The town window over `model`, or a note to the developer when its posts could not be
-/// built.
+/// The town window over `model`, with an empty composer, or a note to the developer when
+/// its posts could not be built.
 @MainActor
 @ViewBuilder
 private func town(_ model: TimelineViewModel?) -> some View {
     if let model {
-        TownView(model: model)
+        TownView(model: model, composer: ComposerViewModel(text: "", replyTarget: nil))
     } else {
         Text(verbatim: "Preview: could not build the timeline's posts.")
     }

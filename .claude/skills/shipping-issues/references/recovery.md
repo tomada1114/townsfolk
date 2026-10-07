@@ -7,19 +7,31 @@ save one file read on a few of them.
 
 ## Table of Contents
 
+- [After a context compaction](#after-a-context-compaction)
 - [A sub-agent returned without its report](#a-sub-agent-returned-without-its-report)
 - [A sub-agent stopped before pushing](#a-sub-agent-stopped-before-pushing)
 - [The implementation missed or widened the spec](#the-implementation-missed-or-widened-the-spec)
-- [`--fix` and why it is serial-mode only](#--fix-and-why-it-is-serial-mode-only)
-- [`/code-review` cannot be launched](#code-review-cannot-be-launched)
+- [The Codex review never arrives, or fails](#the-codex-review-never-arrives-or-fails)
 - [CI reports the previous commit](#ci-reports-the-previous-commit)
 - [CI fails](#ci-fails)
-- [`NO_CHECKS`, `ERROR`, `TIMEOUT`, and other non-verdicts](#no_checks-error-timeout-and-other-non-verdicts)
+- [`NO_CHECKS`, `ERROR`, and other non-verdicts](#no_checks-error-and-other-non-verdicts)
 - [Bringing the rest of a parallel batch up to date](#bringing-the-rest-of-a-parallel-batch-up-to-date)
 - [A merge conflict](#a-merge-conflict)
 - [A red baseline](#a-red-baseline)
 - [A worktree that will not go away](#a-worktree-that-will-not-go-away)
 - [A change this run did not make](#a-change-this-run-did-not-make)
+
+## After a context compaction
+
+A long run outlives its own context: the host compacts it, and what survives is a
+summary that may have dropped which PR is open, whether its Codex review was read, which
+attempt CI repair is on, or what is held for the final confirmation. **Re-read
+`<runstate>/run.md` before the next step that writes** -- after any compaction, and
+whenever unsure what this run already did. It is append-only and written as each event
+happens ([run-record.md](run-record.md)), so it is the run's own account of itself; then
+confirm against GitHub and `git` before acting, and never re-run a write the record
+already shows landed. A `review` line for a PR means its one review was already read and
+answered: do not wait for, or fix against, a review again.
 
 ## A sub-agent returned without its report
 
@@ -63,27 +75,20 @@ resume/patch runs on top of the first; a third miss means the issue itself is
 underspecified, so record `--event blocked` and report `NEEDS-CLARIFICATION`
 instead of spawning again.
 
-## `--fix` and why it is serial-mode only
+## The Codex review never arrives, or fails
 
-`/code-review ... --fix` applies findings to *this session's* working tree -- the
-main checkout. In serial mode that is the branch under review, which is the
-point. In parallel mode the branch is checked out in a worktree and the main
-checkout is sitting on the default branch, so `--fix` would write another
-branch's repairs into the main checkout and leave it dirty -- the exact state
-[Stop conditions](../SKILL.md#stop-conditions) treats as someone else's work.
+`codex_review.py` reporting `TIMEOUT` after 900 s in total, or `FAILED`, is a held PR,
+not a reason to review it some other way: no `/code-review`, no review agent, no
+`@codex review` comment to start another run, no draft-and-ready or close-and-reopen
+cycle. Record `--event blocked --field issue=<n> --field reason=codex-review-missing`
+(or `codex-review-failed`), leave the PR open with its branch, skip its dependents, and
+move on. Before step 9, read each held PR once more with `--timeout 0`: a review that
+has completed in the meantime resumes that PR at step 5; one that has not goes to the
+step 10 report for the human, together with the PR's CI state.
 
-The review itself reads `<base>...<branch>` from the shared object store and is
-safe from anywhere; only the writing half is not. So in parallel mode: review
-each branch without `--fix`, triage the whole batch, then spawn one `executor` fix
-run per branch with accepted findings, scoped to that branch's worktree, using
-[agents/review-fix.md](agents/review-fix.md).
-
-## `/code-review` cannot be launched
-
-Host won't let this session run the slash command -> one independent,
-**read-only** `architect` against the branch, using
-[agents/review-fallback.md](agents/review-fallback.md),
-triaged the same way. Never re-read your own diff and call that a review.
+`summary: absent` on every PR of a run usually means the integration is off for this
+repository rather than slow -- say so in the report instead of holding PR after PR
+silently.
 
 ## CI reports the previous commit
 
@@ -96,7 +101,7 @@ actually appear among the branch's CI runs before starting `ci_watch.sh`.
 
 Fill and spawn an **`executor`** -- a fresh **`architect`** once the same failure
 has survived two attempts in a row -- with
-[agents/ci-repair.md](agents/ci-repair.md),
+[agent-ci-repair.md](agent-ci-repair.md),
 its work directory set to whichever checkout holds the branch: the main checkout
 in serial mode, that issue's worktree in parallel mode. Up to **3 attempts**.
 `PUSHED: no` ends the loop. Attempt 2 is a `SendMessage` to the attempt-1 agent
@@ -105,13 +110,11 @@ while it is reachable, with the new log path and what its push did not fix.
 A test deleted, skipped, or weakened to pass, or a "flaky" re-run without a
 diagnosis, is a **failed outcome**, not a green one.
 
-## `NO_CHECKS`, `ERROR`, `TIMEOUT`, and other non-verdicts
+## `NO_CHECKS`, `ERROR`, and other non-verdicts
 
 - `NO_CHECKS` -> run the project's own verification command locally (the plan's
   `verify=` line names it) and merge on a local green. No such command at
   all -> ask first; this is one of the run's two narrow pauses.
-- `verdict: ERROR` -> re-read the actual PR/CI state before treating it as a
-  green. An error is not a pass.
 - `verdict: TIMEOUT` -> the watch's own `--timeout` ran out while checks were
   still running; it proves nothing either way. Run the same watch again until
   1800 seconds of watching have passed in total, then treat it as `ERROR`
@@ -119,14 +122,19 @@ diagnosis, is a **failed outcome**, not a green one.
   foreground watch killed by the Bash tool's 600-second cap leaves no verdict at
   all -- that is a watch run wrongly, not a CI result; re-run it the way that
   section says.
-- `land_pr.sh` has six possible results and one of them must never read as
+- `verdict: ERROR` -> re-read the actual PR/CI state before treating it as a
+  green. An error is not a pass. With `unsettled_checks:`, the watch ended while
+  those checks were still running, or a check came back `STALE` (its result is for
+  an outdated state): run the same watch once more. "head moved ... during the
+  watch" means a push landed mid-watch: watch again, for the new head.
+- `land_pr.sh` has eleven possible results and two of them must never read as
   success: [landing-outcomes.md](landing-outcomes.md).
 
 ## Bringing the rest of a parallel batch up to date
 
 After each merge, the batch's remaining branches are behind the default branch.
-Bring each one up to date **in its own worktree, before its own PR** rather than
-after a CI failure:
+Bring each one up to date **in its own worktree, before its own step 6 watch** rather
+than after a CI failure:
 
 ```bash
 git -C <runstate>/worktrees/<m> fetch origin <default_branch> --quiet
@@ -135,9 +143,9 @@ git -C <runstate>/worktrees/<m> push
 ```
 
 **Merge, not rebase** -- step 3 already pushed these branches, so a rebase would
-need a force-push, and this run does not force-push. A repo that requires linear
-history is the one exception: there, rebase and push with `--force-with-lease`,
-and only ever on a branch this run created that has no PR open on it yet.
+need a force-push, and this run does not force-push. A repository that requires
+linear history is a stop condition, not an exception: record
+`--event blocked --field reason=linear-history` and ask the human.
 
 ## A merge conflict
 
