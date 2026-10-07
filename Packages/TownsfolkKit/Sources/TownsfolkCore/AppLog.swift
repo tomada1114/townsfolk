@@ -52,4 +52,8 @@ public enum AppLog {
     /// The timeline concern: pages read and reads that failed, as row counts and error
     /// cases, both `.public`. No post text, name, or town name is ever in it.
     public static let timeline = Logger(subsystem: subsystem, category: "timeline")
+
+    /// The composer concern: whether your post was stored, and the error case when it was
+    /// not, both `.public`. What you typed, and whom you replied to, are never in it.
+    public static let composer = Logger(subsystem: subsystem, category: "composer")
 }

@@ -42,6 +42,8 @@ public final class TimelineViewModel {
     public private(set) var announcement: TimelineAnnouncement?
     /// Counts up each time the timeline asks the view to scroll to the top.
     public private(set) var scrollToTopRequest = 0
+    /// Counts up each time the timeline asks the view to move focus to the selected post.
+    public private(set) var focusRequest = 0
     /// Your name, shown with "(you)" on every post of yours.
     public private(set) var displayName: DisplayName?
     /// The posts that arrived live and have not finished fading in.
@@ -161,6 +163,15 @@ public final class TimelineViewModel {
     /// ↑ in the timeline: selects the next post up, and stays on the topmost.
     public func upArrowPressed() {
         moveSelection(by: -1)
+    }
+
+    /// Esc left the composer: focus comes to the timeline — the selected post, or the
+    /// topmost with none selected; with no posts, nothing takes it.
+    public func composerDismissed() {
+        if selectedPostID == nil {
+            selectedPostID = postOrder.first
+        }
+        focusRequest += 1
     }
 
     /// A post took focus from the pointer or Tab, or focus left the posts (`nil`).
@@ -323,12 +334,7 @@ public final class TimelineViewModel {
     }
 
     private func moveSelection(by step: Int) {
-        let order = items.flatMap { item -> [Post.ID] in
-            if case let .group(group) = item {
-                return group.posts.map(\.id)
-            }
-            return []
-        }
+        let order = postOrder
         guard let topmost = order.first else {
             return
         }
