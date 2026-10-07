@@ -31,7 +31,9 @@ public protocol LanguageModelProviding: Sendable {
     var contextSize: Int { get }
 
     /// How many tokens `instructions` and `prompt` use together — what the budget is
-    /// measured in. The generation schema's own tokens are not included.
+    /// measured in. The generation schema's own tokens, and whatever framing the session
+    /// adds around a call, are not included, so a budget leaves headroom below
+    /// ``contextSize`` rather than filling it exactly.
     ///
     /// Promises, while available: empty instructions and an empty prompt count 0 or more
     /// without throwing; a non-empty prompt counts more than 0; and a prompt that extends
