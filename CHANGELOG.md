@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the field. Pasted line breaks become spaces, a counter appears once 20 characters
   remain ("12 left", "3 over"), and your post shows at once at the top of the timeline,
   scrolling back up to it if you were reading older posts
+- The status line, ready for the town window to show above the composer: one line
+  saying what is going on — an ongoing event with its symbol, then the latest topic
+  ("Rain since noon · the bakery's new bread"), "Everyone's talking about …", or "A quiet
+  day in …" — cut at the tail when the window is narrow, crossfading when it changes,
+  and read in full by VoiceOver as "Town status"
 
 ### Changed
 
