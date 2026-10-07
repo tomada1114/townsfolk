@@ -158,4 +158,36 @@ struct TimelineRevealTests {
             #expect(model.announcement == nil)
         }
     }
+
+    @Test
+    func `a reply to a post of yours no loaded page holds is announced once it is read`(
+    ) async throws {
+        try await withFoundedStore { store, founding, _ in
+            let yours = try YourPostDraft(time: StoreFixtures.minutes(1)).make()
+            try await store.storeYourPost(yours)
+            let later = try ResidentPostDraft(
+                author: founding.residents[1].id,
+                time: StoreFixtures.minutes(2),
+                text: "Rain again.",
+            ).make()
+            try await store.storeScene(TownStore.SceneStep(posts: [later]))
+            let clock = ManualClock(start: StoreFixtures.minutes(5))
+            let model = try Fixtures.model(store: store, clock: clock, pageSize: 1)
+            try await whileRunning(model, on: clock) {
+                #expect(model.announcement == nil)
+                let reply = try ResidentPostDraft(
+                    author: founding.residents[0].id,
+                    time: StoreFixtures.minutes(4),
+                    text: "Rust is fun.",
+                    replyTarget: yours.id,
+                ).make()
+                let next = clock.sleepsStarted + 1
+                try await store.storeScene(TownStore.SceneStep(posts: [reply]))
+                await clock.waitForSleep(next)
+                let announcement = try #require(model.announcement)
+                let name = founding.residents[0].name
+                #expect(announcement.text.resolved(in: .english) == "\(name) replied to you")
+            }
+        }
+    }
 }
