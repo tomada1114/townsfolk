@@ -4,6 +4,11 @@ import Foundation
 extension TimelineViewModel {
     private static let millisecondsPerSecond: Double = 1_000
 
+    /// How many rows a page asks for.
+    var pageSize: Int {
+        max(1, environment.pageSize)
+    }
+
     private static func posts(namedBy change: TownStoreChange) -> [Post.ID] {
         switch change {
         case let .sceneStored(posts):
@@ -53,19 +58,19 @@ extension TimelineViewModel {
             return
         }
         isLoadingOlder = true
+        let generation = loadGeneration
         let page: TimelinePage
         do {
             page = try await store.page(before: cursor, limit: pageSize)
         } catch {
-            isLoadingOlder = false
+            olderPageFailed(startedIn: generation)
             AppLog.timeline
                 .error("older page failed: \(String(describing: error), privacy: .public)")
             return
         }
-        // Cleared before the quotes are read, so the row that is now last can ask for the
-        // next page as soon as it appears.
-        isLoadingOlder = false
-        pageLoaded(page)
+        // Shown, and the flag cleared, before the quotes are read, so the row that is now
+        // last can ask for the next page as soon as it appears.
+        olderPageRead(page, startedIn: generation)
         AppLog.timeline.debug("older page loaded: \(page.entries.count, privacy: .public) rows")
         await fetchMissingQuotes(from: store)
     }
@@ -165,6 +170,7 @@ extension TimelineViewModel {
         guard !wanted.isEmpty else {
             return
         }
+        let generation = loadGeneration
         var found: [Post] = []
         for id in wanted {
             do {
@@ -176,6 +182,6 @@ extension TimelineViewModel {
                     .error("quote read failed: \(String(describing: error), privacy: .public)")
             }
         }
-        quotesFetched(found, asked: wanted)
+        quotesFetched(found, asked: wanted, startedIn: generation)
     }
 }

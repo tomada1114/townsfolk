@@ -60,13 +60,11 @@ public final class TimelineViewModel {
     @ObservationIgnored private(set) var missingQuotes: Set<Post.ID> = []
     @ObservationIgnored private(set) var olderCursor: TimelineCursor?
     @ObservationIgnored var isLoadingOlder = false
+    /// Counts up each time the town is deleted, so a read begun before the deletion is
+    /// dropped when it returns instead of loading the old town's rows.
+    @ObservationIgnored package private(set) var loadGeneration = 0
     /// The sleep ``run()`` is in, cancelled to wake it early when a new post waits.
     @ObservationIgnored var sleeper: Task<Void, Never>?
-
-    /// How many rows a page asks for.
-    var pageSize: Int {
-        max(1, environment.pageSize)
-    }
 
     /// Creates the timeline over `store`, showing nothing until ``run()`` loads it.
     ///
@@ -217,8 +215,30 @@ public final class TimelineViewModel {
         arrived(log.takeDue(now: now))
     }
 
-    /// Quoted posts the store was asked for; `found` holds those it had.
-    func quotesFetched(_ found: [Post], asked: Set<Post.ID>) {
+    /// An older page read that began in `generation` returned. One begun before the town
+    /// was deleted is dropped; otherwise its rows are shown and the next page may load.
+    package func olderPageRead(_ page: TimelinePage, startedIn generation: Int) {
+        guard generation == loadGeneration else {
+            return
+        }
+        isLoadingOlder = false
+        pageLoaded(page)
+    }
+
+    /// An older page read that began in `generation` failed; the next page may be asked
+    /// for again unless the town was deleted meanwhile.
+    func olderPageFailed(startedIn generation: Int) {
+        if generation == loadGeneration {
+            isLoadingOlder = false
+        }
+    }
+
+    /// Quoted posts the store was asked for in `generation`; `found` holds those it had.
+    /// Posts read before the town was deleted are dropped.
+    func quotesFetched(_ found: [Post], asked: Set<Post.ID>, startedIn generation: Int) {
+        guard generation == loadGeneration else {
+            return
+        }
         askedQuotes.formUnion(asked)
         for post in found {
             quoted[post.id] = post
@@ -228,6 +248,8 @@ public final class TimelineViewModel {
 
     /// Moving away deleted the town: the timeline is empty again.
     func everythingDeleted() {
+        loadGeneration += 1
+        isLoadingOlder = false
         log.removeAll()
         quoted = [:]
         askedQuotes = []
@@ -288,8 +310,11 @@ public final class TimelineViewModel {
             else {
                 continue
             }
+            // A name the timeline has not read would announce as " replied to you".
+            guard let name = residentNames[author] else {
+                continue
+            }
             let serial = (announcement?.serial ?? 0) + 1
-            let name = residentNames[author] ?? ""
             announcement = TimelineAnnouncement(
                 serial: serial,
                 text: TimelineWording.repliedToYou(name: name),

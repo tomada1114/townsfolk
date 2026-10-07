@@ -141,4 +141,21 @@ struct TimelineRevealTests {
             #expect(second.text.resolved(in: .english) == "Mika replied to you")
         }
     }
+
+    @Test
+    func `a reply by a resident whose name is unknown is not announced`() async throws {
+        let clock = ManualClock(start: Fixtures.at("12:00:10"))
+        let yours = try Fixtures.yours("11:50:00", "Poor oven.")
+        let stranger = Resident.ID()
+        let snapshot = try TimelineSnapshot(entries: [
+            .post(yours),
+            .post(Fixtures.post(stranger, "12:00:20", "Gerald now.", replyTo: yours.id)),
+        ])
+        let model = try Fixtures.model(snapshot, clock: clock)
+        try await whileRunning(model, on: clock) {
+            await clock.advanceAndWait(by: .seconds(10))
+            #expect(model.postTexts.first == "Gerald now.")
+            #expect(model.announcement == nil)
+        }
+    }
 }

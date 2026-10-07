@@ -115,4 +115,22 @@ struct TimelineFollowingTests {
             }
         }
     }
+
+    @Test
+    func `an older page read before moving away is dropped when it returns`() async throws {
+        try await withFoundedStore { store, _, _ in
+            let clock = ManualClock(start: StoreFixtures.minutes(5))
+            let model = try Fixtures.model(store: store, clock: clock, pageSize: 1)
+            try await whileRunning(model, on: clock) {
+                #expect(model.canLoadOlder)
+                let started = model.loadGeneration
+                let lateResult = try await store.page(before: nil, limit: 3)
+                try await Self.commit(on: clock) { try await store.deleteEverything() }
+
+                model.olderPageRead(lateResult, startedIn: started)
+                #expect(model.items.isEmpty)
+                #expect(!model.canLoadOlder)
+            }
+        }
+    }
 }
