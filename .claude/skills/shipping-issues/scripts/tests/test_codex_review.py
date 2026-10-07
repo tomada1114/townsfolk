@@ -187,6 +187,29 @@ class CompletedReviewTest(unittest.TestCase):
         self.assertIn("review_status: Completed\n", out)
         self.assertIn("reviewed_commit: b278355\n", out)
 
+    def test_a_completed_security_review_alone_is_not_the_code_review(self):
+        security = summary()
+        security["body"] = security["body"].replace(
+            "\U0001F4DD **Code Review**", "\U0001F512 **Security Review**")
+        responses = completed(summary_items=[security])
+        rc, out, _, calls, clock = run([PR, "--timeout", "60", "--interval", "30"], responses)
+        self.assertEqual(rc, 2)
+        self.assertIn("verdict: TIMEOUT\n", out)
+        self.assertIn("summary: present\n", out)
+        self.assertIn("review_status: none\n", out)
+        self.assertIn("detail: the Codex summary has no Code Review row yet\n", out)
+        self.assertEqual(clock.sleeps, [30, 30])
+        # Findings are never read for a review that is not the code review.
+        self.assertEqual([c for c in calls if c[3:4] == [REVIEW_COMMENTS()[3]]], [])
+
+    def test_with_both_rows_the_code_review_row_decides(self):
+        security = "| \U0001F512 **Security Review** | \u2705 **Completed** | `aaaaaaa` | Manual request |"
+        responses = completed(summary_items=[summary(status="Running", extra_rows=[security])])
+        rc, out, _, _, _ = run([PR, "--timeout", "0"], responses)
+        self.assertEqual(rc, 2)
+        self.assertIn("review_status: Running\n", out)
+        self.assertIn("reviewed_commit: b278355\n", out)
+
     def test_json_carries_the_finding_bodies(self):
         rc, out, _, _, _ = run([PR, "--json"], completed(comments=[inline(1, "Title")]))
         self.assertEqual(rc, 0)

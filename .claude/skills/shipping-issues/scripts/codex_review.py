@@ -148,11 +148,13 @@ def parse_summary(body: str) -> list[dict[str, str]]:
 
 
 def code_review_row(rows: list[dict[str, str]]) -> dict[str, str] | None:
-    """The `Code Review` row (a security review row is not the PR's review)."""
+    """The `Code Review` row, or None when the table has none yet. Any other
+    row (a security review, say) is not the PR's code review, so it never
+    stands in for one: the caller keeps waiting instead."""
     for row in rows:
         if "code review" in row["review"].lower():
             return row
-    return rows[0] if rows else None
+    return None
 
 
 def finding_from(comment: dict[str, Any]) -> dict[str, Any]:
@@ -263,9 +265,12 @@ def main(argv: list[str] | None = None) -> int:
             return report(state, waited, args.as_json)
         if waited + args.interval > args.timeout:
             state["verdict"] = "TIMEOUT"
-            state["detail"] = ("no Codex summary comment on this PR yet"
-                               if state["summary"] == "absent" else
-                               f"the Codex review is still `{state['review_status']}`")
+            if state["summary"] == "absent":
+                state["detail"] = "no Codex summary comment on this PR yet"
+            elif state["review_status"] == "none":
+                state["detail"] = "the Codex summary has no Code Review row yet"
+            else:
+                state["detail"] = f"the Codex review is still `{state['review_status']}`"
             return report(state, waited, args.as_json)
         time.sleep(args.interval)
 
