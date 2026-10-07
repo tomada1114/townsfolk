@@ -394,15 +394,16 @@ a scene naming a speaker who was not chosen is discarded. The schema's guides ar
 what the model is told, so they sit under the coverage floor with the prompt, defined
 once rather than mirrored in an adapter.
 
-The call itself is a port, provisionally `LanguageModelProviding`, answering
-availability (available, Apple Intelligence off, device not eligible, model still
-downloading), the context size and a prompt's token count, and a response under a
+The call itself is a port, `LanguageModelProviding` (`Sources/TownsfolkCore/Model/`),
+answering availability (available, Apple Intelligence off, device not eligible, model
+still downloading), the context size and a prompt's token count, and a response under a
 generation schema, returned as generated content Core decodes. Its adapter,
-provisionally `SystemLanguageModelProvider`, uses `SystemLanguageModel.default` with the
-default guardrails, opens a fresh `LanguageModelSession` per call and drops it, and maps
-the framework's errors to a Core error — refused (a guardrail violation or a refusal),
-over the context size, unavailable, or other — carrying no prompt or generated text. The
-fake answers from scripted generated content, and one contract suite runs against both.
+`SystemLanguageModelProvider`, uses `SystemLanguageModel.default` with the default
+guardrails, opens a fresh `LanguageModelSession` per call and drops it, and maps the
+framework's errors to `ModelCallError` — refused (a guardrail violation or a refusal),
+over the context size, unavailable, or other — carrying no prompt or generated text.
+`FakeLanguageModelProvider` answers from scripted generated content, and
+`LanguageModelProvidingContract` runs against both.
 
 The rules around the call are Core's: retry with a new seed, leave out what keeps being
 refused, retry once with half the posts after an overflow, skip a turn, one call at a
@@ -412,15 +413,41 @@ year; a model other than the system one (Later) would sit behind the same port, 
 macOS 27's `LanguageModel` protocol is the first place to look.
 
 - Unverified: the context size on macOS 27 — Apple documents 4,096 tokens per session,
-  and 8,192 has been reported. Nothing depends on it: the budget is read at run time.
+  and 8,192 has been reported. Nothing depends on it: the budget is read at run time, and
+  `SystemLanguageModelProviderTests` prints the size it reads under `just test-local`.
 - Unverified: whether the owner's Mac gets only the smaller on-device model; read at run
   time.
 - Unverified: an Apple-documented way to open System Settings at the Apple Intelligence
   pane for ux-flows S7; none was found, so the message names where the setting is.
-- Unverified: the error cases the macOS 27 SDK declares — the documentation names
-  `LanguageModelError.contextSizeExceeded(_:)` where the 26.5 SDK has
-  `GenerationError.exceededContextWindowSize`; the adapter maps whatever the SDK it is
-  built with declares.
+- The error cases the macOS 27.0 SDK declares, each with the `ModelCallError` case
+  `SystemLanguageModelTranslation` maps it to (the SDK's `FoundationModels.swiftinterface`,
+  Xcode 27.0 27A266a, checked 2026-10-06):
+  - `LanguageModelError`: `contextSizeExceeded` → over the context size;
+    `guardrailViolation` and `refusal` → refused; `rateLimited`, `unsupportedCapability`,
+    `unsupportedTranscriptContent`, `unsupportedGenerationGuide`,
+    `unsupportedLanguageOrLocale`, and `timeout` → other.
+  - `SystemLanguageModel.Error.assetsUnavailable` → unavailable.
+  - `LanguageModelSession.Error`: `concurrentRequests` and
+    `transcriptMutationWhileResponding` → other.
+  - `GeneratedContent.ParsingError`, `GenerationSchema.SchemaError` (`duplicateType`,
+    `duplicateProperty`, `emptyTypeChoices`, `undefinedReferences`), and
+    `LanguageModelSession.ToolCallError` → other.
+  - `LanguageModelSession.GenerationError`, deprecated in macOS 27 in favour of the above
+    but still declared: `exceededContextWindowSize` → over the context size;
+    `assetsUnavailable` → unavailable; `guardrailViolation` and `refusal` → refused;
+    `unsupportedGuide`, `unsupportedLanguageOrLocale`, `decodingFailure`, `rateLimited`, and
+    `concurrentRequests` → other. Naming it outside a deprecated declaration is a warning,
+    an error under this package's settings, so the adapter reaches it through a
+    conformance declared in a deprecated extension.
+  - Never thrown by this adapter, which uses neither: `PrivateCloudComputeLanguageModel.Error`
+    (`networkFailure`, `quotaLimitReached`, `serviceUnavailable`) and the deprecated
+    `SystemLanguageModel.Adapter.AssetError` (`invalidAsset`, `invalidAdapterName`,
+    `compatibleAdapterNotFound`).
+  - `CancellationError` passes through unmapped; any other error, and a case a later SDK
+    adds, → other.
+  - The SDK declares three unavailable reasons, `appleIntelligenceNotEnabled`,
+    `modelNotReady`, and `deviceNotEligible`, mapped to Apple Intelligence off, model not
+    ready, and device not eligible; a reason a later SDK adds reads as model not ready.
 - <https://developer.apple.com/documentation/foundationmodels/managing-the-context-window>
   — "a context window of 4096 tokens per session" — checked 2026-09-30
 - <https://developer.apple.com/documentation/foundationmodels/languagemodel> — "A
