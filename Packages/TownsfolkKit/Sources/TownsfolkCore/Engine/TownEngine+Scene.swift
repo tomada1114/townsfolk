@@ -1,0 +1,148 @@
+import Foundation
+
+/// A written scene that cannot become stored posts: a post breaks a rule of ``Post``, or
+/// replies to a post not earlier in the scene.
+struct InvalidSceneError: Error {}
+
+/// One ordinary scene: casting it, asking the writer, and storing what comes back
+/// (requirements §3.2, §3.4; `docs/architecture.md` › Core flows, "A scene").
+extension TownEngine {
+    /// The scene's posts with their ids, times, origin, scene, and tags — a reply to an
+    /// earlier post of the scene pointed at that post's new id.
+    /// - Throws: ``InvalidSceneError`` when a post breaks a rule of ``Post`` or replies to
+    ///   a post not earlier in the scene; a refused post is logged with its rule.
+    static func posts(
+        of scene: WrittenScene,
+        at times: [Date],
+        tuning: Tuning,
+    ) throws(InvalidSceneError) -> [Post] {
+        let ids = scene.posts.map { _ in Post.ID() }
+        let sceneID = SceneID()
+        var posts: [Post] = []
+        for (index, (written, time)) in zip(scene.posts, times).enumerated() {
+            var target: Post.ID?
+            switch written.replyTarget {
+            case nil:
+                target = nil
+
+            case let .post(id):
+                target = id
+
+            case let .earlierInScene(earlier):
+                guard (0 ..< index).contains(earlier) else {
+                    throw InvalidSceneError()
+                }
+                target = ids[earlier]
+            }
+            do {
+                try posts.append(Post(
+                    id: ids[index],
+                    author: .resident(written.speaker),
+                    text: written.text,
+                    happenedAt: time,
+                    replyTarget: target,
+                    topicTags: scene.topicTags,
+                    origin: .ordinary,
+                    sceneID: sceneID,
+                    tuning: tuning,
+                ))
+            } catch {
+                EngineLog.recordRejectedPost(error)
+                throw InvalidSceneError()
+            }
+        }
+        return posts
+    }
+
+    /// Skips a due turn: stores only a new due time, now plus a drawn interval (REQ-005).
+    func skip(_ reason: EngineSkipReason, at now: Date) async -> EngineStep {
+        let factor = pace.drawFactor(using: &generator)
+        let due = pace.due(after: now, speed: settings.speed, factor: factor)
+        do throws(TownStoreError) {
+            try await store.setNextOrdinarySceneDue(due)
+        } catch {
+            return .failed(error)
+        }
+        pending = Pending(anchor: now, factor: factor)
+        return .skipped(reason, nextDue: due)
+    }
+
+    /// Casts the due scene, asks the writer for it, and stores it (REQ-003, REQ-004).
+    func writeScene(at now: Date) async throws -> EngineStep {
+        guard let you = settings.displayName else {
+            return await skip(.noDisplayName, at: now)
+        }
+        let town: Town
+        let residents: [Resident]
+        let topics: [String]
+        do throws(TownStoreError) {
+            guard let founded = try await store.town() else {
+                return .notFounded
+            }
+            town = founded
+            residents = try await store.residents()
+            topics = try await store.recentTopicTags(before: now)
+        } catch {
+            return .failed(error)
+        }
+        let casting = SceneCasting(residents: residents, topics: topics)
+        guard let cast = casting.cast(using: &generator) else {
+            return await skip(.noSpeakers, at: now)
+        }
+        let request: SceneRequest
+        do throws(SceneRequestError) {
+            request = try SceneRequest(
+                you: you,
+                town: town,
+                residents: residents,
+                speakers: cast.speakers,
+                seeds: cast.seeds,
+            )
+        } catch {
+            return await skip(.invalidRequest(error), at: now)
+        }
+        switch try await writer.write(request, at: now) {
+        case .skipped(.unavailable):
+            return .modelUnavailable
+
+        case let .skipped(reason):
+            return await skip(.writer(reason), at: now)
+
+        case let .written(scene):
+            return try await storeWritten(scene, at: now)
+        }
+    }
+
+    /// Stores a written scene in one transaction: its posts, the first at `now` and each
+    /// next one a reveal gap later, and the next due time from its last post (REQ-004).
+    /// A failed transaction keeps nothing and leaves the old due time (REQ-009).
+    private func storeWritten(_ scene: WrittenScene, at now: Date) async throws -> EngineStep {
+        let speed = settings.speed
+        let times = pace.revealTimes(
+            count: scene.posts.count,
+            from: now,
+            speed: speed,
+            using: &generator,
+        )
+        let factor = pace.drawFactor(using: &generator)
+        let posts: [Post]
+        do throws(InvalidSceneError) {
+            posts = try Self.posts(of: scene, at: times, tuning: tuning)
+        } catch {
+            return await skip(.invalidScene, at: now)
+        }
+        guard let last = times.last else {
+            return await skip(.invalidScene, at: now)
+        }
+        let due = pace.due(after: last, speed: speed, factor: factor)
+        do throws(TownStoreError) {
+            try await store.storeScene(TownStore.SceneStep(posts: posts, nextOrdinarySceneDue: due))
+        } catch .cancelled {
+            throw CancellationError()
+        } catch {
+            return .failed(error)
+        }
+        pending = Pending(anchor: last, factor: factor)
+        return .sceneStored(posts: posts.map(\.id), nextDue: due)
+    }
+}

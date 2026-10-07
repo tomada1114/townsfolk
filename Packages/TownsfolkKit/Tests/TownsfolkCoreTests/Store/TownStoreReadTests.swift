@@ -80,6 +80,32 @@ struct TownStoreReadTests {
     // MARK: Interests
 
     @Test
+    func `topics still going are the recent window's tags, newest first, each once`(
+    ) async throws {
+        try await withFoundedStore { store, founding, _ in
+            let speaker = try #require(founding.residents.first).id
+            let tagged = { (iso: String, tags: [String]) throws -> Post in
+                try ResidentPostDraft(
+                    author: speaker,
+                    time: StoreFixtures.date(iso),
+                    topicTags: tags,
+                ).make()
+            }
+            try await store.storeScene(TownStore.SceneStep(posts: [
+                tagged("2026-10-01T08:59:59Z", ["old news"]),
+                tagged("2026-10-02T08:00:00Z", ["the flood", "bakery"]),
+                tagged("2026-10-02T08:30:00Z", ["festival"]),
+                tagged("2026-10-02T09:00:01Z", ["tomorrow"]),
+            ]))
+            #expect(try await store.recentTopicTags(before: Self.asked) == [
+                "festival",
+                "the flood",
+                "bakery",
+            ])
+        }
+    }
+
+    @Test
     func `interests read most recently mentioned first`() async throws {
         try await withFoundedStore { store, founding, _ in
             let speaker = try #require(founding.residents.first).id
