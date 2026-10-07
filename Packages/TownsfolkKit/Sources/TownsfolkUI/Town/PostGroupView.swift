@@ -38,6 +38,8 @@ struct PostGroupView: View {
     let group: TimelinePostGroup
     let model: TimelineViewModel
     let focus: FocusState<Post.ID?>.Binding
+    /// Replies to a post from the composer.
+    let reply: (Post.ID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
@@ -46,8 +48,10 @@ struct PostGroupView: View {
             }
             VStack(alignment: .leading, spacing: Layout.spacing) {
                 ForEach(group.posts) { post in
-                    PostRow(post: post, model: model, focus: focus)
-                        .id(post.id)
+                    PostRow(post: post, model: model, focus: focus) {
+                        reply(post.id)
+                    }
+                    .id(post.id)
                 }
             }
             .padding(.leading, Layout.gutter)
