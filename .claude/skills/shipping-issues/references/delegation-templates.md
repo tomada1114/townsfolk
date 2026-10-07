@@ -5,7 +5,6 @@
 - [Priority research and labeling](#priority-research-and-labeling)
 - [Implementation](#implementation-step-3)
 - [Review fix, parallel mode](#review-fix-parallel-mode)
-- [Review fallback](#review-fallback)
 - [CI repair](#ci-repair-step-6-only-on-fail)
 - [Design decision](#design-decision-step-8b)
 
@@ -13,8 +12,9 @@ Every sub-agent this skill spawns is a fully self-contained prompt: it cannot
 ask a question back, so a hole in it returns as a decision made alone rather
 than as a question. Leave nothing merge-gating unguessed. The parent -- this
 session -- owns every GitHub **write** (opening the PR, `link_check.sh`,
-`ci_watch.sh`, `land_pr.sh`, labels, comments) and every merge-gating
-judgment; a sub-agent only touches code inside the checkout.
+`land_pr.sh`, labels, comments), every wait on GitHub (`codex_review.py`,
+`ci_watch.sh`), and every merge-gating judgment, the triage of the Codex review
+included; a sub-agent only touches code inside the checkout.
 
 **Reading its own issue is the one GitHub call a sub-agent makes.** Pasting a
 full issue body into the prompt means the parent must first pull it into *this*
@@ -37,9 +37,9 @@ main checkout in serial mode, that issue's worktree
 working directory** -- that invariant is what makes parallel mode safe, and
 filling `{workdir}` with the main checkout for two concurrent runs breaks it
 silently rather than loudly. `{holding_dir}` is `<runstate>/holding/<n>/` for
-that issue -- create it (`mkdir -p`) before spawning. The read-only templates are the exception, and
-only because they write nothing: the review fallback and the design agent read
-a checkout others are working in without disturbing it. Everything downstream
+that issue -- create it (`mkdir -p`) before spawning. The design agent is the
+exception, and only because it writes nothing in the tree: it reads a checkout
+others are working in without disturbing it. Everything downstream
 of implementation still runs one PR at a time in the parent.
 
 **Every spawn names a tier.** Pass the tier from `.claude/agents/` as the
@@ -91,7 +91,7 @@ back. In `all` mode it also returns proposed parallel-safe groups -- a
 proposal, not a decision: [step 2c](../SKILL.md#2c-confirm-the-proposed-batch)
 still has to clear the repository's own viability gate before any of it runs.
 
-Prompt body: [references/agents/priority-research.md](agents/priority-research.md).
+Prompt body: [agent-priority-research.md](agent-priority-research.md).
 Fill its `{brace}` placeholders from the current repo and run count, then
 spawn it as `architect`.
 
@@ -108,27 +108,19 @@ issue every prompt in the batch **in one message** -- spawned one after another
 they run one after another, which is the whole thing this mode exists to
 avoid.
 
-Prompt body: [references/agents/implementation.md](agents/implementation.md).
+Prompt body: [agent-implementation.md](agent-implementation.md).
 
 ## Review fix, parallel mode
 
-Only for findings this session has already read and accepted, in parallel
-mode at step 4. `/code-review --fix` writes to the session's own working
-tree, which in parallel mode is the main checkout sitting on the default branch
--- the wrong tree -- so the review runs read-only and the writing is delegated
-here instead. See [SKILL.md step 4](../SKILL.md#4-review-the-branch).
-Zero accepted findings -> no spawn. Spawn one **`executor`** per branch that
-has any.
+Only for Codex review findings this session has already read and accepted, in
+parallel mode at step 5 -- see
+[implement-and-review.md](implement-and-review.md#fixing-the-accepted-findings-once).
+Serial mode applies them inline in the main checkout, which is on the branch; in
+parallel mode the main checkout sits on the default branch, so the writing goes to
+the branch's own worktree instead. Zero accepted findings -> no spawn. Spawn one
+**`executor`** per branch that has any, all in one message.
 
-Prompt body: [references/agents/review-fix.md](agents/review-fix.md).
-
-## Review fallback
-
-Only when this session's host will not let it launch `/code-review`
-directly -- see [SKILL.md step 4](../SKILL.md#4-review-the-branch).
-Spawn one independent, **read-only** `architect` against the branch.
-
-Prompt body: [references/agents/review-fallback.md](agents/review-fallback.md).
+Prompt body: [agent-review-fix.md](agent-review-fix.md).
 
 ## CI repair (step 6, only on `FAIL`)
 
@@ -140,7 +132,7 @@ Spawn an **`executor`** (a fresh **`architect`** once the same failure has
 survived two attempts in a row), one PR at a time; attempt 2 goes to the same
 repair agent by `SendMessage` while it is reachable.
 
-Prompt body: [references/agents/ci-repair.md](agents/ci-repair.md).
+Prompt body: [agent-ci-repair.md](agent-ci-repair.md).
 
 ## Design decision (step 8b)
 
@@ -153,7 +145,7 @@ writes: one comment on the issue and one label clear. It writes nothing in the
 checkout, so `{workdir}` is the repo's main checkout even while a parallel batch
 is running -- it reads there, it never touches the tree.
 
-Prompt body: [references/agents/design-decision.md](agents/design-decision.md).
+Prompt body: [agent-design-decision.md](agent-design-decision.md).
 
 `VERDICT: DEFERRED` is a result, not a failure -- it is the run declining to
 invent a product decision, and its `OPEN-QUESTION` is what the step 10 report

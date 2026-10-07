@@ -1,14 +1,14 @@
-# Implementation (sub-agent prompt)
+# Implementation (brief)
 
-Spawned at [SKILL.md step 3](../../SKILL.md#3-implement), one issue at a time.
+Spawned at [SKILL.md step 3](../SKILL.md#3-implement), one issue at a time.
 **`executor` is the default; `architect` when the issue is foundational** --
 architecture or a skeleton, an interface/port/schema, or a skill, instruction
 file, or gate whose shape the rest of the backlog copies. The test is blast
 radius, not difficulty:
-[cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on](../cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on).
+[cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on](cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on).
 A resume/patch run stays on the tier its first run used, and is a `SendMessage`
 to the same agent while it is reachable, naming only what is left
-([implement-and-review.md](../implement-and-review.md#resuming-a-run)).
+([implement-and-review.md](implement-and-review.md#resuming-a-run)).
 
 ```
 Implement GitHub issue #{n} in {owner}/{repo}. Once you return, your branch is
@@ -50,8 +50,10 @@ Branch: {branch_name}             <- already created and checked out; do not
 Likely files: {paths from step 2's triage, or -- when step 2 was skipped on a
                labeled backlog -- a short grep/glob the parent runs against
                the issue's own keywords right before spawning; never blank}
-Project conventions: read {workdir}/CLAUDE.md and
-{workdir}/AGENTS.md before writing code.
+Project conventions: read {workdir}/AGENTS.md (and CLAUDE.md, if any) before
+writing code, then load the skills its Skills table names for the work: how
+tests are written and placed and the test-first order (tdd), how commits are
+grouped, and the skill for each layer or area you touch.
 Decisions already made: {anything step 2/2b resolved, so it is not re-opened}
 Verification command: {verify_command, from step 3's smoke run -- if that
                         smoke run found none, say so explicitly here rather
@@ -59,8 +61,8 @@ Verification command: {verify_command, from step 3's smoke run -- if that
 </context>
 
 Do:
-1. Read the project's own instruction files and follow them, including its
-   test and commit conventions.
+1. Read the project's own instruction files and the skills they route you to,
+   and follow them, including their test and commit conventions.
 2. If the task claims a performance improvement (runtime, throughput, memory,
    latency), measure the *before* state here, on the unmodified code, with the
    exact command you will re-run afterwards.
@@ -82,9 +84,9 @@ Do:
 7. The only GitHub command you may run is
    `gh issue view {n} --repo {owner}/{repo} --json title,body,labels,comments` -- every other GitHub
    call, including `gh pr`, `gh issue edit/comment/close`, any label change,
-   or a non-GET `gh api` call, belongs to the parent (it opens the PR and
-   watches CI). Never `rm`: undo a probe inside the checkout with
-   `git checkout --`, or move it aside with `mv` into {holding_dir}, and name
+   or a non-GET `gh api` call, belongs to the parent (it opens the PR, reads
+   its review, and watches CI). Never `rm`: undo a probe inside the checkout
+   with `git checkout --`, or move it aside with `mv` into {holding_dir}, and name
    any scratch file -- including a throwaway fixture or repository you created
    under a temp directory -- you left behind in your report. If the issue
    requires deleting an existing directory, `git rm -r` it when tracked, or

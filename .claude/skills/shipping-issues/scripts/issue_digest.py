@@ -53,6 +53,10 @@ startup's calls are seconds apart; anything reading the backlog after this run
 has changed it should not. That is the safe default: a stale digest can re-select
 an issue this run already merged, and nothing downstream would notice.
 
+An issue labelled `tracking` (or `epic`) is a checklist of sub-issues, not work:
+it is dropped before ranking, never tiered, and listed on a `tracking:` line
+(`tracking_issues` in --json) so the caller ships its sub-issues instead.
+
 Exit codes:
     0 = digest printed (may contain zero issues)
     1 = gh invocation failed
@@ -72,6 +76,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 # Dependency phrasings seen in real issue bodies, in English -- the language
 # this repository's issues are written in (`triaging-issues` asks for
@@ -83,13 +88,18 @@ DEP_PATTERNS = [
     (r"(?:blocks|blocking)\s*:?\s*" + _REF_LIST, "blocks"),
 ]
 
+# owner/repo as preflight.sh's repo_slug block accepts it, and the URL schemes
+# it reads one from; parse_repo_slug() below is that block's twin.
+SLUG_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
+NETWORK_SCHEMES = ("https", "http", "ssh", "git", "git+ssh", "ssh+git")
+
 # --- ship contract ---------------------------------------------------------
 # A machine-readable block the issue author (or file_followup.py) leaves in the
 # body, so the facts this skill would otherwise re-derive from prose on every
 # run are simply read instead:
 #
 #   <!-- ship: tier=P1 area=test-infra blocked-by=#12 blocks=#98
-#        touches=tests/,vitest.config.ts design=settled -->
+#        touches=Packages/TownsfolkKit/Tests/,Package.swift design=settled -->
 #
 # Every field is optional and unknown fields are ignored, so the block can grow
 # without breaking older readers. Two of them carry their weight immediately:
@@ -101,7 +111,14 @@ DEP_PATTERNS = [
 #     which issues might collide into a set intersection.
 SHIP_CONTRACT_RE = re.compile(r"<!--\s*ship\s*:(.*?)-->", re.DOTALL | re.IGNORECASE)
 # Fields are `key=value`, whitespace-separated, values never contain spaces.
-CONTRACT_FIELD_RE = re.compile(r"([A-Za-z][\w-]*)\s*=\s*(\S+)")
+# An empty value (`blocked-by= blocks=#9`) leaves group 2 unmatched: a value
+# may never itself start like a `key=` token, or the empty field would swallow
+# the next one and turn a `blocks` edge into a `blocked-by` edge. The price is
+# that a value such as `touches=a=b.py` no longer parses; `key = value` with
+# spaces still does, so `key= value` reads `value` too.
+_CONTRACT_KEY = r"[A-Za-z][\w-]*"
+CONTRACT_FIELD_RE = re.compile(
+    rf"({_CONTRACT_KEY})\s*=(?:\s*(?!{_CONTRACT_KEY}\s*=)(\S+))?")
 CONTRACT_KNOWN_FIELDS = ("tier", "area", "blocked-by", "blocks", "touches", "design")
 # A contract is "complete enough to plan from" when it settles the three things
 # the startup would otherwise have to derive: the tier, what it waits on, and
@@ -110,13 +127,163 @@ CONTRACT_KNOWN_FIELDS = ("tier", "area", "blocked-by", "blocks", "touches", "des
 CONTRACT_REQUIRED_FIELDS = ("tier", "blocked-by", "touches")
 
 
+# A fence opener: up to three spaces, then three or more backticks or tildes; a
+# backtick fence's info string may not contain a backtick (CommonMark).
+_FENCE_OPEN_RE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")
+_BACKTICK_RUN_RE = re.compile(r"`+")
+
+
+# An HTML comment block (CommonMark HTML block type 2): a line that starts,
+# after up to three spaces, with `<!--`. It runs to the line holding `-->`.
+_HTML_COMMENT_OPEN_RE = re.compile(r"^ {0,3}<!--")
+# A list item's first line: a bullet or an ordered marker, then a space or tab.
+_LIST_ITEM_RE = re.compile(r"^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]|$)")
+
+
+def _indent_width(line: str) -> int:
+    """Leading whitespace in columns, a tab advancing to the next multiple of 4."""
+    width = 0
+    for char in line:
+        if char == " ":
+            width += 1
+        elif char == "\t":
+            width += 4 - width % 4
+        else:
+            break
+    return width
+
+
+def _code_spans(body: str) -> list[tuple[int, int]]:
+    """The [start, end) offsets of `body`'s fenced and indented code blocks
+    and inline code spans, so a quoted ship-contract example or closing
+    keyword is not read as real.
+
+    A fence closes on a line of the same character at least as long as the
+    opener (an unclosed fence runs to the end). An inline span is a backtick
+    run closed by the next run of the same length within one paragraph: a
+    blank line, a fence, or an HTML comment block ends the paragraph, so a
+    stray backtick before a contract block cannot pair with one after it (an
+    unmatched run is literal text).
+
+    An indented code block starts on a line indented four or more columns (a
+    tab counts to the next multiple of 4) that does not continue a paragraph:
+    an indented line straight after paragraph text is a lazy continuation of
+    it. It runs across blank lines until a non-blank line indented less. Once
+    a list item has been seen, indented lines are read as its continuation
+    rather than code until a blank line is followed by an unindented,
+    non-list line. Code nested inside list items, other HTML blocks, and
+    backslash-escaped backticks are not modelled."""
+    spans: list[tuple[int, int]] = []
+    paragraphs: list[tuple[int, int]] = []
+    pos = 0
+    fence: tuple[str, int, int] | None = None  # (char, length, start)
+    in_comment = False
+    para_start: int | None = None
+    indented: tuple[int, int] | None = None  # (start, end of last non-blank line)
+    in_list = False
+    after_blank = True
+
+    def end_paragraph(at: int) -> None:
+        nonlocal para_start
+        if para_start is not None:
+            paragraphs.append((para_start, at))
+            para_start = None
+
+    for line in body.splitlines(keepends=True):
+        stripped = line.rstrip("\r\n")
+        blank = not stripped.strip()
+        indent = _indent_width(stripped)
+        if indented is not None:
+            if blank or indent >= 4:
+                if not blank:
+                    indented = (indented[0], pos + len(line))
+                after_blank = blank
+                pos += len(line)
+                continue
+            spans.append(indented)
+            indented = None
+        if fence is None and not in_comment and not blank:
+            if _LIST_ITEM_RE.match(stripped):
+                in_list = True
+            elif after_blank and indent == 0:
+                in_list = False
+        if fence is not None:
+            char, length, start = fence
+            close = re.fullmatch(r" {0,3}(%s{%d,})\s*" % (re.escape(char), length), stripped)
+            if close:
+                spans.append((start, pos + len(line)))
+                fence = None
+        elif in_comment:
+            in_comment = "-->" not in stripped
+        elif m := _FENCE_OPEN_RE.match(stripped):
+            end_paragraph(pos)
+            fence = (m.group(1)[0], len(m.group(1)), pos)
+        elif _HTML_COMMENT_OPEN_RE.match(stripped):
+            end_paragraph(pos)
+            in_comment = "-->" not in stripped[stripped.index("<!--") + 4:]
+        elif blank:
+            end_paragraph(pos)
+        elif indent >= 4 and para_start is None and not in_list:
+            indented = (pos, pos + len(line))
+        elif para_start is None:
+            para_start = pos
+        after_blank = blank
+        pos += len(line)
+    if fence is not None:
+        spans.append((fence[2], len(body)))
+    if indented is not None:
+        spans.append(indented)
+    end_paragraph(len(body))
+    for start, end in paragraphs:
+        runs = list(_BACKTICK_RUN_RE.finditer(body, start, end))
+        i = 0
+        while i < len(runs):
+            width = len(runs[i].group(0))
+            closer = next((j for j in range(i + 1, len(runs))
+                           if len(runs[j].group(0)) == width), None)
+            if closer is None:
+                i += 1
+                continue
+            spans.append((runs[i].start(), runs[closer].end()))
+            i = closer + 1
+    return spans
+
+
+def unclosed_fence(body: str) -> str | None:
+    """The fence line that would close a code block `body` leaves open at its
+    end, or None when every fence is closed. Text appended after an open fence
+    is code, so a ship contract written there would never be read."""
+    fence: tuple[str, int] | None = None
+    for line in (body or "").splitlines():
+        if fence is None:
+            m = _FENCE_OPEN_RE.match(line)
+            if m:
+                fence = (m.group(1)[0], len(m.group(1)))
+        elif re.fullmatch(r" {0,3}(%s{%d,})\s*" % (re.escape(fence[0]), fence[1]), line):
+            fence = None
+    return fence[0] * fence[1] if fence else None
+
+
+def find_ship_contracts(body: str) -> list[re.Match[str]]:
+    """Every real `<!-- ship: ... -->` block in `body`, in order: a block that
+    starts inside a fenced code block or inline code is a quoted example, not
+    the contract. parse_ship_contract() and apply_priority_labels.py's
+    settle_contract_design() both read the contract through this one helper,
+    so they always agree on which block it is."""
+    body = body or ""
+    spans = _code_spans(body)
+    return [m for m in SHIP_CONTRACT_RE.finditer(body)
+            if not any(s <= m.start() < e for s, e in spans)]
+
+
 def parse_ship_contract(body: str) -> dict[str, Any] | None:
     """The `<!-- ship: ... -->` block's fields, or None if the body has none.
 
-    The last block wins: an issue edited to correct its contract usually gains a
+    Blocks quoted inside code are ignored (find_ship_contracts). The last
+    real block wins: an issue edited to correct its contract usually gains a
     second block rather than losing the first.
     """
-    blocks = SHIP_CONTRACT_RE.findall(body or "")
+    blocks = [m.group(1) for m in find_ship_contracts(body)]
     if not blocks:
         return None
     raw: dict[str, str] = {}
@@ -136,7 +303,10 @@ def parse_ship_contract(body: str) -> dict[str, Any] | None:
     return {
         "fields": sorted(raw),
         "unknown_fields": sorted(k for k in raw if k not in CONTRACT_KNOWN_FIELDS),
-        "missing_fields": [k for k in CONTRACT_REQUIRED_FIELDS if k not in raw],
+        # An empty `blocked-by=` is a natural "none"; an empty `tier=` or
+        # `touches=` settles nothing, so it still counts as missing.
+        "missing_fields": [k for k in CONTRACT_REQUIRED_FIELDS
+                           if k not in raw or (not raw[k] and k != "blocked-by")],
         "tier": tier if tier in TIER_ORDER else None,
         "area": raw.get("area"),
         "depends_on": numbers("blocked-by"),
@@ -148,10 +318,50 @@ def parse_ship_contract(body: str) -> dict[str, Any] | None:
     }
 
 
+# `(?<![\w-])` rather than `\b`: a hyphenated word such as `hot-fix #1` or
+# `pre-fixes #1` is not a closing keyword, though its suffix would be.
 CLOSING_RE = re.compile(
-    r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*#(\d+)", re.IGNORECASE
+    r"(?<![\w-])(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s*"
+    r"(?:(?P<url>https?://[^/\s]+/(?P<url_repo>[\w.-]+/[\w.-]+)/issues/)"
+    r"|(?:(?P<repo>[\w.-]+/[\w.-]+))?#)(?P<number>\d+)\b", re.IGNORECASE
 )
 BARE_REF_RE = re.compile(r"(?<![\w/])#(\d+)")
+
+
+def repository_from_url(url: str) -> tuple[str, str] | None:
+    """Keep the host as well as owner/repo when comparing issue ownership."""
+    parsed = urlsplit(url)
+    match = re.fullmatch(r"/([\w.-]+/[\w.-]+)/(?:issues|pull)/\d+/?", parsed.path)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc or not match:
+        return None
+    return parsed.netloc.lower(), match.group(1).lower()
+
+
+def closing_text(text: str) -> str:
+    """Mask examples without joining words across an ignored Markdown region."""
+    for start, end in sorted(_code_spans(text), reverse=True):
+        text = text[:start] + " " * (end - start) + text[end:]
+    return re.sub(r"<!--(?:.*?-->|.*\Z)", " ", text, flags=re.DOTALL)
+
+
+def pr_issue_references(pr: dict[str, Any], repository: tuple[str, str] | None) -> set[int]:
+    """Union GitHub's links with local prose and established branch ownership."""
+    refs = {ref["number"] for ref in pr.get("closingIssuesReferences", [])
+            if repository is not None and repository_from_url(ref.get("url", "")) == repository}
+    for field in ("title", "body"):
+        for match in CLOSING_RE.finditer(closing_text(pr.get(field) or "")):
+            qualified = match.group("repo") or match.group("url_repo")
+            if qualified:
+                if repository is None or qualified.lower() != repository[1]:
+                    continue
+                if match.group("url") and urlsplit(match.group("url")).netloc.lower() != repository[0]:
+                    continue
+            refs.add(int(match.group("number")))
+    # A bare digit anywhere is not enough: bump-foo-2-3-4 must not claim #2.
+    branch = pr.get("headRefName", "")
+    refs |= {int(n) for n in re.findall(r"(?:^|/)(\d{1,6})-", branch)}
+    refs |= {int(n) for n in re.findall(r"(?i)issues?[-_/](\d{1,6})", branch)}
+    return refs
 
 
 def normalize_label(name: str) -> str:
@@ -183,8 +393,11 @@ READY_NEGATIVE_LABELS = {
 # READY_NEGATIVE_LABELS so the two states never collapse into one meaning.
 # All members are normalize_label() output, so "Blocked: Design", "blocked/design"
 # and "needs-design" resolve to the same key on lookup.
-DESIGN_LABEL = ("blocked: design", "5319e7",
-                "Design/approach not settled - decide it before implementing")
+# Name, color and description as .github/labels.yml declares them, which the
+# two must not disagree on. Only the name is read: `just labels` creates
+# the set, and no script of this skill ever does.
+DESIGN_LABEL = ("blocked: design", "e99695",
+                "The approach is not settled; needs a human decision first.")
 DESIGN_BLOCK_LABELS = {
     normalize_label(n) for n in
     ("blocked: design", "needs design", "needs-design", "needs:design",
@@ -213,10 +426,10 @@ TRACKING_LABELS = {normalize_label(n) for n in ("tracking", "epic")}
 
 def resolve_design_label(existing: list[str]) -> tuple[str, bool]:
     """Return (label name this repo uses for the design-not-settled state,
-    whether it still needs to be created). Mirrors apply_priority_labels.py's
-    tier-label resolution: prefer the canonical name, then any existing alias
-    meaning the same thing (shortest wins), only fall back to creating the
-    canonical one when the repo has neither.
+    whether the repo lacks it). Prefers the canonical name, then any existing
+    alias meaning the same thing (shortest wins); with neither, the canonical
+    name and True, which the caller reports -- `just labels` creates it,
+    never this skill.
     """
     canonical = DESIGN_LABEL[0]
     by_norm = {normalize_label(name): name for name in existing}
@@ -240,18 +453,18 @@ PRIORITY_LABEL_WEIGHTS = {
 }
 
 # The four labels this skill writes. The tier IS the persisted ranking: it is
-# read on every later run so issue prose never has to be re-analyzed. Colors and
-# descriptions are what apply_priority_labels.py creates the labels with.
+# read on every later run so issue prose never has to be re-analyzed.
 TIER_ORDER = ["P0", "P1", "P2", "P3"]
+# As .github/labels.yml declares them, for the same reason as DESIGN_LABEL.
 TIER_LABELS = {
     "P0": ("priority: P0", "b60205",
-           "Ship now - unblocks other issues or damage is being taken"),
+           "Ship now: other issues are blocked on it, or damage is being taken."),
     "P1": ("priority: P1", "d93f0b",
-           "Do next - leverage on the ground later issues stand on"),
+           "Do next: leverage work later issues stand on (CI, schema, shared types, config)."),
     "P2": ("priority: P2", "fbca04",
-           "Normal - self-contained, nothing waits on it"),
-    "P3": ("priority: P3", "0e8a16",
-           "Defer - nice-to-have"),
+           "Normal: a real, self-contained change; nothing waits on it."),
+    "P3": ("priority: P3", "c5def5",
+           "Defer: nice-to-have, docs polish, or cosmetics."),
 }
 
 # Label vocabularies that already express a tier, recognized on read so a repo
@@ -269,6 +482,30 @@ TIER_ALIASES = {
     "low priority": "P3", "low-priority": "P3",
     "nice to have": "P3", "nice-to-have": "P3", "someday": "P3",
 }
+
+def resolve_existing(canonical: str, alias_keys: set[str],
+                     existing: list[str]) -> str | None:
+    """The name this repo uses for `canonical`, or None when it has neither
+    the canonical name nor an alias (`alias_keys` are normalize_label() keys).
+
+    Picking an alias the repo already carries is the whole point --
+    `issue_digest.py` ranks by whatever spelling is present, so introducing a
+    second one would leave half the backlog ranked by a label nobody else
+    writes. Shortest alias wins: `p2` over `priority: medium` when a repo has
+    drifted into carrying both, since the shorter form is the one being typed.
+    """
+    by_norm = {normalize_label(name): name for name in existing}
+    if normalize_label(canonical) in by_norm:
+        return by_norm[normalize_label(canonical)]
+    aliases = [name for norm, name in by_norm.items() if norm in alias_keys]
+    return min(aliases, key=lambda n: (len(n), n)) if aliases else None
+
+
+def resolve_tier_label(tier: str, existing: list[str]) -> str | None:
+    """The label name this repo uses for `tier`, or None when it has none."""
+    keys = {norm for norm, t in TIER_ALIASES.items() if t == tier}
+    return resolve_existing(TIER_LABELS[tier][0], keys, existing)
+
 
 # Leverage: work whose value spills over onto other issues. Matched against
 # title + body. Contributions are summed then capped by LEVERAGE_CAP, so an
@@ -328,6 +565,32 @@ def run_gh(args: list[str]) -> Any:
     return json.loads(out or "[]")
 
 
+def parse_repo_slug(url: str) -> str | None:
+    """`owner/repo` from an origin URL, or None when it is not exactly that.
+
+    The Python twin of preflight.sh's repo_slug block: git's scp-style
+    `[user@]host:[/]owner/repo` (a bare ssh host alias included) and the
+    NETWORK_SCHEMES as `scheme://[user@]host[:port]/owner/repo`, each with an
+    optional ".git" and trailing "/". Any other scheme (file:// included) is
+    None. tests/test_runstate_parity.py holds the two equal.
+    """
+    slug = url.rstrip("/")
+    slug = slug.removesuffix(".git")
+    if "://" in slug:
+        scheme, _, rest = slug.partition("://")
+        if scheme not in NETWORK_SCHEMES:
+            return None
+        slug = rest.partition("/")[2]
+    elif ":" in slug:
+        host, _, path = slug.partition(":")
+        if "/" in host:
+            return None
+        slug = path.removeprefix("/")
+    else:
+        return None
+    return slug if SLUG_RE.match(slug) else None
+
+
 def repo_slug() -> str | None:
     """`owner/repo` from the origin remote, or None when it cannot be read.
 
@@ -342,8 +605,19 @@ def repo_slug() -> str | None:
         ).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return None
-    m = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?/?$", url)
-    return f"{m.group(1)}/{m.group(2)}" if m else None
+    return parse_repo_slug(url)
+
+
+def state_root() -> Path:
+    """`${AGENT_SKILL_STATE_DIR:-$HOME/.local/state/agent-skills}`, with a
+    leading `~` expanded -- the same root preflight.sh and run_record.py use.
+
+    A twin of run_record.state_dir(); keep the two in step.
+    """
+    env = os.environ.get("AGENT_SKILL_STATE_DIR")
+    if env:
+        return Path(env).expanduser()
+    return Path.home() / ".local" / "state" / "agent-skills"
 
 
 def runstate_dir() -> Path | None:
@@ -351,9 +625,8 @@ def runstate_dir() -> Path | None:
     slug = repo_slug()
     if not slug:
         return None
-    base = os.environ.get("AGENT_SKILL_STATE_DIR") or str(Path.home() / ".local/state/agent-skills")
     owner, name = slug.split("/", 1)
-    return Path(base) / "shipping-issues" / f"{owner}__{name}"
+    return state_root() / "shipping-issues" / f"{owner}__{name}"
 
 
 def _cache_key(issue_args: list[str]) -> str:
@@ -364,7 +637,7 @@ def _cache_key(issue_args: list[str]) -> str:
     so a run that asks for one issue's detail reuses the whole-backlog fetch a
     `--select` took seconds earlier -- which is the entire point of the cache.
     """
-    return hashlib.sha256("\x00".join(issue_args).encode()).hexdigest()[:16]
+    return hashlib.sha256("\x00".join(["closing-references-v1", *issue_args]).encode()).hexdigest()[:16]
 
 
 def fetch_issues_and_prs(
@@ -395,7 +668,7 @@ def fetch_issues_and_prs(
     issues = run_gh(issue_args)
     prs = run_gh([
         "pr", "list", "--state", "open", "--limit", "100",
-        "--json", "number,title,body,headRefName,isDraft,url",
+        "--json", "number,title,body,headRefName,isDraft,url,closingIssuesReferences",
     ])
     status = "MISS"
     if path and not disabled:
@@ -646,16 +919,10 @@ def main() -> int:
 
     # Map issue number -> open PR that claims to close it.
     claimed: dict[int, dict[str, Any]] = {}
+    repository = next((repo for issue in issues
+                       if (repo := repository_from_url(issue.get("url", ""))) is not None), None)
     for pr in prs:
-        text = f"{pr.get('title', '')}\n{pr.get('body') or ''}\n{pr.get('headRefName', '')}"
-        refs = {int(n) for n in CLOSING_RE.findall(text)}
-        # Branch-name conventions that unambiguously encode an issue number:
-        # "123-slug", "feat/123-slug", "issue-123". A bare digit anywhere in the
-        # branch is not enough -- "bump-foo-2-3-4" must not claim issue #2.
-        branch = pr.get("headRefName", "")
-        refs |= {int(n) for n in re.findall(r"(?:^|/)(\d{1,6})-", branch)}
-        refs |= {int(n) for n in re.findall(r"(?i)issues?[-_/](\d{1,6})", branch)}
-        for n in refs:
+        for n in pr_issue_references(pr, repository):
             claimed.setdefault(n, pr)
 
     # Dependency edges are read from every open issue, not just the filtered
@@ -877,6 +1144,12 @@ def main() -> int:
             "(~P<n> = suggested; write them with apply_priority_labels.py --backfill)"
         )
 
+    tracking_line = (
+        "tracking: " + ", ".join(f"#{n}" for n in sorted(tracking))
+        + " -- tracking issues, never ranked; ship their sub-issues"
+        if tracking else ""
+    )
+
     if args.audit:
         print(f"contract: {ccov['full']}/{ccov['total']} complete | "
               f"{ccov['partial']} partial | {len(ccov['missing'])} missing")
@@ -962,9 +1235,8 @@ def main() -> int:
                   f"(score {r['priority_score']} | {' | '.join(r['score_reasons']) or '--'})")
         if not picks:
             print("select: none -- no READY issue matches the filter")
-        if tracking:
-            print("tracking: " + ", ".join(f"#{n}" for n in sorted(tracking))
-                  + " -- tracking issues; ship their sub-issues")
+        if tracking_line:
+            print(tracking_line)
         # Design-not-settled issues get their own line, not buried in `held:`
         # with dependency/label blocks -- the reason to unblock them is
         # different (decide the design, not wait on something else).
@@ -1001,6 +1273,8 @@ def main() -> int:
         return 0
 
     print(f"# Open issues ({len(records)}) | open PRs ({len(prs)})\n")
+    if tracking_line:
+        print(tracking_line + "\n")
     if not records:
         print("_No open issues match the filter._")
         return 0

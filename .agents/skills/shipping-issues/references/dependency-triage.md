@@ -75,7 +75,8 @@ dependency phrasings (`Depends on #N`, the spelling `triaging-issues` asks for).
   as one issue.
 - **Umbrella issues** -- an epic listing `- [ ] #12 #13 #14` is not itself
   implementable. Treat it as a container: ship the children, leave the epic.
-  A `tracking` (or `epic`) label makes `issue_digest.py` drop it mechanically.
+  A `tracking` (or `epic`) label makes `issue_digest.py` drop it mechanically; `on hold`
+  does not, because that label means real work parked on purpose and keeps its tier.
 
 When two issues could reasonably go either order, prefer the one that is
 smaller and touches fewer files first -- it shortens the window in which the
@@ -181,9 +182,11 @@ Either way, the same four things happen in the same order:
    design of record; a decision that lives only in a run's transcript did not
    happen.
 3. Record it in the run record (`--event design --field issue=<n> --field
-   mode=<inline|background> --field verdict=<DECIDED|DEFERRED>`).
+   step=<2b|8b> --field mode=<inline|background> --field verdict=<DECIDED|DEFERRED>`).
 4. Clear the block: `python3 ${CLAUDE_SKILL_DIR}/scripts/apply_priority_labels.py
-   --clear-design <n>` -- after the comment posted, never before.
+   --clear-design <n>` -- after the comment posted, never before. It removes the label
+   and rewrites a ship contract's `design=open` to `design=settled`, since either form
+   alone still holds the issue.
 
 **Neither path invents a product or UX call** the repo and the issue thread do
 not already answer. Inline, ask the user and do not implement past it; in the
@@ -201,7 +204,7 @@ orthogonal.
 [Step 8b](../SKILL.md#8b-unblock-held-designs-in-the-background)'s mechanics.
 Everything filed `--needs-design`, plus the design-blocked issues already in the
 backlog (step 1's `needs-design:`), gets one `architect` from
-[agents/design-decision.md](agents/design-decision.md).
+[agent-design-decision.md](agent-design-decision.md).
 
 - **Spawn and move on -- never block on one.** They run while this session keeps
   shipping, and the host notifies this session as each returns.

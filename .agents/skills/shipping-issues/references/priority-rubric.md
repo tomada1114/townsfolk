@@ -43,8 +43,19 @@ GitHub as a label, so the next run reads it instead of re-deriving it:
 Existing vocabularies are read as equivalents, so a repo with its own convention
 is never force-relabeled: `p0`/`critical`/`urgent`/`blocker` -> P0,
 `priority: high` -> P1, `priority: medium` -> P2, `priority: low`/`nice to have` ->
-P3. `apply_priority_labels.py` writes the canonical spelling and strips the
-older one when it re-tiers an issue.
+P3. `apply_priority_labels.py` and `file_followup.py` write the spelling the
+repository already defines -- the canonical name when it exists, else its shortest
+alias, matched without regard to case -- and a re-tier strips any other tier label
+the issue carries.
+
+The scripts apply labels and never create a label definition: `.github/labels.yml`
+declares them and `just labels` creates them. A label a call would apply that the
+repository lacks stops the call before its first write with
+`verdict: MISSING_LABELS` and exit 4. `just labels` is outside this skill's sign-off
+(`AGENTS.md`'s "Security and human approval"), so ask the owner to run it, or
+report the missing names and rank from the `~P<n>` suggestions.
+`apply_priority_labels.py --check-labels` asks the same question for the four tier
+labels without writing anything.
 
 Tier and design-readiness are orthogonal: `blocked: design` says the approach
 isn't settled, not how urgent the issue is once it is. Tier an issue even

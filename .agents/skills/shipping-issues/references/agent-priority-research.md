@@ -1,4 +1,4 @@
-# Priority research and labeling (sub-agent prompt)
+# Priority research and labeling (brief)
 
 Filled and handed to an `architect` sub-agent (or read and run inline under
 Codex CLI, or wherever the runtime exposes no delegation) from `references/delegation-templates.md`'s
@@ -42,7 +42,10 @@ Then write the tiers -- one call, both halves:
 each `--set` overrides one you did, including any `P2(~P0)` you confirmed. Do not
 re-tier an issue you have no evidence about -- the suggestion is better than a
 guess. Exit code 2 means the token cannot write labels here: report that instead,
-and rank from the suggestions.
+and rank from the suggestions. Exit code 4 (`verdict: MISSING_LABELS`) means a tier
+label is not defined in the repository and nothing was written: creating it is
+`just labels`, which needs the owner's sign-off -- do not run it; report the
+missing names and rank from the suggestions.
 
 Do not write `blocked: design` (or `--set-design`) on anything -- that decision
 belongs to the run that takes the issue on deliberately, not to this pass.

@@ -1,8 +1,9 @@
-# Implementing and reviewing a branch
+# Implementing a branch and addressing its Codex review
 
-The detail behind SKILL.md steps 3 and 4: what runs, in which checkout, and what this
-session does with each thing a sub-agent returns. Read it at step 3 the first time in a
-run, and whenever a result or a review does not fit the short form in SKILL.md.
+The detail behind SKILL.md steps 3 and 5: what runs, in which checkout, what this session
+does with each thing a sub-agent returns, and how the PR's one Codex review is waited
+for, read, and answered. Read it at step 3 the first time in a run, and at step 5 the
+first time a review comes back.
 
 ## Table of Contents
 
@@ -12,12 +13,13 @@ run, and whenever a result or a review does not fit the short form in SKILL.md.
   - [Spawning](#spawning)
   - [Judging what came back](#judging-what-came-back)
   - [Resuming a run](#resuming-a-run)
-- [4. Review the branch](#4-review-the-branch)
-  - [Effort and syntax](#effort-and-syntax)
-  - [Serial: `--fix`](#serial---fix)
-  - [Parallel: a fix agent per branch](#parallel-a-fix-agent-per-branch)
+- [5. The Codex review](#5-the-codex-review)
+  - [The single-review policy](#the-single-review-policy)
+  - [Waiting for it](#waiting-for-it)
+  - [Reading the verdict](#reading-the-verdict)
   - [Triage](#triage)
-  - [Reading the fix and recording it](#reading-the-fix-and-recording-it)
+  - [Fixing the accepted findings once](#fixing-the-accepted-findings-once)
+  - [Recording it](#recording-it)
 
 ## 3. Implement
 
@@ -57,7 +59,7 @@ run turns up goes to step 8.
 
 ### Spawning
 
-Fill [agents/implementation.md](agents/implementation.md) per issue and spawn it as
+Fill [agent-implementation.md](agent-implementation.md) per issue and spawn it as
 `executor` -- or `architect` when the issue is foundational: blast radius, not
 difficulty ([cost-discipline.md](cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on)).
 A change small enough that the handoff costs more than the work is implemented here
@@ -74,8 +76,8 @@ main checkout -- spawned one after another, they run one after another.
 | `ACCEPTANCE` | **Here, first.** A `not-met` line is work still owed. Sending it back costs one resume; letting it through merges a PR that closed an issue it did not answer. Green CI does not cover this -- it proves the repository still works, not that the issue was answered. |
 | `UNRESOLVED` | **Here.** Judgment calls the agent made alone: each is accepted (and stated at step 10) or sent back, never silently inherited. |
 | `CHANGED` | **Here.** A user-facing change -- anything a user of an app cut from this template would notice, or a change to the template's own documented surface -- owes a `CHANGELOG.md` entry under `[Unreleased]` (`AGENTS.md`'s "Review Checklist", item 5). No entry in `CHANGED` for such a change is work still owed, the same as a `not-met` line. |
-| `PR-SUMMARY` / `TEST-PLAN` | [Step 5](pr-ci-merge.md#5-open-the-pr), verbatim. |
-| `MEASURE` | [Step 4](#4-review-the-branch) -- what review findings are checked against. |
+| `PR-SUMMARY` / `TEST-PLAN` | [Step 4](pr-ci-merge.md#4-open-the-pr), verbatim. |
+| `MEASURE` | [Step 5](#5-the-codex-review) -- what review findings are checked against. |
 | `SCOPE-NOTES` / `FOLLOW-UPS` | Step 8 ([filing-followups.md](filing-followups.md)). |
 
 `CHANGELOG.md` is an append-target file: two branches of one parallel batch that both
@@ -100,63 +102,114 @@ A run that returned without a report, stopped before pushing, or missed or widen
 spec: [recovery.md](recovery.md). Never re-spawn an agent that returned without its
 report -- its work is on disk.
 
-## 4. Review the branch
+## 5. The Codex review
 
-Run against the branch, before any PR exists. In parallel mode step 4 covers the whole
-batch: review each branch, triage all of them, then fix them concurrently -- no PR opens
-until the batch's last review is triaged. It is a single pass: fix every accepted
-finding here, route out-of-scope and `pre-existing` findings to step 8, and do not
-re-review after the fix.
+### The single-review policy
 
-### Effort and syntax
+This repository's GitHub integration has Codex review every pull request once, shortly
+after it is opened (usually within a few minutes, almost always inside ten). That one
+automatic review **is** this run's review. The owner chose it over a local pass, and the
+choice has four consequences:
 
-```text
-/code-review medium <branch> [--fix]
+- **No local review runs**, before or after the PR opens -- no `/code-review`, no review
+  sub-agent, no self-review presented as one. A missing or failed Codex review is
+  reported, never replaced.
+- **One review per PR.** Never post `@codex review` (or any other `@codex` request),
+  never mark the PR draft and ready again, never close and reopen it, and never wait for
+  a later review after pushing fixes. Pushes do not start a new automatic review.
+- **Accepted findings are addressed once**, in one fix pass. The commits that fix them,
+  and anything a later merge of the default branch brings in, get no fresh review: that
+  is the accepted risk of this policy, and the step 10 report says so rather than
+  presenting the final head as reviewed.
+- **The review does not replace anything else.** CI on the current head, a required
+  human review, and an unresolved correctness finding still gate the merge.
+
+### Waiting for it
+
+Open the PR first (step 4); then, before watching CI:
+
+```bash
+mkdir -p <runstate>/review
+${CLAUDE_SKILL_DIR}/scripts/codex_review.py <pr> --timeout 600 > <runstate>/review/<pr>.log
+grep -E '^(verdict|review_status|reviewed_commit|review_trigger|reviewed_head|findings|waited_seconds|detail):|^  F[0-9]' <runstate>/review/<pr>.log
 ```
 
-**Effort first, branch second** -- an unrecognized first token makes the *entire* string
-the target and silently falls back to the last effort used. **`medium` is the standing
-default** for every branch this skill reviews; never `low`, never `ultra`. When `high`
-is warranted, and why `low` is not an option:
-[cost-discipline.md](cost-discipline.md#code-review-effort). Before believing an empty
-findings list, check what the review actually read.
+The script reads only what `chatgpt-codex-connector[bot]` posted -- the
+`<!-- codex-pull-request-review-summary -->` conversation comment whose table reports the
+review's status and reviewed commit, the review's inline comments, and its +1 reaction --
+and is the run's only wait primitive for it: **never a hand-rolled sleep/poll loop**. A
+comment by anyone else, or one merely quoting the marker, counts for nothing.
 
-### Serial: `--fix`
+The 600 s budget does not fit one foreground call (the Bash tool stops one at 600 s), so
+wait the way step 6 waits for CI
+([pr-ci-merge.md](pr-ci-merge.md#waiting-inside-the-600-second-cap)): in the background
+with `--timeout 600` and its completion notification, or in the foreground with
+`--timeout 540`, then once more for the remainder. CI is already running meanwhile; a
+CI failure that surfaces while the review is pending may be diagnosed, but nothing is
+pushed until the review has been read, so its findings and the CI repair land together.
 
-`--fix` applies the findings to this session's working tree, which in serial mode is the
-branch under review. It is **serial-mode only**
-([why](recovery.md#--fix-and-why-it-is-serial-mode-only)). Host will not launch
-`/code-review` at all -> [agents/review-fallback.md](agents/review-fallback.md) on
-`architect`, triaged the same way.
+### Reading the verdict
 
-### Parallel: a fix agent per branch
+| `verdict:` | Next |
+|---|---|
+| `FINDINGS` | [Triage](#triage) every `F<n>` it lists. |
+| `CLEAN` | Nothing to fix; `thumbs_up: yes` is the bot's own no-findings signal. Record it and go to step 6. |
+| `TIMEOUT` | Not a verdict on the code. Under 600 s in total, wait again. Past it, hold the PR: record `--event blocked --field issue=<n> --field reason=codex-review-missing`, move to the next issue, and re-read it once with `--timeout 0` before step 9 -- completed by then, it resumes here. |
+| `FAILED` | Hold the PR the same way with `reason=codex-review-failed`. |
+| `ERROR` | GitHub could not be read: re-run once; then treat it as `TIMEOUT` past the budget. |
 
-Parallel mode reviews without `--fix` and spawns one `executor` per branch from
-[agents/review-fix.md](agents/review-fix.md), all in one message; a branch with zero
-accepted findings gets no spawn. **Number the findings `F1`, `F2`, ... before handing
-them over** -- the fix agent returns `APPLIED`/`REJECTED` against those numbers, and
-without caller-assigned IDs the returned lines cannot be matched back to what was sent.
-A rejection sent back for another try goes to the same fix agent by `SendMessage` while
-it is reachable.
+A held PR stays open with its branch: it is listed at step 10 for a human, and its
+dependents are skipped like a FAILED issue's. `reviewed_head: no` on a first read means
+a push landed before the review finished; the review still counts for this PR.
+`review_trigger:` other than `PR opened` means someone asked for a review by hand --
+read what is there, but do not wait for it.
 
 ### Triage
 
-The same either way, and in parallel mode it happens *before* anything is written: read
-every finding against the issue's scope, send what belongs in this diff, route the rest
-to step 8. "Belongs in this diff" is the same behavior change the issue is about, tests
-included -- a sibling case of the bug just fixed belongs here; a new Core port, a new
-public surface, or a new target does not, however small the patch looks
-([filing-followups.md](filing-followups.md)).
+Read each finding in full before deciding anything:
+`codex_review.py <pr> --timeout 0 --json > <runstate>/review/<pr>.json` carries every
+body, and only the findings' bodies need reading, not the whole file. Number them as the
+script does (`F1`, `F2`, ...) and keep those numbers through the fix.
 
-### Reading the fix and recording it
+Decide each one as **accepted**, **rejected**, or **out of scope**, with a reason:
 
-Either path writes code this session did not write, so **reading what the fix pass
-changed is the safeguard**: `git -C <workdir> diff <impl-commit>..HEAD`, not the whole
-branch. Revert what it got wrong. Read the findings it would *not* apply (`skipped` from
-`--fix`, `REJECTED` from the sub-agent) -- neither is clean; real-but-out-of-scope goes
-to step 8. Re-run the verification command **in `<workdir>`** only if something
-actually changed, then push.
+- **Accepted** -- a real defect in this diff, or in the behavior the issue is about.
+  "Belongs in this diff" is the same behavior change the issue is about, tests included
+  -- a sibling case of the bug just fixed belongs here; a new Core port, a new public
+  surface, or a new target does not, however small the patch looks
+  ([filing-followups.md](filing-followups.md)).
+- **Rejected** -- wrong on reading the code (it already handles the case, or the
+  suggested behavior is not what the issue asks for). A P-badge is Codex's own severity,
+  not a verdict: a `P1` can be wrong and a `P3` right.
+- **Out of scope** -- real, but not this diff's: step 8 files it. A real correctness
+  defect is never quietly dropped because it is out of scope.
 
-Record, per branch: `--event review --field issue=<n> --field
-status=<code-review|code-review+agent-fix|DELEGATED> --field effort=<medium|high>
---field findings=<n> --field skipped=<n>` -- `skipped` counts refusals from either path.
+An accepted correctness finding blocks the merge until it is fixed; green CI does not
+dismiss it. A finding that needs a product or design decision this run cannot make holds
+the PR (`reason=review-decision`) and goes to the step 10 report.
+
+### Fixing the accepted findings once
+
+**Serial:** apply them in the main checkout, which is on the branch. **Parallel:** in
+the branch's own worktree, never the main checkout -- inline, or one
+[agent-review-fix.md](agent-review-fix.md) per branch to `executor`, all spawned in one
+message; a branch with zero accepted findings gets no spawn. A rejection sent back for
+another try goes to the same fix agent by `SendMessage` while it is reachable.
+
+When anything other than this session wrote the fix, **reading what it changed is the
+safeguard**: `git -C <workdir> diff <pre-fix-commit>..HEAD`, not the whole branch.
+Revert what it got wrong; read its `REJECTED` lines -- a rejection that reads like a real
+defect goes back once with the reason addressed, and real-but-out-of-scope goes to step
+8. Run `just check` **in `<workdir>`** when anything changed, commit, and push. That
+push is the head step 6 watches.
+
+This is the only fix pass the review gets. A CI failure afterwards is step 6's repair
+loop, not a second review round.
+
+### Recording it
+
+Per PR: `--event review --field issue=<n> --field pr=<url> --field by=codex
+--field reviewed=<reviewed_commit> --field verdict=<CLEAN|FINDINGS|TIMEOUT|FAILED>
+--field findings=<n> --field accepted=<n> --field rejected=<n> --field fixed-in=<sha|none>`.
+The step 10 report repeats it: the reviewed commit, each finding's disposition, the
+commit that addressed the accepted ones, and that the final head was not re-reviewed.

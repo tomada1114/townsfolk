@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as _dt
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -23,7 +24,7 @@ from _fakegh import FakeGh  # noqa: E402
 import issue_digest as idg  # noqa: E402
 
 
-def gh_issue(number, title="issue", labels=None, body="", updated=None,
+def gh_issue(number, title="issue", labels=None, *, body="", updated=None,
              created=None, milestone=None, assignees=None):
     updated = updated or "2026-01-01T00:00:00Z"
     created = created or updated
@@ -355,6 +356,39 @@ class ResolveDesignLabelTest(unittest.TestCase):
         self.assertTrue(needs_create)
 
 
+# The repository root, five levels above this file in either skill tree
+# (.agents/skills/... or its .claude/skills/... mirror).
+LABELS_YML = Path(__file__).resolve().parents[5] / ".github" / "labels.yml"
+
+
+def declared_labels() -> dict[str, tuple[str, str]]:
+    """name -> (color, description) from .github/labels.yml, read with a regex
+    so the test stays stdlib-only."""
+    text = LABELS_YML.read_text(encoding="utf-8")
+    entries = re.findall(
+        r'^- name: "?([^"\n]+?)"?\n\s+color: (\w+)\n\s+description: "([^"]*)"',
+        text, re.MULTILINE)
+    return {name: (color, desc) for name, color, desc in entries}
+
+
+@unittest.skipUnless(LABELS_YML.is_file(), "no .github/labels.yml above this skill")
+class LabelDefinitionsMatchLabelsYmlTest(unittest.TestCase):
+    """The scripts never create a label, so the constants only name what
+    `just labels` defines; they must not drift from it."""
+
+    def test_tracking_label_is_declared_in_labels_yml(self):
+        # The digest drops an issue by this name, so the label it reads must be
+        # one `just labels` actually creates.
+        self.assertIn("tracking", declared_labels())
+        self.assertIn(idg.normalize_label("tracking"), idg.TRACKING_LABELS)
+
+    def test_tier_and_design_labels_match_labels_yml(self):
+        declared = declared_labels()
+        for name, color, desc in [*idg.TIER_LABELS.values(), idg.DESIGN_LABEL]:
+            with self.subTest(label=name):
+                self.assertEqual(declared.get(name), (color, desc))
+
+
 class DigestRunner:
     """Runs main() in-process (not via subprocess) against a fake `gh` on
     PATH, so coverage sees the code these tests exercise. Only the external
@@ -365,7 +399,7 @@ class DigestRunner:
     inheriting it from a TestCase would re-run that class's own tests inside
     each of them."""
 
-    def _run(self, args, issues, prs=None, path_override=None,
+    def _run(self, args, issues, prs=None, *, path_override=None,
              state_dir=None, cache=False):
         """Run main() once. `cache=True` re-enables the digest cache (FakeGh
         disables it by default) and `state_dir` pins where it lives, so a test
@@ -411,21 +445,39 @@ class MainEndToEndTest(DigestRunner, unittest.TestCase):
         issues = [
             gh_issue(96, title="back-port harness (tracking)", labels=["tracking"],
                      body="- [ ] #97\n- [ ] #98"),
+            gh_issue(95, title="old umbrella", labels=["Epic", "priority: P0"]),
             gh_issue(97, title="the work", labels=["priority: P2"]),
             gh_issue(98, title="untiered work"),
         ]
         rc, out, err = self._run(["--select", "--json"], issues)
         self.assertEqual(rc, 0, err)
         payload = json.loads(out)
-        self.assertEqual(payload["tracking_issues"], [96])
-        self.assertNotIn(96, [r["number"] for r in payload["ranking"]])
-        self.assertNotIn(96, [r["number"] for r in payload["issues"]])
+        self.assertEqual(payload["tracking_issues"], [95, 96])
+        self.assertEqual(payload["open_issue_count"], 2)
+        for key in ("ranking", "issues"):
+            self.assertNotIn(96, [r["number"] for r in payload[key]])
+            self.assertNotIn(95, [r["number"] for r in payload[key]])
         self.assertEqual(payload["label_coverage"]["unlabeled"], [98])
 
         rc, out, err = self._run(["--select"], issues)
         self.assertEqual(rc, 0, err)
         self.assertIn("select: #97", out)
-        self.assertIn("tracking: #96", out)
+        self.assertIn("tracking: #95, #96", out)
+
+        rc, out, err = self._run([], issues)
+        self.assertEqual(rc, 0, err)
+        self.assertIn("tracking: #95, #96", out)
+        self.assertNotIn("back-port harness", out)
+
+    def test_on_hold_issue_keeps_its_tier_unlike_a_tracking_issue(self):
+        issues = [gh_issue(5, title="parked work", labels=["on hold", "priority: P1"])]
+        rc, out, err = self._run(["--json"], issues)
+        self.assertEqual(rc, 0, err)
+        payload = json.loads(out)
+        self.assertEqual(payload["tracking_issues"], [])
+        row = payload["ranking"][0]
+        self.assertEqual((row["number"], row["tier"], row["readiness"]),
+                         (5, "P1", "LABEL:on hold"))
 
     def test_select_text_output_names_the_pick(self):
         issues = [gh_issue(2, title="ship now", labels=["priority: P0"])]
@@ -455,6 +507,8 @@ class MainEndToEndTest(DigestRunner, unittest.TestCase):
         self.assertIn("select: #4", out)
         self.assertNotIn("select: #3", out)
         self.assertIn("needs-design: #3", out)
+        self.assertIn("held until the design is settled (take one on by number or "
+                      "with --include-design)", out)
         # Not duplicated into `held:` alongside genuinely blocked issues.
         self.assertNotIn("held:", out)
 
@@ -562,6 +616,162 @@ class MainEndToEndTest(DigestRunner, unittest.TestCase):
         self.assertIsNotNone(rec["open_pr"])
         self.assertEqual(rec["open_pr"]["number"], 10)
 
+    def test_pr_template_body_does_not_claim_example_issue(self):
+        body = """## Summary
+
+<!-- What does this PR do? Link related issues with "Closes #123". -->
+<!-- Title should follow Conventional Commits, e.g. "fix: handle empty input". -->
+
+## Test Plan
+
+<!-- How was this tested? What commands did you run? -->
+
+## Checklist
+
+- [ ] Full local verification passes on the committed tree (`just verify`)
+- [ ] Docs updated, if a user-facing behavior, command, or setting changed
+- [ ] Breaking changes called out in the Summary
+"""
+        rc, out, err = self._run(["--json"], [gh_issue(123)], [gh_pr(10, body=body)])
+        self.assertEqual(rc, 0, err)
+        self.assertIsNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_examples_and_partial_keywords_do_not_claim_issues(self):
+        bodies = [
+            "<!-- Closes #123 -->",
+            "Before <!-- Closes #123 --> after",
+            "<!-- Closes #123",  # An unfinished template comment stays hidden.
+            "```text\nCloses #123\n```",
+            "~~~\nCloses #123\n~~~",
+            "```text\nCloses #123",
+            "````\n```\nCloses #123\n````",
+            "Example `Closes #123` only",
+            "Example ``Closes #123`` only",
+            "hotfix #123",
+            "encloses #123",
+            "Closes #123suffix",
+        ]
+        for body in bodies:
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(123)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_indented_code_block_does_not_claim_issue(self):
+        bodies = [
+            "    Closes #123",
+            "\tCloses #123",
+            "  \tCloses #123",
+            "Summary.\n\n    Closes #123\n",
+            "Summary.\n\n    Example:\n\n    Closes #123\n\nMore prose.",
+            "```\nx\n```\n    Closes #123",
+            "<!-- note -->\n    Closes #123",
+        ]
+        for body in bodies:
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(123)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_indented_line_outside_a_code_block_still_claims_issue(self):
+        bodies = [
+            # An indented code block cannot interrupt a paragraph.
+            "Summary line\n    Closes #123",
+            # List-item continuation, not code.
+            "- Summary\n\n    Closes #123",
+            "1. Summary\n\n    Closes #123",
+            "   Closes #123",
+            "    Example\nFixes #123",
+        ]
+        for body in bodies:
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(123)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNotNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_hyphenated_word_ending_in_a_keyword_does_not_claim_issue(self):
+        for body in ("hot-fix #123", "pre-fixes #123", "un-closed #123",
+                     "re-resolves #123"):
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(123)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_keyword_after_punctuation_or_at_line_start_claims_issue(self):
+        for body in ("Fixes #123", "(fixes #123)", "Summary.\nCloses #123",
+                     "- Resolves #123", "Done; fixed #123."):
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(123)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNotNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_closing_references_claim_only_current_repository(self):
+        cases = [
+            ("Closes acme/widgets#7", True),
+            ("Fixes ACME/Widgets#7", True),
+            ("Resolves https://github.com/acme/widgets/issues/7", True),
+            ("Closes other/widgets#7", False),
+            ("Closes https://github.com/other/widgets/issues/7", False),
+            ("Closes https://example.com/acme/widgets/issues/7", False),
+            ("Fixes: #7", True),
+            ("fixed #7", True),
+            ("Resolved #7", True),
+        ]
+        for body, claimed in cases:
+            with self.subTest(body=body):
+                rc, out, err = self._run(["--json"], [gh_issue(7)],
+                                          [gh_pr(10, body=body)])
+                self.assertEqual(rc, 0, err)
+                self.assertEqual(json.loads(out)["issues"][0]["open_pr"] is not None,
+                                 claimed)
+
+    def test_pr_api_references_union_with_prose_and_branch_ownership(self):
+        pr = gh_pr(10, body="Fixes #8", head="codex/9-feature")
+        pr["closingIssuesReferences"] = [
+            {"number": 7, "url": "https://github.com/acme/widgets/issues/7"},
+            {"number": 10, "url": "https://github.com/other/widgets/issues/10"},
+        ]
+        rc, out, err = self._run(["--json"], [gh_issue(n) for n in (7, 8, 9, 10)], [pr])
+        self.assertEqual(rc, 0, err)
+        self.assertEqual({r["number"] for r in json.loads(out)["issues"]
+                          if r["open_pr"] is not None}, {7, 8, 9})
+        fields = next(c for c in self.gh_calls if c[:2] == ["pr", "list"])
+        self.assertIn("closingIssuesReferences", fields[fields.index("--json") + 1])
+
+    def test_pr_api_foreign_repository_same_number_does_not_claim_local_issue(self):
+        for url in ("https://github.com/other/widgets/issues/7",
+                    "https://example.com/acme/widgets/issues/7"):
+            with self.subTest(url=url):
+                pr = gh_pr(10)
+                pr["closingIssuesReferences"] = [{"number": 7, "url": url}]
+                rc, out, err = self._run(["--json"], [gh_issue(7)], [pr])
+                self.assertEqual(rc, 0, err)
+                self.assertIsNone(json.loads(out)["issues"][0]["open_pr"])
+
+    def test_pr_visible_keyword_after_ignored_examples_claims_issue(self):
+        pr = gh_pr(10, title="Example `Closes #6`", body=(
+            "<!-- Closes #6 -->\n```\nCloses #6\n```\nFixes #7"))
+        rc, out, err = self._run(["--json"], [gh_issue(6), gh_issue(7)], [pr])
+        self.assertEqual(rc, 0, err)
+        self.assertEqual({r["number"] for r in json.loads(out)["issues"]
+                          if r["open_pr"] is not None}, {7})
+
+    def test_pr_branch_conventions_preserve_issue_ownership(self):
+        cases = [("7-feature", True), ("feat/7-feature", True),
+                 ("issue-7", True), ("issues/7", True),
+                 ("bump-foo-7-2-3", False), ("hotfix-7", False)]
+        for head, claimed in cases:
+            with self.subTest(head=head):
+                rc, out, err = self._run(["--json"], [gh_issue(7)], [gh_pr(10, head=head)])
+                self.assertEqual(rc, 0, err)
+                self.assertEqual(json.loads(out)["issues"][0]["open_pr"] is not None,
+                                 claimed)
+
     def test_pr_draft_flag_surfaces_in_markdown(self):
         issues = [gh_issue(5, title="claimed")]
         prs = [gh_pr(10, body="Closes #5", draft=True)]
@@ -604,7 +814,7 @@ if __name__ == "__main__":
 
 
 CONTRACT = ("<!-- ship: tier=P1 area=test-infra blocked-by=none "
-            "blocks=#98 touches=tests/,vitest.config.ts design=settled -->")
+            "blocks=#98 touches=tests/,pyproject.toml design=settled -->")
 
 
 class ShipContractTest(unittest.TestCase):
@@ -617,7 +827,7 @@ class ShipContractTest(unittest.TestCase):
         self.assertEqual(c["area"], "test-infra")
         self.assertEqual(c["depends_on"], [])
         self.assertEqual(c["blocks"], [98])
-        self.assertEqual(c["touches"], ["tests/", "vitest.config.ts"])
+        self.assertEqual(c["touches"], ["tests/", "pyproject.toml"])
         self.assertEqual(c["design"], "settled")
         self.assertEqual(c["missing_fields"], [])
         self.assertEqual(c["unknown_fields"], [])
@@ -654,6 +864,101 @@ class ShipContractTest(unittest.TestCase):
     def test_numbers_parse_with_or_without_hash(self):
         c = idg.parse_ship_contract("<!-- ship: blocked-by=12,#13 -->")
         self.assertEqual(c["depends_on"], [12, 13])
+
+    def test_an_empty_field_does_not_swallow_the_next_field(self):
+        c = idg.parse_ship_contract(
+            "<!-- ship: tier=P0 blocked-by= blocks=#93,#94 touches=* -->")
+        self.assertEqual(c["depends_on"], [])
+        self.assertEqual(c["blocks"], [93, 94])
+        self.assertEqual(c["missing_fields"], [])
+
+    def test_an_empty_last_field_parses_as_empty(self):
+        c = idg.parse_ship_contract("<!-- ship: tier=P2 blocks=#5 blocked-by= -->")
+        self.assertEqual(c["depends_on"], [])
+        self.assertEqual(c["blocks"], [5])
+        self.assertIn("blocked-by", c["fields"])
+
+    def test_an_empty_tier_or_touches_still_counts_as_missing(self):
+        c = idg.parse_ship_contract("<!-- ship: tier= blocked-by=none touches= -->")
+        self.assertEqual(c["missing_fields"], ["tier", "touches"])
+
+    def test_a_space_only_after_the_equals_sign_still_reads_the_value(self):
+        c = idg.parse_ship_contract("<!-- ship: blocked-by= #12 blocks=#4 -->")
+        self.assertEqual(c["depends_on"], [12])
+        self.assertEqual(c["blocks"], [4])
+
+    def test_spaces_around_the_equals_sign_still_parse(self):
+        c = idg.parse_ship_contract("<!-- ship: tier = P1 blocked-by = #7 -->")
+        self.assertEqual(c["tier"], "P1")
+        self.assertEqual(c["depends_on"], [7])
+
+
+class ShipContractInCodeTest(unittest.TestCase):
+    """A ship block quoted inside a fenced code block or inline code is an
+    example, not the contract."""
+
+    EXAMPLE = "<!-- ship: tier=P0 blocked-by=#1 touches=* design=open -->"
+
+    def test_fenced_example_before_the_real_contract_is_ignored(self):
+        for fence in ("```", "~~~", "````"):
+            with self.subTest(fence=fence):
+                body = (f"Quoted:\n\n{fence}\n{self.EXAMPLE}\n{fence}\n\n"
+                        f"Prose.\n\n{CONTRACT}\n")
+                c = idg.parse_ship_contract(body)
+                self.assertEqual(c["tier"], "P1")
+                self.assertEqual(c["design"], "settled")
+                self.assertEqual(len(idg.find_ship_contracts(body)), 1)
+
+    def test_fenced_example_after_the_real_contract_is_ignored(self):
+        # Last-real-block-wins: a later quoted example must not win.
+        body = f"{CONTRACT}\n\n~~~md\n{self.EXAMPLE}\n~~~\n"
+        self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
+
+    def test_a_shorter_fence_line_does_not_close_the_block(self):
+        body = f"{CONTRACT}\n````\n```\n{self.EXAMPLE}\n````\n"
+        self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
+
+    def test_inline_code_example_is_ignored(self):
+        for tick in ("`", "``"):
+            with self.subTest(tick=tick):
+                body = f"{CONTRACT}\n\nWrite {tick}{self.EXAMPLE}{tick} like so."
+                self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
+
+    def test_indented_code_example_is_ignored(self):
+        for indent in ("    ", "\t"):
+            with self.subTest(indent=repr(indent)):
+                body = f"Quoted:\n\n{indent}{self.EXAMPLE}\n\n{CONTRACT}\n"
+                self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
+                self.assertEqual(len(idg.find_ship_contracts(body)), 1)
+
+    def test_contract_in_a_list_item_continuation_is_read(self):
+        body = f"- Item\n\n    {CONTRACT}\n"
+        self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
+
+    def test_only_a_fenced_example_means_no_contract(self):
+        self.assertIsNone(idg.parse_ship_contract(f"```\n{self.EXAMPLE}\n```\n"))
+        self.assertIsNone(idg.parse_ship_contract(f"~~~\n{self.EXAMPLE}\n"))
+
+    def test_backticks_never_pair_across_a_contract_paragraph(self):
+        # A lone backtick before the contract and an inline span after it are
+        # in different paragraphs; pairing them hid the real contract.
+        body = ("Press the ` key.\n\n"
+                "<!-- ship: tier=P1 blocked-by=#5 touches=src/a.py design=open -->\n\n"
+                "Then run `just test`.\n")
+        c = idg.parse_ship_contract(body)
+        self.assertIsNotNone(c)
+        self.assertEqual(c["tier"], "P1")
+        self.assertEqual(c["depends_on"], [5])
+
+    def test_a_contract_comment_block_ends_the_paragraph_without_blank_lines(self):
+        body = ("Press the ` key.\n"
+                "<!-- ship: tier=P2 blocked-by=none touches=* -->\n"
+                "Then run `just test`.\n")
+        self.assertEqual(idg.parse_ship_contract(body)["tier"], "P2")
+
+    def test_an_unmatched_backtick_does_not_hide_the_contract(self):
+        body = f"A stray ` backtick.\n\n{CONTRACT}"
+        self.assertEqual(idg.parse_ship_contract(body)["tier"], "P1")
 
 
 class ContractIntegrationTest(DigestRunner, unittest.TestCase):
@@ -776,14 +1081,23 @@ class DigestCacheTest(DigestRunner, unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.state = Path(self._tmp.name)
-        # Pin the slug: repo_slug() reads `git remote get-url origin` in the cwd,
-        # so without this the cache tests depend on where the suite is run from.
-        slug = patch.object(idg, "repo_slug", return_value="example-owner/example-repo")
-        slug.start()
-        self.addCleanup(slug.stop)
+        # The cache fixture must work without a Git checkout or origin remote.
+        repo = patch.object(idg, "repo_slug", return_value="acme/widgets")
+        repo.start()
+        self.addCleanup(repo.stop)
 
     def _gh_fetches(self):
         return [c for c in self.gh_calls if c[:2] in (["issue", "list"], ["pr", "list"])]
+
+    def _warm_cache(self, issues):
+        """Prove this setup can hit the cache before testing a bypass."""
+        self._run(["--select", "--cache-ttl", "300"], issues,
+                  state_dir=self.state, cache=True)
+        self.assertEqual(len(self._gh_fetches()), 2)
+        rc, out, err = self._run(["--select", "--cache-ttl", "300"], issues,
+                                 state_dir=self.state, cache=True)
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(self._gh_fetches(), [])
 
     def test_second_call_serves_from_cache(self):
         issues = [gh_issue(1, labels=["priority: P0"], body="cached body")]
@@ -800,16 +1114,14 @@ class DigestCacheTest(DigestRunner, unittest.TestCase):
 
     def test_refresh_bypasses_a_warm_cache(self):
         issues = [gh_issue(1, labels=["priority: P0"])]
-        self._run(["--select", "--cache-ttl", "300"], issues,
-                  state_dir=self.state, cache=True)
+        self._warm_cache(issues)
         self._run(["--select", "--refresh", "--cache-ttl", "300"], issues,
                   state_dir=self.state, cache=True)
         self.assertEqual(len(self._gh_fetches()), 2)
 
     def test_zero_ttl_disables_the_cache(self):
         issues = [gh_issue(1, labels=["priority: P0"])]
-        self._run(["--select", "--cache-ttl", "300"], issues,
-                  state_dir=self.state, cache=True)
+        self._warm_cache(issues)
         self._run(["--select", "--cache-ttl", "0"], issues,
                   state_dir=self.state, cache=True)
         self.assertEqual(len(self._gh_fetches()), 2)
@@ -850,10 +1162,10 @@ class DigestCacheTest(DigestRunner, unittest.TestCase):
 
     def test_env_kill_switch_disables_the_cache(self):
         issues = [gh_issue(1, labels=["priority: P0"])]
-        self._run(["--select", "--cache-ttl", "300"], issues,
-                  state_dir=self.state, cache=True)
+        self._warm_cache(issues)
+        # Positive TTL isolates the kill switch from the default-off behavior.
         # cache=False leaves FakeGh's SHIPPING_ISSUES_NO_CACHE=1 in place.
-        self._run(["--select"], issues, state_dir=self.state)
+        self._run(["--select", "--cache-ttl", "300"], issues, state_dir=self.state)
         self.assertEqual(len(self._gh_fetches()), 2)
 
     def test_the_cache_is_off_unless_a_caller_asks_for_it(self):
@@ -861,6 +1173,7 @@ class DigestCacheTest(DigestRunner, unittest.TestCase):
         # this run's own merge can re-select an issue that is already closed,
         # and nothing downstream would notice. Opting in is the caller's job.
         issues = [gh_issue(1, labels=["priority: P0"])]
+        self._warm_cache(issues)
         self._run(["--select"], issues, state_dir=self.state, cache=True)
         self._run(["--select"], issues, state_dir=self.state, cache=True)
         self.assertEqual(len(self._gh_fetches()), 2)

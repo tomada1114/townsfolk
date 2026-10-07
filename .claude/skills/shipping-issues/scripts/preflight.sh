@@ -59,6 +59,79 @@ hash_str12() {
   printf '%s' "$1" | $HASHER | awk '{print substr($1,1,12)}'
 }
 
+# --- python helpers ----------------------------------------------------------
+# The Python helpers live in functions rather than inline in "$(...)": bash 3.2
+# (macOS's /bin/bash) misparses a here-document inside a command substitution
+# whose body holds a backtick or quote.
+
+# Prints HIT or MISS, then key<TAB>value lines, for the cached repo profile.
+read_profile_cache() {
+  python3 - "$1" "$2" "$3" "$4" <<'PY'
+import json
+import sys
+
+path, lockfile_hash, meta_hash, logic_version = sys.argv[1:5]
+try:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    print("MISS")
+    sys.exit(0)
+
+if not isinstance(data, dict):
+    print("MISS")
+    sys.exit(0)
+
+if (data.get("lockfile_hash") != lockfile_hash
+        or data.get("meta_hash") != meta_hash
+        or str(data.get("logic_version")) != logic_version):
+    # A miss invalidates what was *derived* from the repo's config files, not
+    # what was *measured* by running a gate in a real worktree. Hand the stale
+    # worktree_viable back so the caller can carry it forward; everything else
+    # gets recomputed.
+    print("MISS")
+    print(f"worktree_viable\t{data.get('worktree_viable', '')}")
+    sys.exit(0)
+
+print("HIT")
+for key in ("verify_command", "verify_source", "hooks", "pkg_manager", "worktree_viable"):
+    print(f"{key}\t{data.get(key, '')}")
+PY
+}
+
+# Prints the first gate-like script name package.json defines, or nothing.
+# Parsed with python3 (a documented requirement of this skill) rather than
+# grep/sed, since scripts.* values are arbitrary JSON strings.
+read_package_json_script() {
+  python3 - "$1" <<'PY'
+import json
+import sys
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    print("")
+    sys.exit(0)
+
+scripts = data.get("scripts") if isinstance(data, dict) else None
+if isinstance(scripts, dict):
+    # The same principle as `just check` over `just test`: a repo that keeps
+    # `test` as "just the unit tests" and puts the real pre-PR gate behind a
+    # `check`-style script would otherwise get a baseline that passes while
+    # lint is broken -- exactly the CI round-trip the baseline exists to
+    # avoid. `check:quick` outranks `check:all` on purpose: a baseline wants the
+    # cheapest command that still covers every kind of failure, and the PR's
+    # own CI run covers the expensive rest.
+    for key in ("verify", "check", "check:quick", "check:all", "verify:all",
+                "ci", "test"):
+        if scripts.get(key):
+            print(key)
+            sys.exit(0)
+print("")
+PY
+}
+
 # --- args --------------------------------------------------------------------
 WITH_GITHUB=0
 PROFILE_CACHE=""
@@ -176,18 +249,30 @@ fi
 
 # --- repo profile: always emitted, cheap, local ------------------------------
 
-# repo_slug -- parsed from the origin URL. Handles the two common forms:
-#   git@github.com:owner/repo.git
-#   https://github.com/owner/repo(.git)
-# and the less common ssh://git@host/owner/repo.git. Anything that doesn't
-# reduce to exactly "owner/repo" is reported as UNKNOWN rather than guessed at.
+# repo_slug -- parsed from the origin URL. Handles git's scp-style
+# [user@]host:[/]owner/repo (a bare ssh host alias included) and the network
+# schemes https, http, ssh, git, git+ssh, ssh+git as
+# scheme://[user@]host[:port]/owner/repo, each with an optional ".git" and
+# trailing "/". Any other scheme (file:// included) is UNKNOWN. Anything that
+# doesn't reduce to exactly "owner/repo" is reported as UNKNOWN rather than
+# guessed at. issue_digest.py's parse_repo_slug() is the
+# Python twin of this block; tests/test_runstate_parity.py holds them equal.
 repo_slug="UNKNOWN"
 if [[ -n "$origin_url" ]]; then
-  slug="${origin_url%.git}"
+  slug="$origin_url"
+  while [[ "$slug" == */ ]]; do slug="${slug%/}"; done
+  slug="${slug%.git}"
   case "$slug" in
-    git@*:*) slug="${slug#*:}" ;;
-    ssh://*) slug="${slug#ssh://}"; slug="${slug#*@}"; slug="${slug#*/}" ;;
-    https://*|http://*) slug="${slug#*://}"; slug="${slug#*/}" ;;
+    https://*|http://*|ssh://*|git://*|git+ssh://*|ssh+git://*)
+      slug="${slug#*://}"; slug="${slug#*/}" ;;
+    *://*) slug="" ;;
+    *:*)
+      if [[ "${slug%%:*}" == */* ]]; then
+        slug=""
+      else
+        slug="${slug#*:}"; slug="${slug#/}"
+      fi ;;
+    *) slug="" ;;
   esac
   if [[ "$slug" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
     repo_slug="$slug"
@@ -219,7 +304,15 @@ if [[ "$repo_slug" == "UNKNOWN" ]]; then
 else
   runstate_leaf="${repo_slug%/*}__${repo_slug#*/}"
 fi
+# A leading "~" or "~/" is expanded, matching run_record.py and issue_digest.py
+# for those forms, so a quoted AGENT_SKILL_STATE_DIR=~/x lands in one place.
+# Python's expanduser() also expands "~user"; this block does not.
 state_root="${AGENT_SKILL_STATE_DIR:-$HOME/.local/state/agent-skills}"
+case "$state_root" in
+  "~") state_root="$HOME" ;;
+  \~/*) state_root="$HOME/${state_root#\~/}" ;;
+esac
+state_root="${state_root%/}"
 runstate="$state_root/shipping-issues/$runstate_leaf"
 emit runstate "$runstate"
 
@@ -297,36 +390,7 @@ for jfile in "$repo_root/justfile" "$repo_root/.justfile"; do
 done
 
 if [[ -z "$VERIFY_COMMAND" && -f "$repo_root/package.json" ]]; then
-  # Parsed with python3 (a documented requirement of this skill) rather than
-  # grep/sed, since scripts.* values are arbitrary JSON strings.
-  found_script="$(python3 - "$repo_root/package.json" <<'PY'
-import json
-import sys
-
-try:
-    with open(sys.argv[1], encoding="utf-8") as f:
-        data = json.load(f)
-except Exception:
-    print("")
-    sys.exit(0)
-
-scripts = data.get("scripts") if isinstance(data, dict) else None
-if isinstance(scripts, dict):
-    # The same principle as `just check` over `just test`: a repo that keeps
-    # `test` as "just the unit tests" and puts the real pre-PR gate behind a
-    # `check`-style script would otherwise get a baseline that passes while
-    # lint is broken -- exactly the CI round-trip the baseline exists to
-    # avoid. `check:quick` outranks `check:all` on purpose: a baseline wants the
-    # cheapest command that still covers every kind of failure, and the PR's
-    # own CI run covers the expensive rest.
-    for key in ("verify", "check", "check:quick", "check:all", "verify:all",
-                "ci", "test"):
-        if scripts.get(key):
-            print(key)
-            sys.exit(0)
-print("")
-PY
-)"
+  found_script="$(read_package_json_script "$repo_root/package.json")"
   if [[ -n "$found_script" ]]; then
     case "$pkg_manager" in
       pnpm) run_prefix="pnpm run" ;;
@@ -405,38 +469,7 @@ if [[ -n "$PROFILE_CACHE" ]]; then
 
   cache_hit=0
   if [[ -f "$PROFILE_CACHE" ]]; then
-    cache_read="$(python3 - "$PROFILE_CACHE" "$lockfile_hash" "$meta_hash" "$profile_logic_version" <<'PY'
-import json
-import sys
-
-path, lockfile_hash, meta_hash, logic_version = sys.argv[1:5]
-try:
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-except Exception:
-    print("MISS")
-    sys.exit(0)
-
-if not isinstance(data, dict):
-    print("MISS")
-    sys.exit(0)
-
-if (data.get("lockfile_hash") != lockfile_hash
-        or data.get("meta_hash") != meta_hash
-        or str(data.get("logic_version")) != logic_version):
-    # A miss invalidates what was *derived* from the repo's config files, not
-    # what was *measured* by running a gate in a real worktree. Hand the stale
-    # worktree_viable back so the caller can carry it forward; everything else
-    # gets recomputed.
-    print("MISS")
-    print(f"worktree_viable\t{data.get('worktree_viable', '')}")
-    sys.exit(0)
-
-print("HIT")
-for key in ("verify_command", "verify_source", "hooks", "pkg_manager", "worktree_viable"):
-    print(f"{key}\t{data.get(key, '')}")
-PY
-)"
+    cache_read="$(read_profile_cache "$PROFILE_CACHE" "$lockfile_hash" "$meta_hash" "$profile_logic_version")"
     if [[ "$(printf '%s\n' "$cache_read" | head -1)" == "HIT" ]]; then
       cache_hit=1
     fi
