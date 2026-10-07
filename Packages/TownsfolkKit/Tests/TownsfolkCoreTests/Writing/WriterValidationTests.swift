@@ -186,6 +186,25 @@ struct WriterValidationTests {
         }
     }
 
+    @Test(arguments: [
+        ("One.", true),
+        ("One. Two.", true),
+        ("One. Two. Three.", false),
+        ("Rain again!!! Great.", true),
+        ("Well... maybe. Sure.", true),
+        ("Dr. Sato said hi. Nice.", true),
+        ("Mr. and Mrs. Ito came by at 9 a.m. today. Lovely.", true),
+        ("Ha. Ha. Ha.", false),
+        ("Wait! Really? Yes.", false),
+    ])
+    func `a post must be 1 or 2 sentences`(text: String, kept: Bool) async throws {
+        try await withWritingStore { store, cast in
+            let content = WritingFixtures.content([DraftPost(speaker: "Mika", text: text)])
+            let outcome = try await Self.write(content, store: store, cast: cast)
+            #expect((outcome == .skipped(.invalidPosts)) == !kept)
+        }
+    }
+
     @Test(arguments: [0, 4])
     func `a scene of no post or more than three is discarded`(count: Int) async throws {
         try await withWritingStore { store, cast in

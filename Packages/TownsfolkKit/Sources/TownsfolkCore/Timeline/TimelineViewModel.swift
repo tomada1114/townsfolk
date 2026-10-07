@@ -56,6 +56,9 @@ public final class TimelineViewModel {
     @ObservationIgnored private var quoted: [Post.ID: Post] = [:]
     /// Quoted posts already asked of the store, found or not, so none is asked twice.
     @ObservationIgnored private var askedQuotes: Set<Post.ID> = []
+    /// Live residents' replies whose target no loaded page holds, announced once the
+    /// store is read for it — or dropped, when it is not yours or the store lacks it.
+    @ObservationIgnored private var unannouncedReplies: [Post.ID] = []
     /// Quoted posts the rows need and the store has not been asked for yet.
     @ObservationIgnored private(set) var missingQuotes: Set<Post.ID> = []
     @ObservationIgnored private(set) var olderCursor: TimelineCursor?
@@ -243,6 +246,9 @@ public final class TimelineViewModel {
         for post in found {
             quoted[post.id] = post
         }
+        let waiting = unannouncedReplies
+        unannouncedReplies = []
+        announceReplies(to: waiting)
         rebuild()
     }
 
@@ -253,6 +259,7 @@ public final class TimelineViewModel {
         log.removeAll()
         quoted = [:]
         askedQuotes = []
+        unannouncedReplies = []
         liveArrivals = []
         olderCursor = nil
         canLoadOlder = false
@@ -269,13 +276,22 @@ public final class TimelineViewModel {
         guard !keys.isEmpty else {
             return
         }
-        announceReplies(among: keys)
+        announceReplies(to: keys.compactMap { key in
+            if case let .post(id) = key {
+                return id
+            }
+            return nil
+        })
         if isAtTop {
             show(keys, live: true)
             rebuild()
         } else {
             log.hold(keys)
             newPostCount = log.heldPostCount
+            if !unannouncedReplies.isEmpty {
+                // Held rows are not rebuilt, but the targets they wait for are read now.
+                rebuild()
+            }
         }
     }
 
@@ -296,29 +312,6 @@ public final class TimelineViewModel {
         }
         for case let .post(id) in keys {
             liveArrivals.insert(id)
-        }
-    }
-
-    /// Announces each arriving resident's post that replies to one of yours.
-    private func announceReplies(among keys: [TimelineLog.Key]) {
-        for case let .post(id) in keys {
-            guard let post = log.posts[id],
-                  case let .resident(author) = post.author,
-                  let target = post.replyTarget,
-                  let replied = log.posts[target] ?? quoted[target],
-                  replied.author == .you
-            else {
-                continue
-            }
-            // A name the timeline has not read would announce as " replied to you".
-            guard let name = residentNames[author] else {
-                continue
-            }
-            let serial = (announcement?.serial ?? 0) + 1
-            announcement = TimelineAnnouncement(
-                serial: serial,
-                text: TimelineWording.repliedToYou(name: name),
-            )
         }
     }
 
@@ -352,6 +345,40 @@ public final class TimelineViewModel {
         if result.items != items {
             items = result.items
         }
-        missingQuotes = result.missingQuotes.subtracting(askedQuotes)
+        let waitedFor = unannouncedReplies.compactMap { log.posts[$0]?.replyTarget }
+        missingQuotes = result.missingQuotes.union(waitedFor).subtracting(askedQuotes)
+    }
+}
+
+extension TimelineViewModel {
+    /// Announces each arriving resident's post that replies to one of yours; one whose
+    /// target is not read yet waits for it, unless the store was already asked.
+    private func announceReplies(to ids: [Post.ID]) {
+        for id in ids {
+            guard let post = log.posts[id],
+                  case let .resident(author) = post.author,
+                  let target = post.replyTarget
+            else {
+                continue
+            }
+            guard let replied = log.posts[target] ?? quoted[target] else {
+                if !askedQuotes.contains(target) {
+                    unannouncedReplies.append(id)
+                }
+                continue
+            }
+            guard replied.author == .you else {
+                continue
+            }
+            // A name the timeline has not read would announce as " replied to you".
+            guard let name = residentNames[author] else {
+                continue
+            }
+            let serial = (announcement?.serial ?? 0) + 1
+            announcement = TimelineAnnouncement(
+                serial: serial,
+                text: TimelineWording.repliedToYou(name: name),
+            )
+        }
     }
 }
