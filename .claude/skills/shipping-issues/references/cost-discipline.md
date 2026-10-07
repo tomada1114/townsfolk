@@ -38,7 +38,7 @@ finding. That is why the owner made it the only review: a local pass (`/code-rev
 a review sub-agent) would spend this run's budget on a second opinion of the same diff,
 and the step that once ran it is gone, not optional.
 
-What the run still pays for is the wait -- usually a few minutes, bounded at 600 s, and
+What the run still pays for is the wait -- usually a few minutes, bounded at 900 s, and
 spent while CI runs anyway -- and one targeted read of each finding's body during
 triage. The run never buys a second review round: fixes are verified by `just check` and
 CI, not re-reviewed, and the step 10 report says the final head was not re-reviewed
@@ -124,10 +124,6 @@ agent by `SendMessage` while it is reachable
 ([implement-and-review.md](implement-and-review.md#resuming-a-run)). The design
 agent is also the only sub-agent here that writes to GitHub (one comment, one
 label) and the only one that writes no code at all.
-
-Under Codex CLI, which reads nothing under `.claude/agents/`, there is no tier
-to name: each of these steps runs inline in the main session, with the same
-prompt body as its brief.
 
 ### The foundation exception: `architect` for what the backlog builds on
 

@@ -216,7 +216,7 @@ class WaitingTest(unittest.TestCase):
         running = summary(status="Running")
         responses = completed()
         sequences = {ISSUE_COMMENTS(): ["", lines(running), lines(summary())]}
-        rc, out, _, calls, clock = run([PR, "--timeout", "600", "--interval", "30"],
+        rc, out, _, calls, clock = run([PR, "--timeout", "900", "--interval", "30"],
                                        responses, sequences=sequences)
         self.assertEqual(rc, 0)
         self.assertIn("verdict: CLEAN\n", out)
@@ -259,7 +259,7 @@ class WaitingTest(unittest.TestCase):
     def test_a_closed_pr_without_a_finished_review_is_an_error(self):
         responses = completed(summary_items=[])
         responses[VIEW()] = view(state="MERGED")
-        rc, out, _, _, clock = run([PR, "--timeout", "600"], responses)
+        rc, out, _, _, clock = run([PR, "--timeout", "900"], responses)
         self.assertEqual(rc, 4)
         self.assertIn("verdict: ERROR\n", out)
         self.assertIn("is MERGED, not OPEN", out)
@@ -269,7 +269,7 @@ class WaitingTest(unittest.TestCase):
 class FailureTest(unittest.TestCase):
     def test_a_failed_review_is_reported(self):
         responses = completed(summary_items=[summary(status="\u274c **Failed**")])
-        rc, out, _, _, clock = run([PR, "--timeout", "600"], responses)
+        rc, out, _, _, clock = run([PR, "--timeout", "900"], responses)
         self.assertEqual(rc, 1)
         self.assertIn("verdict: FAILED\n", out)
         self.assertIn("never stand a local review in for it", out)

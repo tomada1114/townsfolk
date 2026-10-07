@@ -1,22 +1,23 @@
 ---
 name: shipping-issues
 description: >-
-  Rank open GitHub Issues by their `priority: P0`-`P3` labels -- backfilling a missing
-  label from how much an issue unblocks and how far its impact spreads -- then implement
-  the top one, open a PR that auto-closes the issue (Closes #N), wait for the automatic
-  Codex review GitHub posts on that PR and address its accepted findings once, watch CI
-  to green on the current head, merge with no approval pause, and return the checkout to
-  the default branch. With no argument it ships the highest-priority issue and then what
-  that run itself produced. Pass "all" to work through every issue in dependency order,
-  independent ones implemented in parallel git worktrees, with review, CI and merge
-  still serialized. Use when asked to ship the remaining issues, take on the next issue,
-  or clear the ticket backlog.
+  Claude Code only. Rank open GitHub Issues by their `priority: P0`-`P3` labels --
+  backfilling a missing label from how much an issue unblocks and how far its impact
+  spreads -- then implement the top one, open a PR that auto-closes the issue
+  (Closes #N), wait for the automatic Codex review GitHub posts on that PR and address
+  its accepted findings once, watch CI to green on the current head, merge with no
+  approval pause, and return the checkout to the default branch. With no argument it
+  ships the highest-priority issue and then what that run itself produced. Pass "all"
+  to work through every issue in dependency order, independent ones implemented in
+  parallel git worktrees, with review, CI and merge still serialized. Use when asked
+  to ship the remaining issues, take on the next issue, or clear the ticket backlog.
 ---
 
 # Shipping Issues
 
-**Owns:** taking open issues to a merged PR and a CLOSED issue. **Does not own:** the
-label vocabulary and issue-body rules (`triaging-issues`); test-first Core work (`tdd`).
+**Claude Code only:** Codex CLI must not run this workflow. **Owns:** taking open issues
+to a merged PR and a CLOSED issue. **Does not own:** the label vocabulary and issue-body
+rules (`triaging-issues`); test-first Core work (`tdd`).
 
 **Done means all three:** the PR is merged, the issue is CLOSED, and nothing was deleted
 or weakened to get there. **Invoking this skill authorizes every write it makes, merge
@@ -57,9 +58,8 @@ Spawn by `subagent_type`, naming a `.claude/agents/` tier, never a bare `model`:
 `executor` for a settled spec (implementation, review fix, CI repair); `architect` for
 foundational implementation, priority research, a CI failure that survived two
 attempts, and design decisions; `worker` for tool-free drafting from a complete brief
-([cost-discipline.md](references/cost-discipline.md#model-tiers)) with a
-`references/agent-*.md` brief. **Reuse before respawn:** a resume or next repair attempt
-goes to the same agent via `SendMessage`. Codex CLI has no tiers: run it inline.
+([cost-discipline.md](references/cost-discipline.md#model-tiers)), each with its
+`references/agent-*.md` brief. **Reuse before respawn:** resumes go via `SendMessage`.
 
 Everything generated lives under `<runstate>` =
 `${AGENT_SKILL_STATE_DIR:-$HOME/.local/state/agent-skills}/shipping-issues/<owner>__<repo>/`,
@@ -131,12 +131,12 @@ shortly after it opens. That one review is this run's review:
 ${CLAUDE_SKILL_DIR}/scripts/codex_review.py <pr> --timeout <s> > <runstate>/review/<pr>.log
 ```
 
-Wait as step 6 does (background `--timeout 600`, or foreground slices of
-`--timeout 540`), **600 s in total**. `CLEAN`/`FINDINGS` -> triage every `F<n>`, fix
+Wait as step 6 does (background `--timeout 900`, or foreground slices of
+`--timeout 540` or less), **900 s in total**. `CLEAN`/`FINDINGS` -> triage every `F<n>`, fix
 the accepted ones **once** (parallel: [agent-review-fix.md](references/agent-review-fix.md)),
 read the fix diff, re-verify, push, record `--event review`. Never post `@codex review`,
 never wait for a second review, never stand a local review in for a missing one.
-`TIMEOUT` past 600 s or `FAILED` -> hold the PR unmerged, record `--event blocked`, move
+`TIMEOUT` past 900 s or `FAILED` -> hold the PR unmerged, record `--event blocked`, move
 on ([implement-and-review.md](references/implement-and-review.md#5-the-codex-review)).
 
 ## 6. CI to green

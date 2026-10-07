@@ -95,8 +95,7 @@ own diff, and a new spawn would pay for all of that again from a cold start. Spa
 fresh agent -- on the same tier as the first run -- only when that agent is gone, or when
 its own context is what went wrong (it misread the issue and every later turn builds on
 the misreading). A resume never changes tier: a foundational issue the first run got
-half-right is exactly where the remaining judgment sits. Under Codex CLI there is no
-`SendMessage` and no named tier: finish the resume inline in the main session.
+half-right is exactly where the remaining judgment sits.
 
 A run that returned without a report, stopped before pushing, or missed or widened the
 spec: [recovery.md](recovery.md). Never re-spawn an agent that returned without its
@@ -130,7 +129,7 @@ Open the PR first (step 4); then, before watching CI:
 
 ```bash
 mkdir -p <runstate>/review
-${CLAUDE_SKILL_DIR}/scripts/codex_review.py <pr> --timeout 600 > <runstate>/review/<pr>.log
+${CLAUDE_SKILL_DIR}/scripts/codex_review.py <pr> --timeout 900 > <runstate>/review/<pr>.log
 grep -E '^(verdict|review_status|reviewed_commit|review_trigger|reviewed_head|findings|waited_seconds|detail):|^  F[0-9]' <runstate>/review/<pr>.log
 ```
 
@@ -140,11 +139,11 @@ review's status and reviewed commit, the review's inline comments, and its +1 re
 and is the run's only wait primitive for it: **never a hand-rolled sleep/poll loop**. A
 comment by anyone else, or one merely quoting the marker, counts for nothing.
 
-The 600 s budget does not fit one foreground call (the Bash tool stops one at 600 s), so
+The 900 s budget does not fit one foreground call (the Bash tool stops one at 600 s), so
 wait the way step 6 waits for CI
 ([pr-ci-merge.md](pr-ci-merge.md#waiting-inside-the-600-second-cap)): in the background
-with `--timeout 600` and its completion notification, or in the foreground with
-`--timeout 540`, then once more for the remainder. CI is already running meanwhile; a
+with `--timeout 900` and its completion notification, or in the foreground with
+`--timeout 540` or less per call, re-run until 900 s have passed in total. CI is already running meanwhile; a
 CI failure that surfaces while the review is pending may be diagnosed, but nothing is
 pushed until the review has been read, so its findings and the CI repair land together.
 
@@ -154,7 +153,7 @@ pushed until the review has been read, so its findings and the CI repair land to
 |---|---|
 | `FINDINGS` | [Triage](#triage) every `F<n>` it lists. |
 | `CLEAN` | Nothing to fix; `thumbs_up: yes` is the bot's own no-findings signal. Record it and go to step 6. |
-| `TIMEOUT` | Not a verdict on the code. Under 600 s in total, wait again. Past it, hold the PR: record `--event blocked --field issue=<n> --field reason=codex-review-missing`, move to the next issue, and re-read it once with `--timeout 0` before step 9 -- completed by then, it resumes here. |
+| `TIMEOUT` | Not a verdict on the code. Under 900 s in total, wait again. Past it, hold the PR: record `--event blocked --field issue=<n> --field reason=codex-review-missing`, move to the next issue, and re-read it once with `--timeout 0` before step 9 -- completed by then, it resumes here. |
 | `FAILED` | Hold the PR the same way with `reason=codex-review-failed`. |
 | `ERROR` | GitHub could not be read: re-run once; then treat it as `TIMEOUT` past the budget. |
 

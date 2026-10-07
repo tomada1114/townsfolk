@@ -229,9 +229,7 @@ backlog (step 1's `needs-design:`), gets one `architect` from
   treating the issue as ready.
 
 An issue returned `DECIDED` is ordinary backlog from that moment: ready for the
-next run, or for this one at step 8c. Under Codex CLI there is no background
-spawn: decide held designs inline between issues, one at a time, or leave them
-for the next run and say so at step 10.
+next run, or for this one at step 8c.
 
 ### Clearing a stale `blocked: dependency`
 

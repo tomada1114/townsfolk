@@ -77,7 +77,7 @@ instead of spawning again.
 
 ## The Codex review never arrives, or fails
 
-`codex_review.py` reporting `TIMEOUT` after 600 s in total, or `FAILED`, is a held PR,
+`codex_review.py` reporting `TIMEOUT` after 900 s in total, or `FAILED`, is a held PR,
 not a reason to review it some other way: no `/code-review`, no review agent, no
 `@codex review` comment to start another run, no draft-and-ready or close-and-reopen
 cycle. Record `--event blocked --field issue=<n> --field reason=codex-review-missing`

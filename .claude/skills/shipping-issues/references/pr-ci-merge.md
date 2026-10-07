@@ -98,9 +98,6 @@ truncated log. So pick one of these, in this order:
 2. **Foreground, under the cap.** Run it with `--timeout 540` or less. `verdict:
    TIMEOUT` then means only that the watch's own bound ran out, not that CI failed: run
    the same watch again, until 1800 seconds of watching have passed in total.
-3. **Codex CLI**, which has no background call with a completion notification: the
-   foreground form, with `--timeout` kept below that host's own command timeout, re-run
-   on `TIMEOUT` the same way.
 
 After 1800 seconds of `TIMEOUT` in total, treat it like `ERROR`: re-read the PR's
 actual CI state before deciding anything.

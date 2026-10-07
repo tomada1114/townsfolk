@@ -26,8 +26,10 @@ Usage:
     codex_review.py <pr> [--timeout SECONDS] [--interval SECONDS]
                     [--repo OWNER/NAME] [--json]
 
---timeout bounds the whole wait (default 540, under a 600-second command cap;
-0 reads once). --interval is the pause between reads (default 30).
+--timeout bounds this call's wait (default 540, under a 600-second command cap;
+0 reads once). The skill's budget is 900 s in total: one background call with
+--timeout 900, or foreground calls of at most 540 s each until 900 s have passed.
+--interval is the pause between reads (default 30).
 
 Prints (key: value lines, then one line per finding):
     verdict: CLEAN | FINDINGS | TIMEOUT | FAILED | ERROR
