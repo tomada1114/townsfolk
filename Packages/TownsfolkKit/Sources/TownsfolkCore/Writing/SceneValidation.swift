@@ -42,8 +42,11 @@ struct SceneValidation {
         }
         var speakers: [Resident.ID] = []
         for post in draft.posts {
-            let name = Self.trimmed(post.speaker)
-            guard let speaker = request.speakingResidents.first(where: { $0.name == name }) else {
+            // Compared as the prompt shows names, folded onto one line.
+            let name = ScenePromptBuilder.oneLine(Self.trimmed(post.speaker))
+            guard let speaker = request.speakingResidents
+                .first(where: { ScenePromptBuilder.oneLine($0.name) == name })
+            else {
                 return .skipped(.invalidSpeaker)
             }
             speakers.append(speaker.id)

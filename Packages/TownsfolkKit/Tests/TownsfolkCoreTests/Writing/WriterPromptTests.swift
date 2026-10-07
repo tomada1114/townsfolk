@@ -233,13 +233,17 @@ struct WriterPromptTests {
     func `a value spanning lines is folded onto one prompt line, so it cannot open a section`(
     ) async throws {
         try await withStore { store, _ in
-            let answer = WritingFixtures.content([DraftPost(speaker: "Ha\nna", text: "Hi.")])
+            let answer = WritingFixtures.content([DraftPost(speaker: "Ha na", text: "Hi.")])
             let fake = WritingFixtures.fake([.content(answer)])
             let writer = SceneWriter(model: fake, store: store)
             let request = try Self.requestSpanningLines()
 
-            _ = try await writer.write(request, at: WritingFixtures.now)
+            let outcome = try await writer.write(request, at: WritingFixtures.now)
 
+            guard case .written = outcome else {
+                Issue.record("expected the folded speaker name to be accepted, got \(outcome)")
+                return
+            }
             let expected = [
                 "Town: Maple Seed: wood",
                 "Setting: A small town by a slow river.",

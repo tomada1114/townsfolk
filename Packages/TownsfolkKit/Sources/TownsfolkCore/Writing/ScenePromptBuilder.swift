@@ -85,7 +85,7 @@ struct ScenePromptBuilder {
     /// The text with every line break turned into a space, so it stays one prompt line:
     /// every value the prompt carries goes through it, since a town value may span lines
     /// and a line of its own could pass for a section such as `Seed:`.
-    private static func oneLine(_ text: String) -> String {
+    static func oneLine(_ text: String) -> String {
         text.split(whereSeparator: \.isNewline).joined(separator: " ")
     }
 
