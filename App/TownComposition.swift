@@ -99,6 +99,7 @@ enum TownComposition {
                     tuning: tuning,
                 ),
                 store: store,
+                speed: SettingsStore(defaults: defaults, tuning: tuning).speed,
                 clock: ContinuousClock(),
             )
         }
