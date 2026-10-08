@@ -227,6 +227,13 @@ preserves that schedule if the setting is unchanged, and reconciles a speed chos
 during founding before the engine starts; delayed observation does not redraw a speed
 already chosen on name entry. Existing screen factories may omit the closure and keep
 the root's initial-speed fallback.
+When a fresh factory opens an already stored town, the root explicitly reconciles the
+persisted speed before publishing its session or starting the engine. This covers an
+exit between the settings write and the old process's asynchronous schedule update.
+A fresh engine draws a new ordinary interval from the opening time, even if speed did
+not change; a retained session's window reappearance keeps its existing due time.
+Pending response dates and `lastRanAt` remain unchanged. #31's catch-up must measure the
+pause from that preserved history rather than the re-armed ordinary due time.
 Settings and Town commands receive that same root model explicitly. The public
 `RootView()` placeholder initializer is replaced by `RootView(model:)`; callers now
 construct and pass an `AppModel`. Root routing is tested over a fake provider because

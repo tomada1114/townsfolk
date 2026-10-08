@@ -47,10 +47,11 @@ struct AppLifecycleTests {
             await app.model.open()
             await app.model.appActivityChanged(isActive: true)
             await app.probe.clock.waitForSleepers(count: 1)
+            #expect(app.probe.speedChanges == 1)
             app.model.settings.speedChosen(.fast)
             await app.model.speedChanged()
             await app.model.speedChanged()
-            #expect(app.probe.speedChanges == 1)
+            #expect(app.probe.speedChanges == 2)
             #expect(SettingsStore(defaults: app.defaults).speed == .fast)
         }
     }

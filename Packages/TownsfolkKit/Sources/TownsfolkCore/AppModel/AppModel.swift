@@ -111,6 +111,11 @@ public final class AppModel {
             guard !Task.isCancelled, generation == storeGeneration else {
                 return
             }
+            if storedTown != nil {
+                guard await synchronizeOpeningSpeed(opened, generation: generation) else {
+                    return
+                }
+            }
             session = opened
             town = storedTown
         } catch {
@@ -204,6 +209,20 @@ public final class AppModel {
         isWindowOpen = false
         storeGeneration += 1
         await stopEngine()
+    }
+
+    private func synchronizeOpeningSpeed(_ opened: AppTownSession, generation: Int) async -> Bool {
+        // Settings may have committed before the old process updated its schedule.
+        // A fresh engine re-arms from now; retained sessions never take this path.
+        repeat {
+            let speed = settings.speed
+            await opened.speedChanged()
+            guard !Task.isCancelled, generation == storeGeneration else {
+                return false
+            }
+            lastSpeed = speed
+        } while lastSpeed != settings.speed
+        return true
     }
 
     private func readFoundedTown() async {
