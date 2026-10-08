@@ -16,14 +16,20 @@ public enum SceneSeed: Sendable, Equatable {
     case yourPost(Post, quoted: Bool, leadSpeaker: Resident.ID?)
 
     /// The part of a resident's profile a ``profile(_:_:)`` seed is about.
-    public enum ProfileAspect: Sendable, Equatable, CaseIterable {
+    public enum ProfileAspect: Sendable, Hashable, CaseIterable {
         /// What they do for fun.
         case hobby
         /// What they do for a living.
         case occupation
         /// How they come across.
         case personality
+        /// A stored link to this other resident, including someone who moved away.
+        case relationship(Resident.ID)
         /// What they worry about.
         case worry
+
+        /// Scalar aspects used by founding; relationship candidates need a resident's
+        /// stored links and the roster, so ordinary scene casting adds those separately.
+        public static let allCases: [Self] = [.hobby, .occupation, .personality, .worry]
     }
 }

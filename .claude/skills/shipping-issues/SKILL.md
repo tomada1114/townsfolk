@@ -53,8 +53,8 @@ or `design=open` issue ships only when named or with `--include-design` (step 2b
   confirmation, else run it mid-run only when the issue cannot move without it
   ([closing-out.md](references/closing-out.md#approval-gated-commands)).
 - **Inline by default; tiers by name.** On a host with named sub-agents (AGENTS.md
-  "Sub-agents"), a brief (`references/agent-*.md`) may go to the `worker`, `executor`,
-  or `architect` tier [cost-discipline.md](references/cost-discipline.md#tier-assignment)
+  "Sub-agents"), a brief (`references/agent-*.md`) may go to the `executor`,
+  `architect`, or `scout` tier [cost-discipline.md](references/cost-discipline.md#tier-assignment)
   names -- by tier name, never a bare model name. A patch round or repeat CI repair on
   the same tier continues the same agent where the host allows.
 - **State lives in `<runstate>`** ([run-record.md](references/run-record.md)), never
@@ -112,9 +112,8 @@ Take the narrower grouping on disagreement; shrinking never needs asking.
 **Read [implement-and-review.md](references/implement-and-review.md) first.** Cut the
 branch and take a baseline (parallel: `worktree_setup.sh`, the first worktree alone).
 Run [agent-implementation.md](references/agent-implementation.md) per issue --
-`executor`, `architect` when foundational, `worker` when small and settled -- and **judge
-each result here**, `ACCEPTANCE` first. At most 2 patch rounds on the same tier (a
-`worker` miss moves to `executor`); a third miss is `NEEDS-CLARIFICATION`.
+`executor`, or `architect` when foundational -- and **judge
+each result here**, `ACCEPTANCE` first. At most 2 patch rounds on the same tier; a third miss is `NEEDS-CLARIFICATION`.
 
 ## 4. Open the PR
 
