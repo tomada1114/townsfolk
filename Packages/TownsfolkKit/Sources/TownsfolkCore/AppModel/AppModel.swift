@@ -43,6 +43,7 @@ public final class AppModel {
     @ObservationIgnored private let factory: @MainActor () throws -> AppTownSession
     @ObservationIgnored private var engineTask: Task<Void, Never>?
     @ObservationIgnored private var isOpening = false
+    @ObservationIgnored private var isReadingFoundedTown = false
     @ObservationIgnored private var isWindowOpen = false
     @ObservationIgnored private var hasStoreFailure = false
     @ObservationIgnored private var lastRoute: Route?
@@ -162,9 +163,10 @@ public final class AppModel {
     }
 
     /// Settings changed speed. Unchanged observations do nothing, and the engine reads
-    /// the new stored value before recomputing its due time.
+    /// the new stored value before recomputing its due time. Before founding stores a
+    /// schedule, the change waits for the handover to the town.
     public func speedChanged() async {
-        guard lastSpeed != settings.speed else {
+        guard town != nil, lastSpeed != settings.speed else {
             return
         }
         lastSpeed = settings.speed
@@ -202,14 +204,27 @@ public final class AppModel {
     }
 
     private func readFoundedTown() async {
-        guard town == nil, let store = session?.store else {
+        guard town == nil, !isReadingFoundedTown, let session else {
             return
         }
+        isReadingFoundedTown = true
+        defer { isReadingFoundedTown = false }
         let generation = storeGeneration
         do {
-            let founded = try await store.town()
-            guard !Task.isCancelled, generation == storeGeneration else {
+            guard let founded = try await session.store.town(),
+                  !Task.isCancelled, generation == storeGeneration
+            else {
                 return
+            }
+            // A speed chosen during founding could not update a schedule that did not
+            // exist yet. Apply it before publishing the town and allowing its run.
+            while lastSpeed != settings.speed {
+                let speed = settings.speed
+                await session.speedChanged()
+                guard !Task.isCancelled, generation == storeGeneration else {
+                    return
+                }
+                lastSpeed = speed
             }
             town = founded
         } catch {
