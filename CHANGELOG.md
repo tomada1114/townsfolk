@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Keep model generation guides consistent with the town-name, place-count, and resident
+  post-length limits supplied in the runtime instructions
+
 - Bound each scene's recent-post read to 64 posts by default, so a growing log stays
   bounded before token fitting; the working limit can be tuned independently of the
   model's token budget
