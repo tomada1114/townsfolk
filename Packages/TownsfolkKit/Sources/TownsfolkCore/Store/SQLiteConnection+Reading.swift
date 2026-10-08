@@ -133,7 +133,7 @@ extension SQLiteConnection {
             """
             SELECT id, name, age_group, occupation, hobby, worry, personality, moved_in_at,
                 moved_out_at
-            FROM residents ORDER BY moved_in_at, id
+            FROM residents ORDER BY moved_in_at, name COLLATE BINARY, id
             """,
             [],
         ) { row throws(TownStoreError) in

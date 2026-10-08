@@ -12,8 +12,8 @@ extension TownStore {
         try liveConnection().town(tuning: tuning)
     }
 
-    /// Every resident, living and moved out, in the order they moved in. Past residents
-    /// are kept so no one like them is invented again.
+    /// Every resident, living and moved out, ordered by move-in time, then binary name,
+    /// then id. Past residents are kept so no one like them is invented again.
     public func residents() throws(TownStoreError) -> [Resident] {
         try liveConnection().residents()
     }

@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Residents with the same move-in time now read in binary name order, then id, so founded
+  rosters have a repeatable order
 - Scene prompts keep an existing period, exclamation mark, or question mark at the end
   of a resident's worry without adding another period
 - Requires macOS 27.0 or later; building from source requires Xcode 27
