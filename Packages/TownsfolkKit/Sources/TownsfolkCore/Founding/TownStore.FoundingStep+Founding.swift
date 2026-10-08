@@ -7,9 +7,8 @@ extension TownStore.FoundingStep {
     private static let postSpacing: TimeInterval = 0.001
 
     /// A founded town as it is stored at `storedAt`: the town, its residents moving in,
-    /// the founding row "You moved to {town}.", and a schedule whose next ordinary scene is
-    /// due at the founding — the store needs a time there, and the engine's first step
-    /// sets the real one (#19) — all at the founding time; then the first scene's posts
+    /// the founding row "You moved to {town}.", and a schedule with the next ordinary
+    /// scene due one drawn interval after the first scene's last post; then its posts
     /// a millisecond apart after it, the last at `storedAt`. Every row is therefore at or
     /// before `storedAt`, and the founding row is the oldest (ux-flows S3: S1 opens on the
     /// founding row with the first scene above it).
@@ -21,6 +20,7 @@ extension TownStore.FoundingStep {
         residents: [Resident],
         firstScene: WrittenScene,
         storedAt: Date,
+        nextOrdinarySceneDue: Date,
         tuning: Tuning,
     ) throws(TownValueError) {
         let foundedAt = storedAt.addingTimeInterval(
@@ -53,7 +53,7 @@ extension TownStore.FoundingStep {
                 endsAt: foundedAt,
                 status: .ended,
             ),
-            schedule: Schedule(nextOrdinarySceneDue: foundedAt, lastRanAt: foundedAt),
+            schedule: Schedule(nextOrdinarySceneDue: nextOrdinarySceneDue, lastRanAt: foundedAt),
             firstScene: TownStore.SceneStep(
                 posts: Self.posts(of: firstScene, after: foundedAt, tuning: tuning),
             ),

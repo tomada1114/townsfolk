@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Residents can talk about their stored relationships as ordinary scene seeds, with
   both residents speaking when they still live in town. Past residents remain named
   in relationship seeds without returning as speakers.
+- Wait one scene interval after the first scene when a town is founded, at the selected
+  speed, so an ordinary scene does not start immediately on opening the timeline
 
 ### Added
 

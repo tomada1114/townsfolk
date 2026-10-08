@@ -231,7 +231,12 @@ up (§3.8).
   one by one, with times spread across it, shown under "While you were away" (§3.7).
 - **Founding, and moving away.** First run, or a confirmed move that first deletes the
   store → the model invents the town, its residents, and a first scene → one transaction
-  stores them all → the timeline opens on "You moved to …" (§3.1, §3.9).
+  stores them all, with the next ordinary scene due one drawn interval after the first
+  scene's last post → the timeline opens on "You moved to …" (§3.1, §3.9). The interval
+  uses the same `ScenePace`, injected generator, and `Tuning` as later scenes, at the
+  selected speed passed through `FoundingViewModel` to `Founder.found` (Normal by
+  default). The last-post anchor and due time share the store's millisecond precision;
+  the first engine step therefore waits for the scheduled turn.
 
 Ordinary profile seeds include stored relationships, identified by the other resident's
 ID. Casting derives these candidates from the roster rather than `ProfileAspect.allCases`,
