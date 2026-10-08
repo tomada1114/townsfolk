@@ -245,7 +245,12 @@ up (§3.8).
   one by one, with times spread across it, shown under "While you were away" (§3.7).
 - **Founding, and moving away.** First run, or a confirmed move that first deletes the
   store → the model invents the town, its residents, and a first scene → one transaction
-  stores them all → the timeline opens on "You moved to …" (§3.1, §3.9).
+  stores them all, with the next ordinary scene due one drawn interval after the first
+  scene's last post → the timeline opens on "You moved to …" (§3.1, §3.9). The interval
+  uses the same `ScenePace`, injected generator, and `Tuning` as later scenes, at the
+  selected speed passed through `FoundingViewModel` to `Founder.found` (Normal by
+  default). The last-post anchor and due time share the store's millisecond precision;
+  the first engine step therefore waits for the scheduled turn.
 
 ### Quality targets
 
@@ -370,10 +375,11 @@ its own. There is no port: the store runs the same under `swift test`.
   newest-first paging past 100,000 posts.
 - **Format.** Dates are integer milliseconds since 1970 UTC, so keyset comparisons are
   exact; ids are uppercase UUID text; a list inside a value is a child table ordered by
-  `position`; foreign keys are on and deferred to the commit; enum codes are text with no
-  `CHECK`, so a later version can add one without rebuilding a table; the journal is
-  SQLite's default rollback journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the
-  source of truth for the schema.
+  `position`; resident reads order by `moved_in_at`, `name COLLATE BINARY`, then `id`; foreign
+  keys are on and deferred to the commit; enum codes are text with no `CHECK`, so a later
+  version can add one without rebuilding a table; the journal is SQLite's default rollback
+  journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the source of truth for the
+  schema.
 - **One transaction per step of the town** — a scene's posts, tags, names, and next due
   time; a new resident with its move event; a founded town, written only after all of
   its generation succeeded — so a crash repeats or loses nothing.

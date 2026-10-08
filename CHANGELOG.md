@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Wait one scene interval after the first scene when a town is founded, at the selected
+  speed, so an ordinary scene does not start immediately on opening the timeline
+
 ### Added
 
 - The town responds to your posts minutes later, in one to three groups, and sometimes
@@ -62,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Posting schedules the town's responses atomically at the speed chosen on Return,
   even while a scene is being written; recovery repairs all eligible recent posts
 
+- Residents with the same move-in time now read in binary name order, then id, so founded
+  rosters have a repeatable order
 - Scene prompts keep an existing period, exclamation mark, or question mark at the end
   of a resident's worry without adding another period
 - Requires macOS 27.0 or later; building from source requires Xcode 27

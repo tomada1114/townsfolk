@@ -157,10 +157,11 @@ struct FounderTests {
     }
 
     @Test
-    func `the schedule starts with nothing pending, due at the founding`() async throws {
+    func `the schedule starts with nothing pending, due one interval after the first scene`(
+    ) async throws {
         try await withFoundedTown { store in
             let schedule = try #require(try await store.schedule())
-            #expect(schedule.nextOrdinarySceneDue == Self.foundedAt)
+            #expect(schedule.nextOrdinarySceneDue == FoundingFixtures.now.addingTimeInterval(180))
             #expect(schedule.lastRanAt == Self.foundedAt)
             #expect(schedule.pendingResponses.isEmpty)
         }
