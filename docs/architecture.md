@@ -524,13 +524,30 @@ macOS 27's `LanguageModel` protocol is the first place to look.
 #### Sentence validation
 
 Core retains `import NaturalLanguage` for `NLTokenizer(unit: .sentence)`, because
-sentence validity determines whether generated text may enter the feed. Foundation's
-`.bySentences` was rejected because it splits `Dr. Sato said hi. Nice.` after the
-abbreviation and counts three sentences; `NLTokenizer` keeps it as a valid two-sentence
-post.
+sentence validity determines whether generated text may enter the feed. This comparison
+with Foundation's `.bySentences` is reproducible with:
+
+```swift
+import Foundation
+import NaturalLanguage
+
+let text = "Dr. Sato said hi. Nice."
+let range = text.startIndex ..< text.endIndex
+var foundationSentenceCount = 0
+text.enumerateSubstrings(in: range, options: .bySentences) { _, _, _, _ in
+    foundationSentenceCount += 1
+}
+let tokenizer = NLTokenizer(unit: .sentence)
+tokenizer.string = text
+let naturalLanguageSentenceCount = tokenizer.tokens(for: range).count
+print("Foundation .bySentences: \(foundationSentenceCount); NLTokenizer: \(naturalLanguageSentenceCount)")
+```
+
+On macOS 27.0 with Swift 6.4, this reports `Foundation .bySentences: 3; NLTokenizer: 2`
+(checked 2026-10-08). Keep `NLTokenizer` so this valid two-sentence post is accepted.
 
 - `Packages/TownsfolkKit/Sources/TownsfolkCore/Writing/SceneValidation.swift` — sentence
-  counting and the `.bySentences` comparison — checked 2026-10-08
+  counting with `NLTokenizer` — checked 2026-10-08
 - `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/Writing/WriterValidationTests.swift` — the
   accepted `Dr. Sato said hi. Nice.` regression case — checked 2026-10-08
 
