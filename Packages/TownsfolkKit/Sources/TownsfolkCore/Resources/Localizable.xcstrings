@@ -111,6 +111,28 @@
         }
       }
     },
+    "engine.event.movedAway" : {
+      "comment" : "Timeline: the row stored when a resident moves out of town. The argument is the resident's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ moved away."
+          }
+        }
+      }
+    },
+    "engine.event.movedIn" : {
+      "comment" : "Timeline: the row stored when a new resident moves into town. The argument is the resident's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ moved in."
+          }
+        }
+      }
+    },
     "firstRun.continue" : {
       "comment" : "First run: the default button that keeps the typed name and founds the town.",
       "localizations" : {

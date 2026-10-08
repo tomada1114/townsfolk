@@ -12,9 +12,9 @@ enum FoundingAttempt<Value> {
 }
 
 extension LanguageModelProviding {
-    /// One founding call under `Draft`'s schema, decoded: a refusal, a failure, an
-    /// overflow, or an answer that does not decode is a failed attempt, and an
-    /// unavailable model ends founding.
+    /// One call under `Draft`'s schema, decoded — founding's, and the engine's event and
+    /// newcomer calls: a refusal, a failure, an overflow, or an answer that does not decode
+    /// is a failed attempt, and an unavailable model ends the run.
     /// - Throws: `CancellationError` when the calling task is cancelled, and nothing else.
     func foundingReply<Draft: Generable>(
         _: Draft.Type,
@@ -109,6 +109,7 @@ extension LanguageModelProviding {
                     id: Resident.ID(),
                     seed: seed,
                     among: earlier,
+                    alsoTaken: [],
                     movedInAt: movedInAt,
                 ))
             } catch {

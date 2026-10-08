@@ -133,6 +133,11 @@ struct EngineSetup {
     var thermalState = ThermalState.nominal
     var generator: any RandomNumberGenerator & Sendable = SplitMix64(seed: Self.seed)
     var tuning = Tuning.default
+    /// Events stored, each on its own, after the founding.
+    var priorEvents: [TownEvent] = []
+    /// The tables events and newcomers draw from; `nil` for the shipped ones.
+    var seedTables: SeedTables?
+    var contextSize = WritingFixtures.roomyContextSize
 
     /// A town of Mika alone, so every scene is hers whatever is drawn.
     static func mikaAlone() throws -> Self {
@@ -261,7 +266,7 @@ private func makeEngine(
             store: store,
             writer: SceneWriter(model: model, store: store, tuning: setup.tuning),
             settings: SettingsStore(defaults: #require(UserDefaults(suiteName: suite))),
-            seedTables: SeedTables.load(),
+            seedTables: setup.seedTables ?? SeedTables.load(),
             model: model,
         ),
         world: TownEngine.World(
@@ -285,9 +290,12 @@ func withEngine(_ setup: EngineSetup, _ body: (EngineHarness) async throws -> Vo
     settings.displayName = try setup.displayName.map { try DisplayName($0) }
     try await withStore { store, directory in
         try await store.found(EngineFixtures.founding(setup))
+        for event in setup.priorEvents {
+            try await store.startEvent(event)
+        }
         let model = FakeLanguageModelProvider(
             availability: setup.availability,
-            contextSize: WritingFixtures.roomyContextSize,
+            contextSize: setup.contextSize,
             outcomes: setup.outcomes,
             holdsResponses: setup.holdsResponses,
         )

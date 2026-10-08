@@ -167,7 +167,9 @@ struct ScenePromptBuilder {
     private func seedSection(labels: [String: Post.ID]) -> String {
         switch seed {
         case let .event(event):
-            return "Seed: the ongoing event \"\(Self.oneLine(event.description))\""
+            // An ended event is news — a move — rather than something still going on.
+            let what = event.status == .ongoing ? "the ongoing event" : "the news"
+            return "Seed: \(what) \"\(Self.oneLine(event.description))\""
 
         case let .name(interest):
             return "Seed: \(Self.oneLine(interest.term)), a name \(you) brought up."
