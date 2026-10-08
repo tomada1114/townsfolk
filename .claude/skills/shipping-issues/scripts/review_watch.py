@@ -553,9 +553,9 @@ def after_push_verdict(
     elapsed = max(0, int(time.time() - since))
     state["push_age"] = elapsed
     pushed = after_push[:7]
-    if any(same_commit(row["sha"], after_push) for row in rounds) or any(
-        not any(same_commit(row["sha"], sha) for sha in base) for row in rounds
-    ):
+    # Only a round of the pushed head ends the wait: a late review of an older
+    # commit settling after the push must not stand in for one of this head.
+    if any(same_commit(row["sha"], after_push) for row in rounds):
         state["verdict"] = verdict
     elif len(base) >= REVIEW_CAP:
         state["verdict"] = verdict

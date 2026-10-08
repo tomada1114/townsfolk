@@ -1210,6 +1210,20 @@ class AfterPushTest(unittest.TestCase):
             "  - F2 [P3] AGENTS.md:206 id=2 round=2 -- Round two\n", proc.stdout
         )
 
+    def test_a_late_review_of_an_older_commit_does_not_end_the_wait(self):
+        # The fix for FIXED went up as SECOND; a review of FIXED settling
+        # afterwards is not a review of SECOND, so the grace keeps running.
+        self.seed_wait(SECOND, seconds_ago=10)
+
+        proc = self.run_watch(
+            ["7", "--after-push", SECOND, "--timeout", "0"],
+            self.opening_findings(head=SECOND, comments=row(FIXED)),
+        )
+
+        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertEqual(field(proc.stdout, "verdict"), "PENDING_TIMEOUT")
+        self.assertIn("start grace", field(proc.stdout, "detail"))
+
     def test_a_clean_review_of_the_pushed_head_is_clean(self):
         proc = self.run_watch(
             ["7", "--after-push", FIXED, "--timeout", "0"],
