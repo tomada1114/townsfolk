@@ -15,11 +15,13 @@ import TownsfolkCore
 package final class FakeLanguageModelProvider: LanguageModelProviding {
     /// What one ``respond(instructions:prompt:schema:)`` call within the context size
     /// answers.
-    package enum Outcome: Equatable, Sendable {
+    package enum Outcome: Sendable {
         /// The model wrote this content.
         case content(GeneratedContent)
         /// The call failed with this error.
         case failure(ModelCallError)
+        /// A failure beyond the port's documented errors, for defensive caller tests.
+        case unexpectedFailure(any Error)
     }
 
     /// One ``respond(instructions:prompt:schema:)`` call, as it was asked.
@@ -36,6 +38,7 @@ package final class FakeLanguageModelProvider: LanguageModelProviding {
     private struct State {
         var availability: ModelAvailability
         var outcomes: [Outcome]
+        var tokenCountFailures: [any Error]
         var calls: [Call] = []
         var inFlight = 0
         var highestInFlight = 0
@@ -80,20 +83,40 @@ package final class FakeLanguageModelProvider: LanguageModelProviding {
         state.withLock { $0.highestInFlight }
     }
 
+    /// Creates the usual fake with normal token counting and the response queue.
+    package convenience init(
+        availability: ModelAvailability,
+        contextSize: Int,
+        outcomes: [Outcome],
+        holdsResponses: Bool,
+    ) {
+        self.init(
+            availability: availability,
+            contextSize: contextSize,
+            outcomes: outcomes,
+            holdsResponses: holdsResponses,
+            tokenCountFailures: [],
+        )
+    }
+
     /// Answers `availability` and `contextSize`, and each call within the context size with
     /// the next of `outcomes`. With `holdsResponses`, every call waits once it is recorded
     /// until ``releaseHeld()``, so a test can have several in flight at once.
+    /// Each token-count call throws the next `tokenCountFailures` error, if any; when
+    /// that independent queue is empty, counting resumes normally.
     package init(
         availability: ModelAvailability,
         contextSize: Int,
         outcomes: [Outcome],
         holdsResponses: Bool,
+        tokenCountFailures: [any Error],
     ) {
         self.contextSize = contextSize
         self.holdsResponses = holdsResponses
         state = OSAllocatedUnfairLock(initialState: State(
             availability: availability,
             outcomes: outcomes,
+            tokenCountFailures: tokenCountFailures,
         ))
     }
 
@@ -105,6 +128,12 @@ package final class FakeLanguageModelProvider: LanguageModelProviding {
     /// counts at once, and a synchronous witness still satisfies the port.
     package func tokenCount(instructions: String, prompt: String) throws -> Int {
         try Task.checkCancellation()
+        let failure = state.withLock { state in
+            state.tokenCountFailures.isEmpty ? nil : state.tokenCountFailures.removeFirst()
+        }
+        if let failure {
+            throw failure
+        }
         return Self.tokens(instructions: instructions, prompt: prompt)
     }
 
@@ -139,6 +168,9 @@ package final class FakeLanguageModelProvider: LanguageModelProviding {
             return content
 
         case let .failure(error):
+            throw error
+
+        case let .unexpectedFailure(error):
             throw error
 
         case nil:
