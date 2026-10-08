@@ -1,5 +1,16 @@
 import Foundation
 
+/// Failed reads keep their scope until a store change or clock tick can retry them.
+struct TimelinePendingRead {
+    var needsNewest = true
+    var includesOlder = false
+    var needsCatchup = false
+    var postIDs: Set<Post.ID> = []
+    var cursor: TimelineInsertionCursor?
+    var isReading = false
+    var revision = 0
+}
+
 /// Reading the store and keeping time: the actions that wait.
 extension TimelineViewModel {
     private static let millisecondsPerSecond: Double = 1_000
@@ -36,12 +47,24 @@ extension TimelineViewModel {
             await keepTime()
             return
         }
-        // Subscribing before the first read, so a step committed meanwhile is not missed;
-        // re-reading what is already loaded changes nothing.
-        let changes = await store.changes()
+        let generation = loadGeneration
+        let observation = await store.timelineObservation()
+        guard generation == loadGeneration, !Task.isCancelled else {
+            return
+        }
+        let retainedBoundary = pendingRead.cursor != nil
+        if !retainedBoundary {
+            pendingRead.cursor = observation.cursor
+            pendingRead.includesOlder = observation.failedBoundary
+        }
+        pendingRead.needsCatchup = pendingRead.needsCatchup || retainedBoundary
+            || observation.failedBoundary
         await loadNewest(from: store)
+        if !pendingRead.needsNewest, pendingRead.needsCatchup {
+            await catchUp(from: store)
+        }
         await withDiscardingTaskGroup { group in
-            group.addTask { await self.follow(changes, from: store) }
+            group.addTask { await self.follow(observation.changes, from: store) }
             group.addTask { await self.keepTime() }
         }
     }
@@ -76,14 +99,35 @@ extension TimelineViewModel {
     }
 
     private func loadNewest(from store: TownStore) async {
+        let generation = loadGeneration
+        pendingRead.needsNewest = true
+        guard !pendingRead.isReading else {
+            return
+        }
+        pendingRead.isReading = true
+        defer { pendingRead.isReading = false }
+        let revision = pendingRead.revision
         do {
             let town = try await store.town()
             let residents = try await store.residents()
-            let page = try await store.page(before: nil, limit: pageSize)
+            var pages = try await [store.page(before: nil, limit: pageSize)]
+            while pendingRead.includesOlder, let cursor = pages.last?.older {
+                try Task.checkCancellation()
+                try await pages.append(store.page(before: cursor, limit: pageSize))
+            }
+            guard generation == loadGeneration, !Task.isCancelled else {
+                return
+            }
             townRead(town, residents: residents)
-            pageLoaded(page)
-            AppLog.timeline
-                .debug("newest page loaded: \(page.entries.count, privacy: .public) rows")
+            for page in pages {
+                pageLoaded(page)
+            }
+            pendingRead.needsNewest = revision != pendingRead.revision
+            if !pendingRead.needsNewest {
+                pendingRead.includesOlder = false
+            }
+        } catch is CancellationError {
+            return
         } catch {
             AppLog.timeline
                 .error("newest page failed: \(String(describing: error), privacy: .public)")
@@ -98,7 +142,7 @@ extension TimelineViewModel {
     }
 
     /// Re-reads what a committed step may have changed: the posts it names, and the
-    /// newest page for anything else — an event, a move, a founding — since a step
+    /// new insertions for anything else — an event, a move, a founding — since a step
     /// announces itself, not each thing it wrote (``TownStoreChange``).
     private func storeChanged(_ change: TownStoreChange, in store: TownStore) async {
         // Last, so the clock's next wait counts any post that now waits for its time.
@@ -110,22 +154,66 @@ extension TimelineViewModel {
         if case .yourPostStored = change {
             yourPostStored()
         }
-        if log.isEmpty {
+        pendingRead.revision += 1
+        if change == .founded {
+            pendingRead.includesOlder = true
             await loadNewest(from: store)
             return
         }
+        if pendingRead.needsNewest || log.isEmpty {
+            pendingRead.postIDs.formUnion(Self.posts(namedBy: change))
+            pendingRead.needsCatchup = true
+            await loadNewest(from: store)
+            return
+        }
+        await catchUp(from: store, posts: Self.posts(namedBy: change))
+    }
+
+    private func catchUp(from store: TownStore, posts: [Post.ID] = []) async {
+        let generation = loadGeneration
+        pendingRead.needsCatchup = true
+        pendingRead.postIDs.formUnion(posts)
+        pendingRead.revision += 1
+        guard !pendingRead.isReading else {
+            return
+        }
+        pendingRead.isReading = true
+        let revision = pendingRead.revision
+        await readChanges(from: store, generation: generation)
+        pendingRead.isReading = false
+        if generation == loadGeneration, revision != pendingRead.revision, !Task.isCancelled {
+            await catchUp(from: store)
+        }
+    }
+
+    private func readChanges(from store: TownStore, generation: Int) async {
+        let revision = pendingRead.revision
+        let requestedPosts = pendingRead.postIDs
         do {
             let town = try await store.town()
             let residents = try await store.residents()
             var entries: [TimelineEntry] = []
-            for id in Self.posts(namedBy: change) {
+            for id in requestedPosts {
                 if let post = try await store.post(id) {
                     entries.append(.post(post))
                 }
             }
-            entries += try await store.page(before: nil, limit: pageSize).entries
+            guard let cursor = pendingRead.cursor else {
+                return
+            }
+            try Task.checkCancellation()
+            let inserted = try await store.timelineInsertions(after: cursor)
+            entries += inserted.entries
+            guard generation == loadGeneration, !Task.isCancelled else {
+                return
+            }
             townRead(town, residents: residents)
             entriesArrived(entries)
+            pendingRead.cursor = inserted.cursor
+            pendingRead.postIDs.subtract(requestedPosts)
+            pendingRead.needsCatchup = revision != pendingRead.revision
+        } catch is CancellationError {
+            return
         } catch {
             AppLog.timeline
                 .error("change read failed: \(String(describing: error), privacy: .public)")
@@ -164,6 +252,12 @@ extension TimelineViewModel {
             }
             clockTicked()
             if let store {
+                if pendingRead.needsNewest {
+                    await loadNewest(from: store)
+                }
+                if !pendingRead.needsNewest, pendingRead.needsCatchup {
+                    await catchUp(from: store)
+                }
                 await fetchMissingQuotes(from: store)
             }
         }
