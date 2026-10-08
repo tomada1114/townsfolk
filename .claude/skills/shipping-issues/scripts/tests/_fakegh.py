@@ -49,6 +49,7 @@ after its stdout, as the real gh does after a string value, so a response is
 written as the bare value ("main", not "main\\n") and a script that writes a
 `-q` value back can be tested for keeping that newline out.
 """
+
 from __future__ import annotations
 
 import json
@@ -58,7 +59,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-_RUNNER = '''#!/usr/bin/env python3
+_RUNNER = """#!/usr/bin/env python3
 import json, sys, os
 config = json.loads(open(os.environ["FAKE_GH_CONFIG"], encoding="utf-8").read())
 argv = sys.argv[1:]
@@ -94,7 +95,7 @@ if os.environ.get("FAKE_GH_JQ_NEWLINE") and ("-q" in argv or "--jq" in argv):
 sys.stderr.write(reply.get("stderr", ""))
 sys.stdout.write(stdout)
 sys.exit(reply.get("exit", 0))
-'''
+"""
 
 
 class FakeGh:
@@ -102,11 +103,15 @@ class FakeGh:
     `.env` (subprocess env with PATH pointed at the fake) and `.calls`
     (populated after each subprocess call reads the shared log file)."""
 
-    def __init__(self, responses: dict[tuple[str, ...], str] | None = None,
-                 *, exits: dict[tuple[str, ...], int] | None = None,
-                 stderrs: dict[tuple[str, ...], str] | None = None,
-                 sequences: dict[tuple[str, ...], list[str | tuple[str, int]]] | None = None,
-                 jq_newline: bool = False):
+    def __init__(
+        self,
+        responses: dict[tuple[str, ...], str] | None = None,
+        *,
+        exits: dict[tuple[str, ...], int] | None = None,
+        stderrs: dict[tuple[str, ...], str] | None = None,
+        sequences: dict[tuple[str, ...], list[str | tuple[str, int]]] | None = None,
+        jq_newline: bool = False,
+    ):
         self._responses = responses or {}
         self._exits = exits or {}
         self._stderrs = stderrs or {}
@@ -116,29 +121,40 @@ class FakeGh:
         self.env: dict[str, str] = {}
         self.state_dir: Path | None = None
 
-    def __enter__(self) -> "FakeGh":
+    def __enter__(self) -> FakeGh:
         self._tmpdir = tempfile.TemporaryDirectory()
         bin_dir = Path(self._tmpdir.name) / "bin"
         bin_dir.mkdir()
         gh_path = bin_dir / "gh"
-        gh_path.write_text(_RUNNER, encoding="utf-8")
-        gh_path.chmod(gh_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        # The fixture needs only stdlib modules: avoid ambient site customization
+        # and repeat site-package startup in every CLI subprocess.
+        runner = _RUNNER.replace("#!/usr/bin/env python3", f"#!{sys.executable} -S", 1)
+        gh_path.write_text(runner, encoding="utf-8")
+        gh_path.chmod(
+            gh_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+        )
 
         config = [
-            {"prefix": list(prefix), "stdout": stdout,
-             "exit": self._exits.get(prefix, 0),
-             "stderr": self._stderrs.get(prefix, "")}
+            {
+                "prefix": list(prefix),
+                "stdout": stdout,
+                "exit": self._exits.get(prefix, 0),
+                "stderr": self._stderrs.get(prefix, ""),
+            }
             for prefix, stdout in self._responses.items()
             if prefix not in self._sequences
         ]
         config += [
-            {"prefix": list(prefix),
-             "stderr": self._stderrs.get(prefix, ""),
-             "sequence": [
-                 {"stdout": item, "exit": 0} if isinstance(item, str)
-                 else {"stdout": item[0], "exit": item[1]}
-                 for item in items
-             ]}
+            {
+                "prefix": list(prefix),
+                "stderr": self._stderrs.get(prefix, ""),
+                "sequence": [
+                    {"stdout": item, "exit": 0}
+                    if isinstance(item, str)
+                    else {"stdout": item[0], "exit": item[1]}
+                    for item in items
+                ],
+            }
             for prefix, items in self._sequences.items()
         ]
         config_path = Path(self._tmpdir.name) / "gh_config.json"
@@ -157,13 +173,18 @@ class FakeGh:
             self.env["FAKE_GH_JQ_NEWLINE"] = "1"
         else:
             self.env.pop("FAKE_GH_JQ_NEWLINE", None)
-        # Two isolations every test wants, and neither is safe to leave to the
+        # Three isolations every test wants, and none is safe to leave to the
         # individual test to remember:
         #   * the run-state dir is redirected into this temp dir, so nothing a
         #     test does can write into the user's real ~/.local/state;
         #   * the digest cache is off, so a test's fake `gh` responses are never
         #     shadowed by data a previous test (or a real run) cached. A test
         #     that is specifically about the cache pops the key back out.
+        #   * CLAUDE_CODE_REMOTE is dropped, so a suite run inside a Claude Code
+        #     cloud session (where it is exported as "true") cannot make
+        #     preflight.sh stop at its host check. A test about the cloud host
+        #     sets it back explicitly.
+        self.env.pop("CLAUDE_CODE_REMOTE", None)
         self.env["AGENT_SKILL_STATE_DIR"] = str(Path(self._tmpdir.name) / "state")
         self.env["SHIPPING_ISSUES_NO_CACHE"] = "1"
         self.state_dir = Path(self.env["AGENT_SKILL_STATE_DIR"])

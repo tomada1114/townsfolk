@@ -25,30 +25,26 @@ like doing."** Concretely, in this order:
 4. **Damage being taken right now** -- broken build, crash, data loss,
    vulnerability, failing CI on main. These jump the queue regardless of score.
 
-Everything else -- nice-to-have features, docs polish, personal preference --
-ranks below all four, however small it is.
+Apply `triaging-issues`' priority definitions to this evidence. Documentation can
+carry any tier when its impact warrants it; its format alone does not imply P3.
 
 ## The label is the answer, written down
 
-Those four axes get evaluated **once per issue** and the verdict is stored on
-GitHub as a label, so the next run reads it instead of re-deriving it:
+Those four axes get evaluated **once per issue** and the verdict is stored on GitHub as
+a label, so the next run reads it instead of re-deriving it:
 
-| Label | Means | Typical evidence |
-|---|---|---|
-| `priority: P0` | Ship now | Other open issues are blocked on it, or damage is being taken right now (red main, crash, data loss, vulnerability) |
-| `priority: P1` | Do next | Leverage -- CI, schema, shared types, test harness, config: the ground later issues stand on. Or a must-be-first ordering that causes rework if skipped |
-| `priority: P2` | Normal | A real, self-contained change. Nothing waits on it |
-| `priority: P3` | Defer | Nice-to-have, docs polish, cosmetics |
+**REQUIRED:** `triaging-issues` owns the P0-P3 definitions and the independence of
+priority and design readiness. Use its priority table; this reference owns only
+the research procedure and vocabulary aliases.
 
-Existing vocabularies are read as equivalents, so a repo with its own convention
-is never force-relabeled: `p0`/`critical`/`urgent`/`blocker` -> P0,
-`priority: high` -> P1, `priority: medium` -> P2, `priority: low`/`nice to have` ->
-P3. `apply_priority_labels.py` and `file_followup.py` write the spelling the
-repository already defines -- the canonical name when it exists, else its shortest
-alias, matched without regard to case -- and a re-tier strips any other tier label
-the issue carries.
+Existing vocabularies are read as equivalents, so a repo with its own convention is
+never force-relabeled: `p0`/`critical`/`urgent`/`blocker` -> P0, `priority: high` -> P1,
+`priority: medium` -> P2, `priority: low`/`nice to have` -> P3. `apply_priority_labels.py`
+and `file_followup.py` write the spelling the repository already defines -- the canonical
+name when it exists, else its shortest alias, matched without regard to case -- and a
+re-tier strips any other tier label the issue carries.
 
-The scripts apply labels and never create a label definition: `.github/labels.yml`
+The scripts apply labels and never create a label definition -- `.github/labels.yml`
 declares them and `just labels` creates them. A label a call would apply that the
 repository lacks stops the call before its first write with
 `verdict: MISSING_LABELS` and exit 4. `just labels` is outside this skill's sign-off
@@ -57,19 +53,12 @@ report the missing names and rank from the `~P<n>` suggestions.
 `apply_priority_labels.py --check-labels` asks the same question for the four tier
 labels without writing anything.
 
-Tier and design-readiness are orthogonal: `blocked: design` says the approach
-isn't settled, not how urgent the issue is once it is. Tier an issue even
-while it carries `blocked: design`, so it ranks correctly the instant the
-block is cleared -- see `dependency-triage.md`'s "Deciding a held design".
+Correct a wrong tier using `apply_priority_labels.py --set N=P1`, within the
+shipping run's authorized label-write scope (`triaging-issues`).
 
-Two rules keep the labels trustworthy:
-
-- **A wrong label gets fixed, not worked around.** Ranking around a stale label
-  in your head leaves the next run to make the same mistake. Re-tier it with
-  `apply_priority_labels.py --set N=P1`.
-- **Re-tier on new information, not on a hunch.** A merged blocker, a new
-  dependency edge, or a `P2(~P0)` marker from the digest is new information;
-  "this feels more urgent today" is not.
+**Re-tier on new information, not on a hunch.** A merged blocker, a new dependency
+edge, or a `P2(~P0)` marker from the digest is new information; "this feels more
+urgent today" is not.
 
 ## The research pass
 

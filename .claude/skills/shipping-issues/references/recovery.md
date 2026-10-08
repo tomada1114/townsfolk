@@ -11,7 +11,7 @@ save one file read on a few of them.
 - [A sub-agent returned without its report](#a-sub-agent-returned-without-its-report)
 - [A sub-agent stopped before pushing](#a-sub-agent-stopped-before-pushing)
 - [The implementation missed or widened the spec](#the-implementation-missed-or-widened-the-spec)
-- [The Codex review never arrives, or fails](#the-codex-review-never-arrives-or-fails)
+- [The PR review did not settle](#the-pr-review-did-not-settle)
 - [CI reports the previous commit](#ci-reports-the-previous-commit)
 - [CI fails](#ci-fails)
 - [`NO_CHECKS`, `ERROR`, and other non-verdicts](#no_checks-error-and-other-non-verdicts)
@@ -30,8 +30,8 @@ attempt CI repair is on, or what is held for the final confirmation. **Re-read
 whenever unsure what this run already did. It is append-only and written as each event
 happens ([run-record.md](run-record.md)), so it is the run's own account of itself; then
 confirm against GitHub and `git` before acting, and never re-run a write the record
-already shows landed. A `review` line for a PR means its one review was already read and
-answered: do not wait for, or fix against, a review again.
+already shows landed. A `review` line for a PR round means that round was already read and
+answered: do not wait for, or fix against, that round again.
 
 ## A sub-agent returned without its report
 
@@ -61,34 +61,46 @@ run on the same tier -- or record `--event blocked` if nothing landed at all.
 
 ## The implementation missed or widened the spec
 
-Judge the result in this context, against the issue and the design decision:
-start from `git -C <workdir> diff --stat <base>...HEAD` -- `<workdir>` is the
-main checkout in serial mode and that issue's worktree in parallel mode, and
-running it in the wrong directory reports on the wrong branch -- plus the
-sub-agent's own `CHANGED` / `SCOPE-NOTES` / `UNRESOLVED`. Open the hunks only in
-the files the spec actually touches, not the whole diff by default.
+Judge the result in this context, against the issue and the design decision: start from
+`git -C <workdir> diff --stat <base>...HEAD` -- `<workdir>` is the main checkout in
+serial mode and that issue's worktree in parallel mode, and running it in the wrong
+directory reports on the wrong branch -- plus the sub-agent's own `CHANGED` /
+`SCOPE-NOTES` / `UNRESOLVED`. Open the hunks only in the files the spec actually
+touches, not the whole diff by default.
 
-Missing part of the spec, or quietly widened: send it back naming only what is
-left -- to the same agent by `SendMessage` while it is reachable, otherwise to a
-new run on the same tier as the first. Don't re-run the whole task. Up to **2**
-resume/patch runs on top of the first; a third miss means the issue itself is
-underspecified, so record `--event blocked` and report `NEEDS-CLARIFICATION`
-instead of spawning again.
+Missing part of the spec, or quietly widened: send a patch round naming only what is
+left -- continuing the same agent where the host allows, otherwise a new run on the same
+tier as the first. Don't re-run the whole task. Up to **2** resume/patch runs on top of
+the first; a third miss means the issue itself is underspecified, so record
+`--event blocked` and report `NEEDS-CLARIFICATION` instead of spawning again.
 
-## The Codex review never arrives, or fails
+## The PR review did not settle
 
-`codex_review.py` reporting `TIMEOUT` after 900 s in total, or `FAILED`, is a held PR,
-not a reason to review it some other way: no `/code-review`, no review agent, no
-`@codex review` comment to start another run, no draft-and-ready or close-and-reopen
-cycle. Record `--event blocked --field issue=<n> --field reason=codex-review-missing`
-(or `codex-review-failed`), leave the PR open with its branch, skip its dependents, and
-move on. Before step 9, read each held PR once more with `--timeout 0`: a review that
-has completed in the meantime resumes that PR at step 5; one that has not goes to the
-step 10 report for the human, together with the PR's CI state.
+`review_watch.py` printed something other than `CLEAN`, `FINDINGS` or `NO_NEW_REVIEW`.
+None of these is a pass, and none is answered with a local review, an `@codex review`
+comment, or a close/reopen of the PR -- each would be a review the owner did not choose.
 
-`summary: absent` on every PR of a run usually means the integration is off for this
-repository rather than slow -- say so in the report instead of holding PR after PR
-silently.
+- `verdict: PENDING_TIMEOUT` -> the watch ended before the review did. Run it again;
+  `pr_age_seconds:` counts from the PR's opening and `push_age_seconds:` from the first
+  `--after-push` call, so slices need no running total. Past 1800 s with the review
+  still `Running` (or no Completed row), treat it as `ERROR`.
+- `verdict: NO_REVIEW` -> the bot left no trace within `--grace` of the PR opening: the
+  repository has no Codex integration, or it is not reviewing. Leave the PR open and
+  unmerged, record `--event blocked --field issue=<n> --field reason=no-review`, and put
+  it in the step 10 report. A second `NO_REVIEW` in the same run is a
+  [stop condition](../SKILL.md#stop-conditions): every later PR would wait the same 15
+  minutes for nothing. Whether this repository merges without a PR review is the
+  owner's decision.
+- `verdict: ERROR` -> read `detail:`. A failed or cancelled opening review, or a summary
+  naming a commit that is not on the PR, holds the PR the same way
+  (`--field reason=review-error`). A later review that fails is not one: `--after-push`
+  reports `NO_NEW_REVIEW`, and the latest settled round stands. A draft PR was opened
+  wrong: Codex never reviews a draft, and marking it ready is a write this run does not
+  make on its own -- hold it and report. An unreadable GitHub read: re-run the watch once
+  before holding.
+
+A held PR is not a failed issue for the rest of the batch: in `all` mode, skip what
+depends on it and continue, as for any `FAILED` issue.
 
 ## CI reports the previous commit
 
@@ -118,7 +130,7 @@ diagnosis, is a **failed outcome**, not a green one.
 - `verdict: TIMEOUT` -> the watch's own `--timeout` ran out while checks were
   still running; it proves nothing either way. Run the same watch again until
   1800 seconds of watching have passed in total, then treat it as `ERROR`
-  ([pr-ci-merge.md](pr-ci-merge.md#waiting-inside-the-600-second-cap)). A
+  ([pr-ci-merge.md](pr-ci-merge.md#waiting-inside-the-command-timeout)). A
   foreground watch killed by the Bash tool's 600-second cap leaves no verdict at
   all -- that is a watch run wrongly, not a CI result; re-run it the way that
   section says.
@@ -163,32 +175,38 @@ where this one had to guess.
 
 ## A red baseline
 
-A red baseline is **the repository's problem, not the issue's**, and finding it
-before an implementation run costs one command instead of a wasted spawn. Read
-the exit code and the log's tail, never the full output.
+A red baseline is **the repository's problem, not the issue's**, and finding it before
+an implementation run costs one command instead of a wasted spawn. Read the exit code
+and the log's tail, never the full output.
 
-`worktree_setup.sh` reports and does not decide: it tears nothing down and draws
-no verdict about the repo. Judging the four `baseline:` outcomes is the calling
-session's, and this is the whole list:
+`worktree_setup.sh` reports and does not decide: it tears nothing down and draws no
+verdict about the repo. Judging the four `baseline:` outcomes is the calling session's,
+and this is the whole list:
 
-| `baseline:` | What it means | What to do |
-|---|---|---|
-| `PASS` | Nothing to judge. | Provision the rest of the batch. |
-| `FAIL` in the worktree, main checkout green | Usually not worktree-viable in this run -- but not always. | Read the log's tail first: an absolute path in a config, a service the tests expect running, a fixture that exists only in the main checkout all fail this way and are fixable. Not fixable -> the fallback below. |
-| `FAIL` in the main checkout too | The repository is broken, and it is not this issue's problem. | A step 8 finding. The run may still be shippable on top of it -- decide, and say which in the report. |
-| `TIMEOUT` | The verify command never finished, so **nothing was proved either way**. | Almost always the wrong command was confirmed at step 1 -- a watcher, a dev server. Pick the right one and re-run the baseline. Never treat it as a red baseline. |
+| `baseline:`                                 | What it means                                                            | What to do                                                                                                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PASS`                                      | Nothing to judge.                                                        | Provision the rest of the batch.                                                                                                                                                                                  |
+| `FAIL` in the worktree, main checkout green | Usually not worktree-viable in this run -- but not always.                | Read the log's tail first: an absolute path in a config, a service the tests expect running, a fixture that exists only in the main checkout all fail this way and are fixable. Not fixable -> the fallback below. |
+| `FAIL` in the main checkout too             | The repository is broken, and it is not this issue's problem.            | A step 8 finding. The run may still be shippable on top of it -- decide, and say which in the report.                                                                                                              |
+| `TIMEOUT`                                   | The verify command never finished, so **nothing was proved either way**. | Almost always the wrong command was confirmed at step 1 -- a watcher, a dev server. Pick the right one and re-run the baseline. Never treat it as a red baseline.                                                  |
 
-Before concluding the repository is broken, read the red baseline against what
-is actually in the tree: an untracked build or package-manager cache in the repo
-root can fail the baseline on its own -- here a stale `Packages/TownsfolkKit/.build/` or
-`build/` built by an earlier toolchain or at another path. Seen in practice
-in another repository: a package-manager store holding a unix socket, which a
-test helper that copies untracked files hit with a bare `ENOTSUP`. This is why the dirty-tree question is asked at plan time,
-before the baseline, rather than after it.
+When the default branch's CI is green but the local baseline is red, suspect the
+environment first: compare against that CI run, then re-run the failing suite with the
+suspect variables unset (for example `env -u GIT_CONFIG_COUNT ...`) to confirm. uv-template's
+#178 is the example: `GIT_CONFIG_*` url rewrites the environment exported failed the
+baseline while the default branch stayed green.
 
-Once "not worktree-viable" is concluded, remove that worktree (`git worktree
-remove --force <path> && git worktree prune`) and record the verdict so later
-runs skip the probe:
+Before concluding the repository is broken, read the red baseline against what is
+actually in the tree: an untracked build or package-manager cache in the repo root can
+fail the baseline on its own -- here a stale `Packages/TownsfolkKit/.build/` or
+`build/` built by an earlier toolchain or at another path, or a cache directory holding
+a unix socket, which a test helper that copies untracked files hits with a bare `ENOTSUP`. This is why
+the dirty-tree question is asked at plan time, before the baseline, rather than after
+it.
+
+Once "not worktree-viable" is concluded, remove that worktree
+(`git worktree remove --force <path> && git worktree prune`) and record the verdict so
+later runs skip the probe:
 
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/preflight.sh --profile-cache <runstate>/repo-profile.json \

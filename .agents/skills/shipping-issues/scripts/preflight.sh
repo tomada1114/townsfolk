@@ -28,7 +28,9 @@
 #
 # Exit codes:
 #   0 = ready
-#   1 = hard blocker (not a repo, no origin)
+#   1 = hard blocker (not a repo, no origin, or a Claude Code cloud session:
+#       CLAUDE_CODE_REMOTE=true prints `host: cloud` and a `next:` line saying
+#       cloud sessions are unsupported here, and stops before any git or gh call)
 #   2 = usage error
 
 set -uo pipefail
@@ -161,6 +163,19 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
   esac
 done
+
+# --- host ------------------------------------------------------------------
+# A Claude Code cloud session sets CLAUDE_CODE_REMOTE=true (never true locally).
+# This workflow cannot run there -- the GitHub proxy refuses `gh`'s GraphQL, and
+# a cloud session has no Xcode to build or test this macOS app -- so stop before
+# any git or gh call. Only the exact value `true` counts; anything else is a
+# local host.
+if [[ "${CLAUDE_CODE_REMOTE:-}" == "true" ]]; then
+  emit host "cloud"
+  emit next "Claude Code cloud sessions are unsupported here (no Xcode); run shipping-issues from a local macOS checkout"
+  echo "verdict: BLOCKED"
+  exit 1
+fi
 
 # --set-worktree-viable is a standalone cache-write operation: it doesn't need
 # a git repo at all, so it's handled and exited before any git check runs.

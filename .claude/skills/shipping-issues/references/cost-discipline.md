@@ -7,46 +7,47 @@ a branch.
 
 ## Table of Contents
 
-- [Review: the PR's one Codex review](#review-the-prs-one-codex-review)
+- [Review: the pull request's own](#review-the-pull-requests-own)
 - [What the startup costs](#what-the-startup-costs)
 - [Run budget](#run-budget)
-- [Model tiers](#model-tiers)
+- [Tier assignment](#tier-assignment)
   - [The foundation exception: `architect` for what the backlog builds on](#the-foundation-exception-architect-for-what-the-backlog-builds-on)
+  - [The small-change step-down: `worker`](#the-small-change-step-down-worker)
   - [The floor: too small to delegate](#the-floor-too-small-to-delegate)
 - [What parallel mode costs](#what-parallel-mode-costs)
 
-The main context holds the selection and the verdicts, nothing else. Issue
-bodies go to the triage agent, diffs stay in the sub-agent run that produced
-them, CI logs and verify output reach the parent through a file rather than
-through the prompt. If you find yourself about to read a full GitHub API JSON
-blob, a workflow log, or an unrelated part of a diff in the main context,
-that is the signal to delegate or scope the read instead.
+The main context holds the selection and the verdicts, nothing else. Issue bodies go to
+the triage agent, diffs stay in the sub-agent run that produced them, CI logs and verify
+output reach the parent through a file rather than through the prompt. If you find
+yourself about to read a full GitHub API JSON blob, a workflow log, or an unrelated part
+of a diff in the main context, that is the signal to delegate or scope the read instead.
 
-Labeling is the cheap half of this by design: the backfill is a pure script
-pass with a one-line summary, and re-deriving priority from issue prose
-happens once per issue -- ever -- because the answer is written back to GitHub.
-On a labeled backlog the whole ranking step is `--select`, three lines, no
-spawn at all. Never re-read bodies to reconstruct a priority a label already
-carries; if a label looks wrong, fix the label.
+Labeling is the cheap half of this by design: the backfill is a pure script pass with a
+one-line summary, and re-deriving priority from issue prose happens once per issue --
+ever -- because the answer is written back to GitHub. On a labeled backlog the whole
+ranking step is `--select`, three lines, no spawn at all. Never re-read bodies to
+reconstruct a priority a label already carries; if a label looks wrong, fix the label.
 
-## Review: the PR's one Codex review
+## Review: the pull request's own
 
-[Step 5](../SKILL.md#5-the-codex-review)'s review costs this run nothing to produce:
-the GitHub integration runs it on Codex's side as soon as the PR opens, and all that
-reaches this context is `codex_review.py`'s verdict block -- a few lines and one line per
-finding. That is why the owner made it the only review: a local pass (`/code-review`, or
-a review sub-agent) would spend this run's budget on a second opinion of the same diff,
-and the step that once ran it is gone, not optional.
+The review is the pull request's: the Codex GitHub integration reviews a PR when it
+opens, and its result arrives within minutes (2-7 minutes on uv-template's PRs #159,
+#160 and #170, observed 2026-10-07). No local pass runs before the PR -- no review
+brief, no `/code-review` -- because a second reviewer reading the same diff first costs a
+spawn per branch and a full read of the diff, for findings the PR's review returns
+anyway. What the run spends instead is a wait
+([step 5](../SKILL.md#5-wait-for-the-pr-review)), which overlaps CI, and the main context
+reads one line per finding: `review_watch.py` keeps the bodies in a file.
 
-What the run still pays for is the wait -- usually a few minutes, bounded at 900 s, and
-spent while CI runs anyway -- and one targeted read of each finding's body during
-triage. The run never buys a second review round: fixes are verified by `just check` and
-CI, not re-reviewed, and the step 10 report says the final head was not re-reviewed
-instead of implying it was.
-
-Whatever the review returns, read what it covered before believing it: a `CLEAN` with
-`reviewed_head: no` reviewed an earlier commit, and a review that never arrived is a held
-PR, not a clean one.
+The trade is explicit and bounded: Codex may review a fix push again, and a PR takes at
+most 3 rounds, fixing every accepted finding in round 1 and only `P0`-`P2` after it
+(`P3` becomes a follow-up). A fix push waits at most a 300 s start grace for a new
+review, most of which the CI watch already covers; fixes after the last round get no further
+review -- local verification and current-head CI cover them, and the step 10 report says
+so. A
+repository with no PR reviewer gets `NO_REVIEW`, which holds the PR rather than falling
+back to a local review -- whether such a repository should merge without one is the
+owner's decision, not this run's.
 
 ## What the startup costs
 
@@ -95,73 +96,102 @@ bounded:
   work -- the single most expensive thing a backlog can hold, because every
   future ranking pass re-reads it and skips it again.
 - **Shipping the run's own follow-ups (step 8c)** -- a full steps 3-8 cycle per
-  follow-up, the same cost as any issue. This is why depth is capped at 1: a
-  run that shipped what it filed, and then what *that* filed, has no
-  termination condition and no budget the user agreed to. Depth 1, then stop
-  and report.
+  follow-up, the same cost as any issue. This is why depth is capped at 1: a run that
+  shipped what it filed, and then what _that_ filed, has no termination condition and no
+  budget the user agreed to. Depth 1, then stop and report.
 
-## Model tiers
+## Tier assignment
 
-Every spawn names one of the committed tiers in `.claude/agents/` as its
-`subagent_type` (`AGENTS.md`'s "Sub-agents" documents them). Each definition
-pins a model alias and an effort level together, so the tier *is* the effort
-setting: spawning with a bare `model` instead drops the effort to the host's
-default and loses the tier's instructions.
+Every step runs inline unless the host has named sub-agents (AGENTS.md's "Sub-agents").
+Where it does, a brief goes to a tier **by name**, never by a bare model name: the tier
+pins its own effort, which a per-spawn `model` cannot carry.
 
-| Step | Tier | Why |
-|---|---|---|
-| 2 priority research | `architect` | ranking needs judgment: verifying unblock edges, overriding the heuristic, and a wrong label costs every later run |
-| 3 implementation (and its resumes) | `executor` | a settled spec with a clear pass/fail |
-| 3 implementation of a foundational or design-bearing issue | `architect` | [below](#the-foundation-exception-architect-for-what-the-backlog-builds-on) |
-| 5 review fix (parallel mode) | `executor` | applying Codex findings this session already triaged |
-| 6 CI repair, attempts 1-2 | `executor` | a failing check with a log is usually a settled fix |
-| 6 CI repair, once the same failure survived two attempts | `architect` | persistent failure means the spec (or the fix) needs judgment, not another mechanical retry |
-| 8b design decision | `architect` | deciding an approach nobody has decided is the least mechanical work here, and a bad decision recorded on an issue outlives the run |
-| single-shot drafting or checking from a complete brief -- several follow-up bodies from findings this session already verified, say | `worker` | no repository tools needed; the brief carries everything |
+| Brief                      | Tier                                                                                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Priority research (step 2) | `architect`: ranking needs judgment, and a wrong label costs every later run                                                                                                                  |
+| Implementation (step 3)    | `executor`; `architect` when [foundational](#the-foundation-exception-architect-for-what-the-backlog-builds-on); `worker` when [small and settled](#the-small-change-step-down-worker)         |
+| Review fix (step 5)        | `executor`; `worker` when every accepted finding is [pinned to its line and its fix](#the-small-change-step-down-worker)                                                                       |
+| CI repair (step 6)         | `executor` for attempts 1-2; `architect` from attempt 3                                                                                                                                       |
+| Design decision (step 8b)  | `architect`                                                                                                                                                                                   |
 
-A resume or patch run keeps the tier its first run used, and goes to the same
-agent by `SendMessage` while it is reachable
-([implement-and-review.md](implement-and-review.md#resuming-a-run)). The design
-agent is also the only sub-agent here that writes to GitHub (one comment, one
-label) and the only one that writes no code at all.
+Implementation and review fixes are fully specified work with a clear pass/fail -- the
+`executor` shape -- with a step up and a step down below. Priority research is
+`architect`: ranking needs judgment, verifying unblock edges and overriding the heuristic. CI repair
+escalates once the same failure survives two attempts in a row: persistent failure is a
+sign the spec (or the fix) needs more judgment, not more mechanical retries. Design
+decisions are `architect` because their spec is genuinely unresolved -- deciding an
+approach nobody has decided is the least mechanical work this skill delegates, and a bad
+decision recorded on an issue outlives the run that made it. It is also the only brief here that writes to GitHub (one
+comment, one label) and the only one that writes no code at all. `worker` takes only
+the small end of implementation and review fixes, by the test below; priority research
+stays on `architect` and CI repair on `executor`, because both start from something not
+yet understood.
 
 ### The foundation exception: `architect` for what the backlog builds on
 
-Some issues are not "fully specified work with a clear pass/fail" even when
-their body is excellent, because what they produce is a **shape other issues
-copy** rather than a behavior a test pins down. Spawn the step 3 implementation
-on **`architect`** when the issue is any of:
+Some issues are not "fully specified work with a clear pass/fail" even when their body
+is excellent, because what they produce is a **shape other issues copy** rather than a
+behavior a test pins down. Hand the step 3 implementation to **`architect`** when the
+issue is any of:
 
-- **Architecture or a skeleton** -- a new target in `Package.swift`, the
-  composition root in `App/`, the Core / UI / Platform boundary, the app shape
-  (windowed or menu-bar agent).
+- **Architecture or a skeleton** -- a new target in `Package.swift`, the composition
+  root in `App/`, the Core / UI / Platform boundary, the app shape (windowed or menu-bar
+  agent).
 - **An interface, port, or schema** -- a new Core port and its adapter, an error
-  taxonomy, a persisted data shape. The first implementer fixes the vocabulary
-  every later one inherits.
+  taxonomy, a persisted data shape. The first implementer fixes the vocabulary every later one
+  inherits.
 - **A skill, instruction file, or gate design** -- a `SKILL.md`, `AGENTS.md`, a
-  SwiftLint custom rule, a harness check, a CI job that defines what "green"
-  means. These are prompts and policies: they are read by every future run, and
-  a mediocre one degrades work long after this run ends.
+  SwiftLint custom rule, a harness check, a CI job that defines
+  what "green" means. These are prompts and policies: they are read by every future run,
+  and a mediocre one degrades work long after this run ends.
 
-The test is not difficulty, it is **blast radius**: would a wrong call here be
-cheap to correct in its own follow-up, or would it be copied by every issue
-after it? Only the second earns `architect`.
+The test is not difficulty, it is **blast radius**: would a wrong call here be cheap to
+correct in its own follow-up, or would it be copied by every issue after it? Only the
+second earns `architect`.
 
-Signals visible before spawning, straight off `issue_digest.py`: an
-`unblocks=N` of 2 or more, a `foundation`/`schema`/`interface` signal, or a
-Done-means written as a structure to establish rather than a behavior to
-observe. Any one of those is a reason to look; the blast-radius test decides.
+Signals visible before spawning, straight off `issue_digest.py`: an `unblocks=N` of 2 or
+more, a `foundation`/`schema`/`interface` signal, or a Done-means written as a structure
+to establish rather than a behavior to observe. Any one of those is a reason to look;
+the blast-radius test decides.
 
-Everything else stays on `executor`, which is most of a backlog: bug fixes,
-removals, mechanical rewrites, config edits, documentation that follows a shape
-already settled, and any issue whose Done-means is a command that passes. A
-removal-only issue is `executor` even when it is `P0` and unblocks the whole
-chain -- deleting what a decision already condemned carries no design in it.
+Everything else stays on `executor` -- or steps down to `worker` by the next section --
+which is most of a backlog: bug fixes, removals,
+mechanical rewrites, config edits, documentation that follows a shape already settled,
+and any issue whose Done-means is a command that passes. A removal-only issue is
+`executor` even when it is `P0` and unblocks the whole chain -- deleting what a decision
+already condemned carries no design in it.
 
-Implementation stays delegated even when the main session could do the work
-itself -- a deliberate exception to "do it yourself", bought for context
-isolation: the diff and the repository exploration are never needed in the main
-context again once this session has judged the result.
+The same escalation applies to a resume/patch run: it stays on the tier the first run
+used -- continuing that same agent where the host allows -- because a foundation the first
+run got half-right is exactly where the remaining judgment sits.
+
+Where tiers exist, implementation stays delegated even when this session could do it
+itself -- bought for context isolation: the diff and the repo exploration are never
+needed in the main context again once this session has judged the result.
+
+### The small-change step-down: `worker`
+
+`worker` is a small model at its highest effort -- far cheaper per run than `executor`,
+and enough for a change that leaves nothing to find out. Hand the step 3 implementation
+to **`worker`** instead of `executor` when **all** of these hold:
+
+- the issue is not foundational by the test above -- that section always wins;
+- the design is settled: the issue body (or its accepted design comment) says what to
+  change, and nothing in it is still to be decided;
+- the scope is narrow: one module and its test, or the few files the issue names -- no
+  module to learn, no search across the tree to find where the change goes;
+- the Done-means is a command or an existing test that passes, which the brief can name
+  as the check to run.
+
+A step 5 review fix goes to `worker` when every accepted finding names its `path:line`
+and the fix it wants; a finding that needs reading around to decide its fix keeps the
+brief on `executor`.
+
+A `worker` run that misses `ACCEPTANCE`, or reports the change needs a decision or files
+the brief did not name, is not patched on `worker`: the next round goes to `executor` --
+a tier change, so a fresh agent -- and counts against the same 2 patch rounds. The
+`worker` run proved the issue was not as small as it read; spending another cheap round
+on it costs more than it saves.
 
 ### The floor: too small to delegate
 

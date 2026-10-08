@@ -1,11 +1,12 @@
 # Review fix, parallel mode (brief)
 
-Spawned at [SKILL.md step 5](../SKILL.md#5-the-codex-review) in parallel mode -- only
-for the PR's Codex review findings this session has already read and accepted, one
-**`executor`** per branch that has any. Serial mode applies them inline in the main
-checkout; in parallel mode the main checkout sits on the default branch, so the
-writing happens here, in the branch's own worktree. Zero accepted findings -> no
-spawn. This is the review's one fix pass: nothing re-reviews what it pushes.
+Used at [SKILL.md step 5](../SKILL.md#5-wait-for-the-pr-review) -- only for the PR
+review's findings this session has already read and accepted
+([triage](implement-and-review.md#triaging-the-reviews-findings)) for this PR, one brief
+per review round that has any, handed to **`executor`** (**`worker`** when every
+accepted finding names its `path:line` and its fix) or followed inline in that branch's
+own `{workdir}`.
+Zero accepted findings -> nothing to run.
 
 ```
 Branch {branch} implements issue #{n} in {owner}/{repo} and is PR #{pr}. The

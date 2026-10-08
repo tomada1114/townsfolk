@@ -1,14 +1,15 @@
 # Implementation (brief)
 
-Spawned at [SKILL.md step 3](../SKILL.md#3-implement), one issue at a time.
-**`executor` is the default; `architect` when the issue is foundational** --
-architecture or a skeleton, an interface/port/schema, or a skill, instruction
-file, or gate whose shape the rest of the backlog copies. The test is blast
-radius, not difficulty:
+Used at [SKILL.md step 3](../SKILL.md#3-implement), one issue per brief. Handed to
+**`executor`** by default, down to **`worker`** when the issue is small and settled
+([the small-change step-down](cost-discipline.md#the-small-change-step-down-worker)),
+and to **`architect`** when the issue is foundational --
+architecture or a skeleton, an interface/port/schema, or a skill, instruction file, or
+gate whose shape the rest of the backlog copies. The test is blast radius, not
+difficulty:
 [cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on](cost-discipline.md#the-foundation-exception-architect-for-what-the-backlog-builds-on).
-A resume/patch run stays on the tier its first run used, and is a `SendMessage`
-to the same agent while it is reachable, naming only what is left
-([implement-and-review.md](implement-and-review.md#resuming-a-run)).
+A resume/patch run stays on the tier its first run used, continuing the same agent where
+the host allows (a `SendMessage` naming only what is left).
 
 ```
 Implement GitHub issue #{n} in {owner}/{repo}. Once you return, your branch is
@@ -75,7 +76,7 @@ Do:
    MEASURE. A change under Packages/TownsfolkKit/Sources/TownsfolkPlatform/ also owes
    `just test-local` -- CI and `just test` report those tests as skipped -- but it
    takes over the owner's screen, so do not run it: report under VERIFY that it is
-   pending, and the parent asks the owner before running it (running-the-app ›
+   pending, and the parent asks the owner before running it (running-the-app >
    Ask before taking over the Mac).
 5. If the change is user-facing, add an entry to CHANGELOG.md under
    [Unreleased], in the section (Added / Changed / Fixed / ...) that fits.
@@ -119,7 +120,8 @@ SCOPE-NOTES: <anything in the task you did not implement, and why>
 FOLLOW-UPS: <defects you saw that are NOT this task, one per line as
              `file:line -- what is wrong -- what prevents it today`, or "none">
 UNRESOLVED: <judgment calls you had to make, or "none">
-PR-TITLE: <one line the parent can use verbatim>
+PR-TITLE: <one line the parent can use verbatim; choose its type from the explicit
+           types input in .github/workflows/check-pr-title.yml>
 PR-SUMMARY: <2-4 lines: what changed and why, for the PR body>
 TEST-PLAN: <what the parent should put under the PR's test plan, including the
             verification command and, for a perf issue, both numbers>

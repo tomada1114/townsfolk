@@ -4,6 +4,7 @@
 Run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
      (from the shipping-issues skill directory)
 """
+
 from __future__ import annotations
 
 import json
@@ -15,8 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _fakegh import FakeGh  # noqa: E402
-
+from _fakegh import FakeGh
 
 SCRIPT = Path(__file__).resolve().parent.parent / "preflight.sh"
 
@@ -73,6 +73,32 @@ def run_script_gh(args, repo, *, responses=None, exits=None):
         )
         calls = list(fake.calls)
     return proc, calls
+
+
+CLOUD_NEXT = (
+    "next: Claude Code cloud sessions are unsupported here (no Xcode); run shipping-issues from a local macOS checkout\n"
+)
+
+
+def run_script_host(args, repo, host):
+    """Run preflight.sh with CLAUDE_CODE_REMOTE set to `host` (a string), so
+    the result never depends on the runner's own environment."""
+    with FakeGh({}) as fake:
+        env = {**fake.env, "CLAUDE_CODE_REMOTE": host}
+        proc = subprocess.run(
+            ["bash", str(SCRIPT), *args],
+            cwd=repo,
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        calls = list(fake.calls)
+    return proc, calls
+
+
+def without_runstate(stdout):
+    """Drop the `runstate:` line: FakeGh gives every run its own temp dir."""
+    return [ln for ln in stdout.splitlines() if not ln.startswith("runstate:")]
 
 
 class PreflightTest(unittest.TestCase):
@@ -285,7 +311,9 @@ class PreflightTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
             make_repo(repo, origin=True)
-            (repo / ".pre-commit-config.yaml").write_text("repos: []\n", encoding="utf-8")
+            (repo / ".pre-commit-config.yaml").write_text(
+                "repos: []\n", encoding="utf-8"
+            )
             proc, _ = run_script([], repo)
         self.assertIn("hooks: pre-commit\n", proc.stdout)
 
@@ -294,7 +322,9 @@ class PreflightTest(unittest.TestCase):
             repo = Path(td)
             make_repo(repo, origin=True)
             hooks_dir = repo / ".git" / "hooks"
-            (hooks_dir / "pre-commit").write_text("#!/bin/sh\necho hi\n", encoding="utf-8")
+            (hooks_dir / "pre-commit").write_text(
+                "#!/bin/sh\necho hi\n", encoding="utf-8"
+            )
             proc, _ = run_script([], repo)
         self.assertIn("hooks: native\n", proc.stdout)
 
@@ -357,8 +387,9 @@ class PreflightTest(unittest.TestCase):
             cache = repo / ".cache-outside-git" / "cache.json"
 
             run_script(["--profile-cache", str(cache)], repo)
-            run_script(["--profile-cache", str(cache),
-                        "--set-worktree-viable", "no"], repo)
+            run_script(
+                ["--profile-cache", str(cache), "--set-worktree-viable", "no"], repo
+            )
             (repo / "uv.lock").write_text("v2 -- different lockfile", encoding="utf-8")
             after, _ = run_script(["--profile-cache", str(cache)], repo)
 
@@ -373,8 +404,9 @@ class PreflightTest(unittest.TestCase):
             cache = repo / ".cache-outside-git" / "cache.json"
 
             run_script(["--profile-cache", str(cache)], repo)
-            run_script(["--profile-cache", str(cache),
-                        "--set-worktree-viable", "yes"], repo)
+            run_script(
+                ["--profile-cache", str(cache), "--set-worktree-viable", "yes"], repo
+            )
             after, _ = run_script(["--profile-cache", str(cache)], repo)
 
         self.assertIn("profile_cache: HIT\n", after.stdout)
@@ -388,7 +420,9 @@ class PreflightTest(unittest.TestCase):
             cache = repo / ".cache-outside-git" / "cache.json"
 
             first, _ = run_script(["--profile-cache", str(cache)], repo)
-            (repo / "uv.lock").write_text("v2 - a completely different lockfile", encoding="utf-8")
+            (repo / "uv.lock").write_text(
+                "v2 - a completely different lockfile", encoding="utf-8"
+            )
             second, _ = run_script(["--profile-cache", str(cache)], repo)
 
         self.assertIn("profile_cache: WRITTEN\n", first.stdout)
@@ -466,6 +500,44 @@ class PreflightTest(unittest.TestCase):
         self.assertIn("verdict: READY_WITH_WARNINGS\n", proc.stdout)
         # gh_auth/gh_write are never a hard blocker
         self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_cloud_host_stops_as_unsupported_and_runs_nothing(self):
+        for args in ([], ["--with-github"]):
+            with self.subTest(args=args), tempfile.TemporaryDirectory() as td:
+                repo = Path(td)  # not even a git repo: nothing may run first
+                proc, calls = run_script_host(args, repo, "true")
+
+                self.assertEqual(proc.returncode, 1, proc.stderr)
+                self.assertEqual(
+                    proc.stdout,
+                    "host: cloud\n" + CLOUD_NEXT + "verdict: BLOCKED\n",
+                )
+                self.assertEqual(calls, [])
+
+    def test_a_host_value_other_than_true_behaves_as_local(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            make_repo(repo, origin=True)
+            baseline, _ = run_script_host([], repo, "")
+            for value in ("false", "TRUE", "1", "True", "yes"):
+                with self.subTest(value=value):
+                    proc, _ = run_script_host([], repo, value)
+
+                    self.assertEqual(proc.returncode, 0, proc.stderr)
+                    self.assertNotIn("host:", proc.stdout)
+                    self.assertEqual(
+                        without_runstate(proc.stdout),
+                        without_runstate(baseline.stdout),
+                    )
+
+    def test_an_unset_host_variable_behaves_as_local(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            make_repo(repo, origin=True)
+            proc, _ = run_script([], repo)
+
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn("host:", proc.stdout)
 
 
 if __name__ == "__main__":
