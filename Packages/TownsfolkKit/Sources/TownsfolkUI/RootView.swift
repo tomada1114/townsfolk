@@ -28,6 +28,7 @@ public struct RootView: View {
             case .firstRun, .founding:
                 if let session = model.session {
                     FirstRunView(model: session.firstRun)
+                        .id(ObjectIdentifier(session.firstRun))
                 }
 
             case .town:
@@ -38,6 +39,7 @@ public struct RootView: View {
                         statusLine: session.statusLine,
                         availability: model.availability,
                     )
+                    .id(ObjectIdentifier(session.timeline))
                 }
             }
         }
