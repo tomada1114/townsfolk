@@ -4,7 +4,7 @@
 #
 # No real app is ever quit or launched. `ps`, `plutil`, and `open` are stubbed,
 # so the process table the script sees is written by the test; the one process
-# it really signals is a detached `sleep` the test spawned for that purpose. The
+# it really signals is a detached fixture process spawned for that purpose. The
 # `plutil` stub prints the fixture bundle's Info.plist verbatim, so each fake
 # bundle's identifier is just the contents of that file.
 set -euo pipefail
@@ -141,8 +141,14 @@ case_leaves_a_same_named_app_alone() {
 case_survivor_is_reported_not_forced() {
     root=$(make_fixture_root)
     executable=$(make_fixture_bundle Townsfolk io.github.tomada1114.Townsfolk)
-    # SIG_IGN survives the fork, so this sleep really does ignore SIGTERM.
-    pid=$(spawn_detached 'trap "" TERM; sleep 5')
+    # Stay alive until the test explicitly kills this fixture. A finite sleep
+    # can expire before run-app polls it when the machine is busy. The ready
+    # handshake proves SIGTERM is ignored before the script can signal it.
+    mkfifo "${CASE_DIR}/survivor.ready" "${CASE_DIR}/survivor.stop"
+    pid=$(spawn_detached "(trap '' TERM; printf '%s\\n' ready >'${CASE_DIR}/survivor.ready'; read -r _ <'${CASE_DIR}/survivor.stop')")
+    trap 'kill -9 "${pid}" 2>/dev/null || true' EXIT
+    IFS= read -r ready <"${CASE_DIR}/survivor.ready"
+    [ "${ready}" = ready ] || _fail "the survivor did not acknowledge readiness"
     stub_process_table "  ${pid} ${executable}" "  4242 ${executable}"
     stub_open
 
@@ -154,7 +160,6 @@ case_survivor_is_reported_not_forced() {
     assert_open_not_called
     head -n 1 "${CASE_DIR}/stderr" | grep -q '^ERR_RUN_QUIT_TIMEOUT: ' ||
         _fail "the first stderr line is not the failure code"
-    kill -9 "${pid}" 2>/dev/null || true
 }
 
 case_missing_build() {
