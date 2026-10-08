@@ -3,6 +3,17 @@
 /// numbers. No post, name, tag, or description is ever in it — a skip reason, a dropped
 /// event or move, and a store error carry only cases and codes (requirements §4).
 enum EngineLog {
+    static func recordResponsesScheduled(_ count: Int, offset: Double) {
+        AppLog.engine
+            .info(
+                "responses scheduled: \(count, privacy: .public), first due in \(offset, privacy: .public) seconds",
+            )
+    }
+
+    static func recordResponseStored(_ count: Int) {
+        AppLog.engine.info("response stored: \(count, privacy: .public) posts")
+    }
+
     /// Logs what one step did.
     static func record(_ outcome: EngineStep) {
         switch outcome {
