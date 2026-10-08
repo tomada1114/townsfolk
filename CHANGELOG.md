@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The town now runs in the app: first run, founding, the timeline, availability banner,
+  Settings, and Town commands share one root model; the town writes while the app is
+  active and the model is available, and changing speed applies without a relaunch
+
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
 - Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
   while you use other apps; every change applies at once with no Save button, and a

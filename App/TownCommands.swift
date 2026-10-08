@@ -13,6 +13,8 @@ import TownsfolkUI
 /// your own post selected; Scroll to Latest with the timeline
 /// already at its top.
 struct TownCommands: Commands {
+    let model: AppModel
+
     @FocusedValue(\.timeline)
     private var timeline
     @FocusedValue(\.composer)

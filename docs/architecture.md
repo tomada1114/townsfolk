@@ -215,6 +215,28 @@ up (§3.8).
 
 ### Core flows
 
+The app composition root opens the `Town` store in Application Support and builds the
+engine and screen models together. `AppModel` retains one cancellable engine task,
+with an interim app-active input from `scenePhase`; #29 replaces that input with window
+presence. It awaits cancellation before restarting, retains name entry behind the
+unavailable screen, and leaves founding only after its arrival announcement is posted.
+Settings and Town commands receive that same root model explicitly. The public
+`RootView()` placeholder initializer is replaced by `RootView(model:)`; callers now
+construct and pass an `AppModel`. Root routing is tested over a fake provider because
+its states require a model port and a store. Port-free previews remain on each child
+screen, and the integrated root is checked in the running app. Reopening uses the
+same App factory, so a closed store and engine are never reused after moving away.
+If opening or reading the store fails, the root container remains as an empty surface,
+logs only the error case, and starts neither founding nor the engine; recovery copy is
+not yet specified in the UX flows.
+
+The launch UI test passes `TOWNSFOLK_LAUNCH_TEST_ID` as a fresh UUID. Debug wiring
+uses a dedicated settings suite and an app-owned temporary `Town` directory for that
+identifier, so S7 or S2 is repeatable without resetting the owner's town or settings.
+Release wiring ignores this environment input. A malformed identifier never selects a
+custom path; failed test-defaults construction stops store opening instead of founding
+with standard settings.
+
 - **A scene.** The clock makes a scene due → the engine checks that the town runs
   (presence, the setting, model availability, the thermal state) → rules pick the seed
   and the speakers → Core builds the prompt within the budget, counting tokens through

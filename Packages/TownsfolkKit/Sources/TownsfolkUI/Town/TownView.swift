@@ -188,9 +188,13 @@ public struct TownView: View {
     @State private var model: TimelineViewModel
     @State private var composer: ComposerViewModel
     @State private var statusLine: StatusLineViewModel
+    private let availability: AvailabilityViewModel?
 
     public var body: some View {
         VStack(spacing: 0) {
+            if let availability {
+                ModelUnavailableBanner(model: availability)
+            }
             StatusLineView(model: statusLine)
                 .frame(maxWidth: Layout.columnWidth)
                 .padding(.horizontal, Layout.edge)
@@ -223,6 +227,8 @@ public struct TownView: View {
         .onChange(of: composer.focusLeaveRequest) {
             model.composerDismissed()
         }
+        .focusedSceneValue(\.timeline, model)
+        .focusedSceneValue(\.composer, composer)
         .accessibilityIdentifier("townView")
     }
 
@@ -232,9 +238,11 @@ public struct TownView: View {
         model: TimelineViewModel,
         composer: ComposerViewModel,
         statusLine: StatusLineViewModel,
+        availability: AvailabilityViewModel? = nil,
     ) {
         _model = State(initialValue: model)
         _composer = State(initialValue: composer)
         _statusLine = State(initialValue: statusLine)
+        self.availability = availability
     }
 }

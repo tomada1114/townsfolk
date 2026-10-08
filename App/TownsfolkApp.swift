@@ -3,47 +3,58 @@ import TownsfolkCore
 import TownsfolkPlatform
 import TownsfolkUI
 
-/// Application entry point — wiring only. All real code lives in Packages/TownsfolkKit.
-///
-/// This is also the composition root: the one place that knows both halves of a port.
-/// It constructs each `TownsfolkPlatform` adapter and hands it to a `TownsfolkCore` view
-/// model, so nothing below `App/` depends on which implementation answers
-/// (`docs/architecture.md` › Layers). Window presence has no consumer yet — the engine
-/// takes it in #29 — so for now every value is only logged.
+/// The composition root: adapter construction, scene wiring, and app activity input.
 @main
 struct TownsfolkApp: App {
-    /// The town `Window` scene's `id`, which SwiftUI also gives its `NSWindow` as the
-    /// `identifier` the presence adapter looks the window up by.
     private static let townWindowID = "town"
-
-    private let presence = WindowPresenceProvider(windowIdentifier: townWindowID)
+    @State private var model: AppModel
+    @Environment(\.scenePhase)
+    private var scenePhase
 
     var body: some Scene {
-        // One `Window`, not a `WindowGroup`: as the primary scene it offers no
-        // File › New Window, and closing it quits the app.
-        Window(Text(verbatim: "Townsfolk"), id: Self.townWindowID) {
-            RootView()
-                .task {
-                    for await value in presence.presenceUpdates() {
-                        AppLog.presence.debug("""
-                        presence visible=\(value.isWindowVisible, privacy: .public) \
-                        active=\(value.isAppActive, privacy: .public) \
-                        awake=\(value.isMacAwake, privacy: .public)
-                        """)
-                    }
+        Window(Text(verbatim: model.windowTitle), id: Self.townWindowID) {
+            RootView(model: model)
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    Task { await model.appActivityChanged(isActive: phase == .active) }
                 }
         }
         .defaultSize(RootView.defaultSize)
         .commands {
+            TownCommands(model: model)
             CommandGroup(replacing: .help) {
-                // Empty on purpose: there is no help book (ux-flows S8), so the
-                // "Townsfolk Help" item would only open a "Help isn't available" alert.
-                // The system keeps the Help menu's search field.
+                // No help book: retain the system Help search without a dead Help item.
             }
         }
-
         Settings {
-            SettingsView()
+            SettingsView(model: model)
         }
+    }
+
+    init() {
+        let provider = SystemLanguageModelProvider()
+        #if DEBUG
+            let scope = AppLaunchScope(testRunID: ProcessInfo.processInfo
+                .environment["TOWNSFOLK_LAUNCH_TEST_ID"])
+        #else
+            let scope = AppLaunchScope()
+        #endif
+        let testDefaults = scope.settingsSuiteName.flatMap { UserDefaults(suiteName: $0) }
+        let defaults = testDefaults ?? .standard
+        let tuning = Tuning.default
+        _model = State(initialValue: AppModel(
+            availability: AvailabilityViewModel(provider: provider),
+            settings: SettingsViewModel(defaults: defaults, tuning: tuning),
+        ) {
+            // Failed test-defaults construction must never found a town using real settings.
+            guard scope.settingsSuiteName == nil || testDefaults != nil else {
+                throw TownComposition.defaultsUnavailable
+            }
+            return try TownComposition.open(
+                provider: provider,
+                defaults: defaults,
+                tuning: tuning,
+                scope: scope,
+            )
+        })
     }
 }

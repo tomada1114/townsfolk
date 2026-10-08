@@ -90,8 +90,13 @@ public struct SettingsView: View {
         .accessibilityIdentifier("settingsKeepMovingToggle")
     }
 
-    /// Creates the pane over `model`; `App/` takes the default, which reads
-    /// `UserDefaults.standard`, and a preview hands in a model already in a state.
+    /// Shares the app root explicitly with the Settings scene.
+    public init(model: AppModel) {
+        _model = State(initialValue: model.settings)
+    }
+
+    /// Creates the pane over `model`; a preview hands in a model already in a state; the app uses
+    /// the root-model initializer.
     public init(model: SettingsViewModel = SettingsViewModel()) {
         _model = State(initialValue: model)
     }
