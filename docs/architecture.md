@@ -468,9 +468,10 @@ through an injected closure). Core's build now depends on an SDK whose API moves
 year; a model other than the system one (Later) would sit behind the same port, and
 macOS 27's `LanguageModel` protocol is the first place to look.
 
-- Unverified: the context size on macOS 27 — Apple documents 4,096 tokens per session,
-  and 8,192 has been reported. Nothing depends on it: the budget is read at run time, and
-  `SystemLanguageModelProviderTests` prints the size it reads under `just test-local`.
+- Observed on this Mac (2026-10-08): `SystemLanguageModelProvider.contextSize` returned
+  4,096 on a Mac14,2 (Apple M2, 16 GiB RAM) running macOS 27.0 (build 26A428). The
+  on-device `LanguageModelProvidingContract` passed. This is one machine's result; the
+  app reads the context size at run time.
 - Unverified: whether the owner's Mac gets only the smaller on-device model; read at run
   time.
 - Settled: opening System Settings for ux-flows S7. Apple documents no URL that opens
@@ -516,7 +517,7 @@ macOS 27's `LanguageModel` protocol is the first place to look.
     `modelNotReady`, and `deviceNotEligible`, mapped to Apple Intelligence off, model not
     ready, and device not eligible; a reason a later SDK adds reads as model not ready.
 - <https://developer.apple.com/documentation/foundationmodels/managing-the-context-window>
-  — "a context window of 4096 tokens per session" — checked 2026-09-30
+  — Apple documents a context window of 4,096 tokens per session; checked 2026-09-30
 - <https://developer.apple.com/documentation/foundationmodels/languagemodel> — "A
   protocol that you use to interface with a model."; macOS 27.0+ — checked 2026-09-30
 
