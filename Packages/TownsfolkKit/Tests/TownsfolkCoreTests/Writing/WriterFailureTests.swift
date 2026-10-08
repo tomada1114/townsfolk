@@ -8,6 +8,10 @@ import TownsfolkTestSupport
 /// (REQ-014).
 @Suite("SceneWriter failures")
 struct WriterFailureTests {
+    private enum UnexpectedFailure: Error {
+        case scripted
+    }
+
     static func request(_ cast: WritingCast) throws -> SceneRequest {
         try cast.request(speakers: [cast.mika], seeds: [.topic("a"), .topic("b"), .topic("c")])
     }
@@ -51,6 +55,74 @@ struct WriterFailureTests {
 
             #expect(outcome == .skipped(reason))
             #expect(fake.calls.count == 1)
+        }
+    }
+
+    @Test(arguments: [
+        (ModelCallError.unavailable, SceneSkipReason.unavailable),
+        (.other, .modelFailed),
+        (.refused, .modelFailed),
+        (.contextSizeExceeded, .modelFailed),
+    ])
+    func `a token count failure skips without generating`(
+        failure: ModelCallError,
+        reason: SceneSkipReason,
+    ) async throws {
+        try await withWritingStore { store, cast in
+            let fake = FakeLanguageModelProvider(
+                availability: .available,
+                contextSize: WritingFixtures.roomyContextSize,
+                outcomes: [.content(WritingFixtures.mikaSpeaks)],
+                holdsResponses: false,
+                tokenCountFailures: [failure],
+            )
+            let outcome = try await SceneWriter(model: fake, store: store)
+                .write(Self.request(cast), at: WritingFixtures.now)
+
+            #expect(outcome == .skipped(reason))
+            #expect(fake.calls.isEmpty)
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func `an arbitrary error skips with modelFailed at either model operation`(
+        duringTokenCount: Bool,
+    ) async throws {
+        try await withWritingStore { store, cast in
+            let fake = FakeLanguageModelProvider(
+                availability: .available,
+                contextSize: WritingFixtures.roomyContextSize,
+                outcomes: [
+                    .unexpectedFailure(UnexpectedFailure.scripted),
+                    .content(WritingFixtures.mikaSpeaks),
+                ],
+                holdsResponses: false,
+                tokenCountFailures: duringTokenCount ? [UnexpectedFailure.scripted] : [],
+            )
+            let outcome = try await SceneWriter(model: fake, store: store)
+                .write(Self.request(cast), at: WritingFixtures.now)
+
+            #expect(outcome == .skipped(.modelFailed))
+            #expect(fake.calls.count == (duringTokenCount ? 0 : 1))
+        }
+    }
+
+    @Test
+    func `a token count cancellation propagates without generating`() async throws {
+        try await withWritingStore { store, cast in
+            let fake = FakeLanguageModelProvider(
+                availability: .available,
+                contextSize: WritingFixtures.roomyContextSize,
+                outcomes: [.content(WritingFixtures.mikaSpeaks)],
+                holdsResponses: false,
+                tokenCountFailures: [CancellationError()],
+            )
+
+            await #expect(throws: CancellationError.self) {
+                try await SceneWriter(model: fake, store: store)
+                    .write(Self.request(cast), at: WritingFixtures.now)
+            }
+            #expect(fake.calls.isEmpty)
         }
     }
 
