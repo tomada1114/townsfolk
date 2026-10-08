@@ -13,7 +13,7 @@ struct SceneDraftTests {
         {"posts": [
             {"speaker": "Mika", "text": "Rain again.", "replyTo": "P2"},
             {"speaker": "Jun", "text": "Bring an umbrella."}
-        ], "topicTags": ["rain"]}
+        ], "topicTags": ["rain"], "names": []}
         """)
 
         let draft = try SceneDraft(content)

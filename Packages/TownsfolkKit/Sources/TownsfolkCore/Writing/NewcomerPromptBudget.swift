@@ -5,7 +5,7 @@ import Foundation
 enum NewcomerPromptBudget {
     private struct Builder {
         let town: Town
-        let seed: ResidentSeed
+        let seed: NewcomerInput
         let residents: [Resident]
         let past: [Resident.ID]
 
@@ -53,7 +53,7 @@ enum NewcomerPromptBudget {
 
     static func fit(
         town: Town,
-        seed: ResidentSeed,
+        seed: NewcomerInput,
         residents: [Resident],
         model: any LanguageModelProviding,
         tuning: Tuning,

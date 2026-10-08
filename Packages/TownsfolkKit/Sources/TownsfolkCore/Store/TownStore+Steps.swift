@@ -19,6 +19,9 @@ extension TownStore {
         /// replaces the stored one with its id, sources included. An excluded interest
         /// stays excluded.
         public var interests: [Interest]
+        /// Additive name uptake, rechecked against current inclusion, living holders,
+        /// and recipient capacity inside the transaction. Never replaces a resident.
+        public var residentInterests: [ResidentInterestAssignment]
         /// The pending response this scene delivers, removed if it is still pending.
         public var deliveredResponse: Schedule.PendingResponse?
         /// When the next ordinary scene is due; `nil` leaves it as it was.
@@ -28,11 +31,13 @@ extension TownStore {
         public init(
             posts: [Post],
             interests: [Interest] = [],
+            residentInterests: [ResidentInterestAssignment] = [],
             deliveredResponse: Schedule.PendingResponse? = nil,
             nextOrdinarySceneDue: Date? = nil,
         ) {
             self.posts = posts
             self.interests = interests
+            self.residentInterests = residentInterests
             self.deliveredResponse = deliveredResponse
             self.nextOrdinarySceneDue = nextOrdinarySceneDue
         }

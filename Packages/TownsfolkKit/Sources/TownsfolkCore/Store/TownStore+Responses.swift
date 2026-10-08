@@ -38,10 +38,7 @@ extension TownStore {
     }
 
     func hasResponse(to id: Post.ID) throws(TownStoreError) -> Bool {
-        try !liveConnection().rows(
-            "SELECT id FROM posts WHERE reply_target_id = ? AND origin = 'response' LIMIT 1",
-            [.id(id.rawValue)],
-        ) { row throws(TownStoreError) in try row.uuid() }.isEmpty
+        try liveConnection().hasResponse(to: id)
     }
 
     func lastScenePostTime() throws(TownStoreError) -> Date? {
