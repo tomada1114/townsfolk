@@ -2,13 +2,16 @@ import Foundation
 
 /// The town engine: the one writer of the town (`docs/architecture.md` › Principles). It
 /// decides when an ordinary scene runs, who speaks, which seeds the writer tries, when each
-/// post appears, and when the next scene is due — and stores each step in one transaction;
-/// ``SceneWriter`` owns everything inside the model call (requirements §3.2, §3.4, §3.11).
+/// post appears, and when the next scene is due; when events start and end and who moves
+/// in or away — and stores each step in one transaction; ``SceneWriter`` owns everything
+/// inside a scene's model call (requirements §3.2, §3.4, §3.6, §3.11).
 ///
-/// It takes one step at a time. ``step()`` does at most one unit of work and says what it
-/// did; ``run()`` repeats it, waiting on the injected clock until the next due time. A step
-/// arriving while another is under way returns ``EngineStep/busy`` at once, so two model
-/// calls are never in flight and the writer is never asked for two turns at once.
+/// It takes one step at a time. ``step()`` does at most one turn and says what it did;
+/// ``run()`` repeats it, waiting on the injected clock until the next due time. A turn ends
+/// the events whose end has come, may start an event and move someone, then writes the
+/// scene — each call after the one before. A step arriving while another is under way
+/// returns ``EngineStep/busy`` at once, so two model calls are never in flight and the
+/// writer is never asked for two turns at once.
 ///
 /// Everything it would read from the world is handed in (`designing-core-logic`): the clock
 /// it waits on, the current date, its random numbers, and the thermal state. It is not
@@ -16,8 +19,8 @@ import Foundation
 /// runs is decided by presence and the setting (#29).
 public actor TownEngine {
     /// What the engine works with: the town's store, the scene writer, the settings it reads
-    /// speed and your name from, the seed tables events and newcomers will draw from, and
-    /// the model port, asked only whether the model is available.
+    /// speed and your name from, the seed tables events and newcomers draw from, and the
+    /// model port.
     ///
     /// Not `Sendable`, since ``SettingsStore`` is not: it is handed to the engine whole and
     /// kept there.
@@ -28,9 +31,10 @@ public actor TownEngine {
         public var writer: SceneWriter
         /// Speed and your display name, read at each turn.
         public var settings: SettingsStore
-        /// The read-only lists events and newcomers will draw from (#25).
+        /// The read-only lists events and newcomers draw from.
         public var seedTables: SeedTables
-        /// The model, asked only for its availability; calls go through ``writer``.
+        /// The model: asked for its availability, an event's description, and a newcomer;
+        /// scene calls go through ``writer``.
         public var model: any LanguageModelProviding
 
         /// Creates the parts an engine works with.
@@ -60,7 +64,8 @@ public actor TownEngine {
         public var clock: any Clock<Duration>
         /// The current date, for due times and the times posts happen.
         public var now: @Sendable () -> Date
-        /// Where every draw comes from: seeds, speakers, intervals, and reveal gaps.
+        /// Where every draw comes from: seeds, speakers, intervals, reveal gaps, events, and
+        /// moves.
         public var generator: any RandomNumberGenerator & Sendable
 
         /// Creates a world reading `thermalState`, waiting on `clock`, dating by `now`,
@@ -93,10 +98,19 @@ public actor TownEngine {
     let world: World
     let tuning: Tuning
     let pace: ScenePace
+    let rules: TownChangeRules
+    /// The event kinds events draw from.
+    let seedTables: SeedTables
+    /// The resident axes newcomers draw from.
+    let residentDraw: ResidentSeedDraw
     var generator: any RandomNumberGenerator & Sendable
     var pending: Pending?
-    /// Held for events and newcomers (#25); ordinary scenes draw nothing from it.
-    private let seedTables: SeedTables
+    /// The move the next scene is about, until a scene is stored (REQ-009 of #25). Kept in
+    /// memory, like ``pending``.
+    var news: SceneCasting.News?
+    /// When the previous turn of this run ran, which the next one measures its running
+    /// time from; `nil` before the first, so a turn after launch draws no event or move.
+    private var lastTurnAt: Date?
     private var isBusy = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     /// The wait ``run()`` is in, cancelled to re-arm it after a speed change.
@@ -109,20 +123,24 @@ public actor TownEngine {
         writer = parts.writer
         settings = parts.settings
         seedTables = parts.seedTables
+        residentDraw = ResidentSeedDraw(axes: parts.seedTables.residentAxes)
         model = parts.model
         self.world = world
         self.tuning = tuning
         pace = ScenePace(tuning: tuning)
+        rules = TownChangeRules(tuning: tuning)
         generator = world.generator
     }
 
-    /// Takes one step: writes the due scene, skips a due turn, or says how long nothing is
-    /// due — at most one model call. A step arriving while another is under way returns
-    /// ``EngineStep/busy`` without calling anything (REQ-008).
+    /// Takes one step: runs the due turn — ending events, perhaps starting one and moving
+    /// someone, then writing the scene — skips it, or says how long nothing is due. Its
+    /// model calls run one after another. A step arriving while another is under way
+    /// returns ``EngineStep/busy`` without calling anything (REQ-008).
     ///
-    /// - Throws: `CancellationError` when the calling task is cancelled while the scene is
-    ///   being written; nothing of the scene is stored (REQ-012). Every other failure is an
-    ///   outcome, ``EngineStep/failed(_:)``, not a throw.
+    /// - Throws: `CancellationError` when the calling task is cancelled while a call is
+    ///   under way; nothing of that call's event, move, or scene is stored (REQ-012). Every
+    ///   other failure is an outcome, ``EngineStep/failed(_:)``, or a dropped event or move,
+    ///   not a throw.
     public func step() async throws -> EngineStep {
         guard !isBusy else {
             EngineLog.record(.busy)
@@ -226,6 +244,13 @@ public actor TownEngine {
         guard due <= now else {
             return .waiting(until: due)
         }
+        let running = rules.runningTime(since: lastTurnAt, until: now, speed: settings.speed)
+        lastTurnAt = now
+        do throws(TownStoreError) {
+            try await endEvents(at: now)
+        } catch {
+            return .failed(error)
+        }
         guard model.availability == .available else {
             return .modelUnavailable
         }
@@ -233,7 +258,18 @@ public actor TownEngine {
         guard heat.allowsScenes else {
             return await skip(.tooHot(heat), at: now)
         }
+        try await changeTown(running: running, at: now)
         return try await writeScene(at: now)
+    }
+
+    /// Draws an event, then a move, after `running` seconds of running time; nothing on a
+    /// turn with none, the first after launch (REQ-002, REQ-005 of #25).
+    private func changeTown(running: TimeInterval, at now: Date) async throws {
+        guard running > 0 else {
+            return
+        }
+        try await drawEvent(running: running, at: now)
+        try await drawMove(running: running, at: now)
     }
 
     /// Waits `seconds` on the clock, or until a speed change re-arms the wait.

@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   occupation and age, personality, hobby, worry, whom they know, the names they took up
   from you, and when they moved in or out — in a read-only popover that Esc or a click
   outside closes; your own name opens nothing
+- Things happen in town: about every three hours of running time an event starts — a
+  turn in the weather, a festival, a lost pet — and lasts one to twelve hours, at most
+  two at once, with residents talking about it while it goes on; and about once every
+  one to two days of running time someone moves in or away, keeping the town between 3
+  and 10 residents, each move a "Ren moved in." or "Jun moved away." row that the next
+  scene talks about. Nothing is drawn while the Mac runs hot or the model is unavailable
 
 ### Changed
 
