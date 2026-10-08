@@ -16,6 +16,9 @@ import os
 /// Anything user-derived that reaches a log message carries a privacy annotation —
 /// `.claude/rules/swift.md` › Logging says which values are `.private` and which `.public`.
 public enum AppLog {
+    /// Root routing and store startup failures, with cases only and no names or paths.
+    public static let app = Logger(subsystem: subsystem, category: "app")
+
     /// The subsystem every logger below is created with: this app's bundle identifier,
     /// and the value `just logs` filters the stream on.
     ///

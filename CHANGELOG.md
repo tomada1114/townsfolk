@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The town now runs in the app: first run, founding, the timeline, availability banner,
+  Settings, and Town commands share one root model; the town writes while the app is
+  active and the model is available, and changing speed applies without a relaunch
+
 - Names in your posts can become recurring town interests after the first response;
   residents may take them up, and newcomers may arrive with one as an interest
 

@@ -216,6 +216,41 @@ up (§3.8).
 
 ### Core flows
 
+The app composition root opens the `Town` store in Application Support and builds the
+engine and screen models together. `AppModel` retains one cancellable engine task,
+with an interim app-active input from `scenePhase`; #29 replaces that input with window
+presence. It awaits cancellation before restarting, retains name entry behind the
+unavailable screen, and leaves founding only after its arrival announcement is posted.
+The founding factory captures its speed synchronously and supplies that exact value
+through `AppTownSession.Screens`' optional `foundingSpeed` closure. At handover the root
+preserves that schedule if the setting is unchanged, and reconciles a speed chosen
+during founding before the engine starts; delayed observation does not redraw a speed
+already chosen on name entry. Existing screen factories may omit the closure and keep
+the root's initial-speed fallback.
+When a fresh factory opens an already stored town, the root explicitly reconciles the
+persisted speed before publishing its session or starting the engine. This covers an
+exit between the settings write and the old process's asynchronous schedule update.
+A fresh engine draws a new ordinary interval from the opening time, even if speed did
+not change; a retained session's window reappearance keeps its existing due time.
+Pending response dates and `lastRanAt` remain unchanged. #31's catch-up must measure the
+pause from that preserved history rather than the re-armed ordinary due time.
+Settings and Town commands receive that same root model explicitly. The public
+`RootView()` placeholder initializer is replaced by `RootView(model:)`; callers now
+construct and pass an `AppModel`. Root routing is tested over a fake provider because
+its states require a model port and a store. Port-free previews remain on each child
+screen, and the integrated root is checked in the running app. Reopening uses the
+same App factory, so a closed store and engine are never reused after moving away.
+If opening or reading the store fails, the root container remains as an empty surface,
+logs only the error case, and starts neither founding nor the engine; recovery copy is
+not yet specified in the UX flows.
+
+The launch UI test passes `TOWNSFOLK_LAUNCH_TEST_ID` as a fresh UUID. Debug wiring
+uses a dedicated settings suite and an app-owned temporary `Town` directory for that
+identifier, so S7 or S2 is repeatable without resetting the owner's town or settings.
+Release wiring ignores this environment input. A malformed identifier never selects a
+custom path; failed test-defaults construction stops store opening instead of founding
+with standard settings.
+
 - **A scene.** The clock makes a scene due → the engine checks that the town runs
   (presence, the setting, model availability, the thermal state) → rules pick the seed
   and the speakers → Core builds the prompt within the budget, counting tokens through
