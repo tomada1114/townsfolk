@@ -4,7 +4,7 @@ import FoundationModels
 /// topic tags for the scene (requirements §3.2, §3.11, :395).
 ///
 /// The guides state domain invariants and defer tunable post length to the runtime
-/// prompt, so an injected `Tuning` does not conflict with this fixed schema.
+/// instructions, so an injected `Tuning` does not conflict with this fixed schema.
 /// ``SceneWriter`` checks every limit again before a draft becomes a ``WrittenScene``.
 /// The topic-tag description mirrors ``Post/maxTopicTags`` and
 /// ``Post/topicTagMaxLength``; schema tests keep those compile-time literals in sync.
@@ -19,7 +19,9 @@ public struct SceneDraft: Equatable, Sendable {
         )
         public var speaker: String
         /// What the post says.
-        @Guide(description: "The post: 1 or 2 sentences, within the character limit in the prompt.")
+        @Guide(
+            description: "The post: 1 or 2 sentences, within the character limit in the instructions.",
+        )
         public var text: String
         /// The label of the post it replies to, as the prompt labels them.
         @Guide(

@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Keep model generation guides consistent with the town-name, place-count, and resident
-  post-length limits supplied at runtime
+  post-length limits supplied in the runtime instructions
 
 - Wait one scene interval after the first scene when a town is founded, at the selected
   speed, so an ordinary scene does not start immediately on opening the timeline

@@ -53,7 +53,8 @@ struct SceneDraftTests {
     }
 
     @Test
-    func `the schema states domain limits and defers tunable post length to the prompt`() throws {
+    func `the schema states domain limits and defers tunable post length to the instructions`(
+    ) throws {
         let encoded = try JSONEncoder().encode(SceneDraft.generationSchema)
         let schema = try #require(String(bytes: encoded, encoding: .utf8))
 
@@ -64,7 +65,7 @@ struct SceneDraftTests {
         #expect(posts["minItems"] as? Int == WrittenScene.postCount.lowerBound)
         #expect(posts["maxItems"] as? Int == WrittenScene.postCount.upperBound)
         #expect(tags["maxItems"] as? Int == Post.maxTopicTags)
-        #expect(schema.contains("the character limit in the prompt"))
+        #expect(schema.contains("the character limit in the instructions"))
         #expect(!schema
             .contains("at most \(Tuning.default.timeline.residentPostMaxLength) characters"))
         #expect(schema.contains("each at most \(Post.topicTagMaxLength) characters"))

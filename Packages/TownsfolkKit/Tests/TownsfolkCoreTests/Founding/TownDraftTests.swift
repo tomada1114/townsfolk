@@ -21,12 +21,13 @@ struct TownDraftTests {
     }
 
     @Test
-    func `the schema defers tunable limits and states immutable lengths`() throws {
+    func `the schema defers tunable founding limits to instructions and states immutable lengths`(
+    ) throws {
         let encoded = try JSONEncoder().encode(TownDraft.generationSchema)
         let schema = try #require(String(bytes: encoded, encoding: .utf8))
 
-        #expect(schema.contains("the character limit in the prompt"))
-        #expect(schema.contains("The number of places requested in the prompt"))
+        #expect(schema.contains("the character limit in the instructions"))
+        #expect(schema.contains("The number of places requested in the instructions"))
         #expect(!schema.contains("3 to 5"))
         #expect(!schema.contains("minItems"))
         #expect(!schema.contains("maxItems"))
