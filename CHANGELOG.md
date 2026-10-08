@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cancelling response preparation now stops the engine step with cancellation instead
+  of reporting a store failure
+
 - Fit newcomer prompts to the model context as the town grows, retaining every taken
   name and current resident while trimming the oldest past profiles first
 

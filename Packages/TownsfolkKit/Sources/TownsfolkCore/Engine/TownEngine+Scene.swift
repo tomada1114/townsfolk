@@ -126,7 +126,13 @@ extension TownEngine {
             return await skip(.invalidRequest(error), at: now)
         }
         let outcome = try await writer.write(request, at: now)
-        do throws(TownStoreError) { try await prepareResponses() } catch { return .failed(error) }
+        do throws(TownStoreError) {
+            try await prepareResponses()
+        } catch .cancelled {
+            throw CancellationError()
+        } catch {
+            return .failed(error)
+        }
         return try await finishScene(outcome, at: now, response: response)
     }
 

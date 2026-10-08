@@ -138,8 +138,9 @@ public actor TownEngine {
     /// model calls run one after another. A step arriving while another is under way
     /// returns ``EngineStep/busy`` without calling anything (REQ-008).
     ///
-    /// - Throws: `CancellationError` when the calling task is cancelled while a call is
-    ///   under way; nothing of that call's event, move, or scene is stored (REQ-012). Every
+    /// - Throws: `CancellationError` when the calling task is cancelled during response
+    ///   preparation or a call; nothing of that call's event, move, or scene is stored
+    ///   (REQ-012). Every
     ///   other failure is an outcome, ``EngineStep/failed(_:)``, or a dropped event or move,
     ///   not a throw.
     public func step() async throws -> EngineStep {
@@ -247,6 +248,8 @@ public actor TownEngine {
         do throws(TownStoreError) {
             try await prepareResponses()
             schedule = try await store.schedule()
+        } catch .cancelled {
+            throw CancellationError()
         } catch {
             return .failed(error)
         }
