@@ -11,6 +11,8 @@ private enum Layout {
     static let pillGap = DesignLock.Spacing.small
     static let pillFade = DesignLock.Motion.pillFade
     static let pillScroll = DesignLock.Motion.pillScroll
+    /// The status line down to the composer.
+    static let statusToComposer = DesignLock.Spacing.small
     /// Below the composer, down to the hairline over the timeline.
     static let composerToHairline = DesignLock.Spacing.medium
     /// How close to the top, in points, still counts as being at the top.
@@ -173,25 +175,32 @@ private struct PillSlot: View {
     }
 }
 
-/// The town window's main content (ux-flows S1): the composer at the top, then the
-/// timeline, newest first, with the new-posts pill above it, titled with the town's name.
-/// The status line joins it later, 8 pt above the composer.
+/// The town window's main content (ux-flows S1): the status line at the top, the composer
+/// 8 pt below it, then the timeline, newest first, with the new-posts pill above it,
+/// titled with the town's name. Focus moves status line, composer, timeline in that order.
 ///
-/// It renders ``TimelineViewModel`` and ``ComposerViewModel`` and decides nothing; `.task`
-/// runs the timeline for as long as the view is on screen, each live arrival's polite
+/// It renders ``StatusLineViewModel``, ``TimelineViewModel``, and ``ComposerViewModel``
+/// and decides nothing; `.task` runs the timeline and the status line for as long as the
+/// view is on screen, each live arrival's polite
 /// announcement is posted as it comes, ↩ Reply on a post hands the composer that post,
 /// and Esc leaving the composer hands focus to the timeline.
 public struct TownView: View {
     @State private var model: TimelineViewModel
     @State private var composer: ComposerViewModel
+    @State private var statusLine: StatusLineViewModel
 
     public var body: some View {
         VStack(spacing: 0) {
-            ComposerView(model: composer, townName: model.title, yourName: model.yourName)
+            StatusLineView(model: statusLine)
                 .frame(maxWidth: Layout.columnWidth)
                 .padding(.horizontal, Layout.edge)
                 .frame(maxWidth: .infinity)
                 .padding(.top, Layout.edge)
+            ComposerView(model: composer, townName: model.title, yourName: model.yourName)
+                .frame(maxWidth: Layout.columnWidth)
+                .padding(.horizontal, Layout.edge)
+                .frame(maxWidth: .infinity)
+                .padding(.top, statusLine.content == nil ? Layout.edge : Layout.statusToComposer)
                 .padding(.bottom, Layout.composerToHairline)
             Divider()
             TimelineList(model: model) { id in
@@ -217,10 +226,15 @@ public struct TownView: View {
         .accessibilityIdentifier("townView")
     }
 
-    /// Creates the town window's content over `model` and `composer`, which `App/` builds
-    /// over the town's store and a preview builds in a state.
-    public init(model: TimelineViewModel, composer: ComposerViewModel) {
+    /// Creates the town window's content over `model`, `composer`, and `statusLine`,
+    /// which `App/` builds over the town's store and a preview builds in a state.
+    public init(
+        model: TimelineViewModel,
+        composer: ComposerViewModel,
+        statusLine: StatusLineViewModel,
+    ) {
         _model = State(initialValue: model)
         _composer = State(initialValue: composer)
+        _statusLine = State(initialValue: statusLine)
     }
 }

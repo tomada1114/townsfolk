@@ -441,6 +441,61 @@
         }
       }
     },
+    "statusLine.accessibilityLabel" : {
+      "comment" : "Status line: what VoiceOver calls the one line at the top of the town window.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Town status"
+          }
+        }
+      }
+    },
+    "statusLine.event" : {
+      "comment" : "Status line: the one line at the top of the town window while an event is going on and the town has no recent topic. The argument is the event's one-line description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "statusLine.eventAndTopic" : {
+      "comment" : "Status line: the one line at the top of the town window while an event is going on and the town has a recent topic. The first argument is the event's one-line description, the second the topic.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        }
+      }
+    },
+    "statusLine.quiet" : {
+      "comment" : "Status line: the one line at the top of the town window when no event is going on and nobody posted about anything recently. The argument is the town's name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A quiet day in %@"
+          }
+        }
+      }
+    },
+    "statusLine.topic" : {
+      "comment" : "Status line: the one line at the top of the town window when no event is going on. The argument is what the residents posted about most recently.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everyone's talking about %@"
+          }
+        }
+      }
+    },
     "timeline.announcement.repliedToYou" : {
       "comment" : "VoiceOver announcement when a resident's post replying to one of yours appears. The argument is the resident's name.",
       "localizations" : {

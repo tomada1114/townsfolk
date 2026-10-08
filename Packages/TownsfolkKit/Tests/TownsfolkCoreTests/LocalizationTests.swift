@@ -108,7 +108,7 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
         } + timelineCases() + availabilityCases() + composerCases()
-            + firstRunCases()
+            + firstRunCases() + statusLineCases()
     }
 
     /// The first-run screens' resources (S2, S3): each step's line, and its symbol's
@@ -206,6 +206,21 @@ struct LocalizationTests {
             Case(resource: ComposerWording.replyButton, arguments: []),
             Case(resource: ComposerWording.newPost, arguments: []),
             Case(resource: ComposerWording.reply, arguments: []),
+        ]
+    }
+
+    /// The status line's four templates and its VoiceOver label.
+    static func statusLineCases() -> [Case] {
+        let (event, topic, town) = ("Rain since noon", "the bakery's new bread", "Maplewood")
+        return [
+            Case(
+                resource: StatusLineWording.eventAndTopic(event: event, topic: topic),
+                arguments: [event, topic],
+            ),
+            Case(resource: StatusLineWording.event(event), arguments: [event]),
+            Case(resource: StatusLineWording.topic(topic), arguments: [topic]),
+            Case(resource: StatusLineWording.quiet(town: town), arguments: [town]),
+            Case(resource: StatusLineWording.accessibilityLabel, arguments: []),
         ]
     }
 

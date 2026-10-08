@@ -219,7 +219,18 @@ private enum TownPreviewData {
 @ViewBuilder
 private func town(_ model: TimelineViewModel?) -> some View {
     if let model {
-        TownView(model: model, composer: ComposerViewModel(text: "", replyTarget: nil))
+        TownView(
+            model: model,
+            composer: ComposerViewModel(text: "", replyTarget: nil),
+            statusLine: StatusLineViewModel(
+                content: StatusLineContent(
+                    line: .eventAndTopic(event: "You moved to Maplewood.", topic: "the bakery"),
+                    eventKind: .founding,
+                ),
+                eventSymbols: TownPreviewData.symbols,
+                environment: TimelineEnvironment(),
+            ),
+        )
     } else {
         Text(verbatim: "Preview: could not build the timeline's posts.")
     }
