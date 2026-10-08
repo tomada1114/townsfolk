@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Recover missed timeline entries across pages when the town changes, retry failed
+  timeline reads on the next clock tick, and refresh newcomer names on already shown posts
+
 - Cancelling response preparation now stops the engine step with cancellation instead
   of reporting a store failure
 
