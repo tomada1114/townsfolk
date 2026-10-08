@@ -14,6 +14,7 @@ accept it. So no awk regex in a bundled script uses one.
 Run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
      (from the shipping-issues skill directory)
 """
+
 from __future__ import annotations
 
 import re
@@ -21,8 +22,17 @@ import subprocess
 import unittest
 from pathlib import Path
 
+# tests/ -> scripts/ -> shipping-issues/ -> the skills tree this copy sits in
+# (.agents/skills/ in the source, so the .claude/skills/ mirror is not scanned).
+SKILLS_ROOT = Path(__file__).resolve().parents[3]
 
-SCRIPTS = sorted((Path(__file__).resolve().parent.parent).glob("*.sh"))
+
+def discover_scripts(skills_root):
+    """Every bundled shell script under any skill, not only this one."""
+    return sorted(skills_root.rglob("*.sh"))
+
+
+SCRIPTS = discover_scripts(SKILLS_ROOT)
 
 # A /.../ regex literal holding a {n}, {n,} or {n,m} interval. bash's own
 # `[[ =~ ]]` regexes carry no slashes, so they never match.
@@ -47,7 +57,9 @@ class ShellSyntaxTest(unittest.TestCase):
         for script in SCRIPTS:
             text = script.read_text(encoding="utf-8")
             for number, line in enumerate(text.splitlines(), start=1):
-                with self.subTest(script=script.name, line=number):
+                with self.subTest(
+                    script=str(script.relative_to(SKILLS_ROOT)), line=number
+                ):
                     self.assertIsNone(AWK_INTERVAL.search(line), line.strip())
 
 

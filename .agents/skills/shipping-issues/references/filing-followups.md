@@ -48,6 +48,11 @@ genuinely part of that PR's own story. What is not fine is a PR that quietly
 becomes about something else -- that is the line, and it is about coherence, not
 about patch size.
 
+**An accepted `P3` from the PR review's round 2 or 3 is never fixed inline**, even when
+it passes that test: past round 1 the PR takes only `P0`-`P2` fixes
+([the rounds](pr-ci-merge.md#waiting-for-the-pr-review)), so it is filed -- and shipped
+this run or left, by the two rules below.
+
 **File it, and ship it in this same run**
 ([SKILL.md step 8c](../SKILL.md#8c-take-the-runs-own-output-back-into-the-queue))
 when it is a real, separate change -- its own branch, its own PR -- but nothing
@@ -118,10 +123,10 @@ In `all` mode these join the existing queue with no privilege over the backlog's
 own issues. With no argument or an explicit number, this step is the *only*
 thing that extends the run past its first merge.
 
-A PR held at step 5 because its Codex review never arrived gets its one second look
-here too: `codex_review.py <pr> --timeout 0`. Completed by now, it resumes at step 5
-like any other PR; still missing, it stays held for the step 10 report
-([recovery.md](recovery.md#the-codex-review-never-arrives-or-fails)).
+A PR held at step 5 because its Codex review never settled gets its one second look
+here too: `review_watch.py <pr> --timeout 0`. Settled by now, it resumes at step 5
+like any other PR; still unsettled, it stays held for the step 10 report
+([recovery.md](recovery.md#the-pr-review-did-not-settle)).
 
 ## What is not an issue
 

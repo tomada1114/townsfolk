@@ -20,13 +20,13 @@ run files.
 
 ## Fields
 
-| Field | Read by | What it changes |
-|---|---|---|
-| `tier=` | [priority-rubric.md](priority-rubric.md) | A **settled** tier, not a guess. Ranks like a written label and prints without the `~`. |
-| `blocked-by=` / `blocks=` | [dependency-triage.md](dependency-triage.md) | Stated edges rather than scraped ones. |
-| `touches=` | the parallel grouping | The one field that changes what this skill can do mechanically -- see below. |
-| `area=` | `file_followup.py`, labels | The area label a follow-up inherits. |
-| `design=` | the readiness gate | `design=open` holds the issue out of automatic implementation exactly as a `blocked: design` label does. |
+| Field                     | Read by                                      | What it changes                                                                                          |
+| ------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `tier=`                   | [priority-rubric.md](priority-rubric.md)     | A **settled** tier, not a guess. Ranks like a written label and prints without the `~`.                  |
+| `blocked-by=` / `blocks=` | [dependency-triage.md](dependency-triage.md) | Stated edges rather than scraped ones.                                                                   |
+| `touches=`                | the parallel grouping                        | The one field that changes what this skill can do mechanically -- see below.                              |
+| `area=`                   | `file_followup.py`, contract                   | The contract area a follow-up inherits; no area label is applied.                                                                     |
+| `design=`                 | the readiness gate                           | `design=open` holds the issue out of automatic implementation exactly as a `blocked: design` label does. |
 
 An empty `blocked-by=` reads as none; an empty `tier=` or `touches=` counts as
 missing. A value may not itself start like `key=` (`touches=a=b.py` does not parse),

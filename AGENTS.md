@@ -273,7 +273,8 @@ tool that sees the generated copy rather than the authored one:
 | `designing-ui` | how a screen looks: HIG-based craft rules (system text styles, semantic and accent colors, light and dark, contrast, SF Symbols, window sizing, menu commands and shortcuts, motion, copy) and the app's design lock, recorded in `docs/design/design-direction.md` › Design lock |
 | `building-swiftui-screens` | a view in `TownsfolkUI`: a thin renderer over a `TownsfolkCore` `@Observable` view model (how it holds its model, what `body` may contain), `#Preview` per state, accessibility identifiers and labels, Reduce Motion, keyboard reachability, and verifying a screen |
 | `starting-an-app` | turning this template into a new app: `scripts/bootstrap.sh`'s rename, what the new repository keeps, its `just labels` and `just ruleset` setup, choosing the app shape (windowed or menu-bar agent), and deciding the sandbox posture |
-| `shipping-issues` | Claude Code only (Codex CLI never runs it): shipping the open issue backlog: ranking issues by `priority: P0`-`P3`, implementing the top one, opening its PR, addressing the PR's one automatic Codex review, and taking it through CI to merge |
+| `shipping-issues` | Claude Code only (Codex CLI never runs it), outside a cloud session: shipping the open issue backlog: ranking issues by `priority: P0`-`P3`, implementing the top one, opening its PR, addressing up to three rounds of the PR's automatic Codex review, and taking it through CI to merge |
+| `codex-shipping-issues` | Codex CLI only: shipping one GitHub issue from a Codex-managed checkout through a regular PR, up to three Codex review rounds with their findings addressed, current-head CI, and an explicitly authorized merge, over GitHub MCP with no `gh` |
 | `steering-the-roadmap` | the app's direction in `docs/architecture/roadmap.md`: its Now / Next / Later horizons, who changes it and when, how the backlog and parked `on hold` issues feed it, and answering "what is next?" before `shipping-issues` |
 | `localizing-the-app` | a string a person reads: the String Catalog `Localizable.xcstrings` in `TownsfolkCore`, `defaultLocalization`, Core view models returning `LocalizedStringResource` (`bundle: .module`), `Text(resource)` in `TownsfolkUI`, keeping the catalog and `LocalizationTests` in step, `xcodebuild -exportLocalizations`, plurals, and what adding a language involves |
 | `merging-dependency-prs` | landing open Dependabot (SwiftPM, GitHub Actions) and Renovate (`mise.toml`) PRs: the security checklist, one human approval for a listed batch of passing PRs, and a combined branch for conflicting bumps |
@@ -294,19 +295,25 @@ matching its `paths:` globs.
 
 `.claude/agents/` defines three named sub-agent tiers a skill or session can hand a
 step to by name (for example `subagent_type: executor`), each pinned to a model alias
-(`opus`/`sonnet`, never a dated model ID, so the definitions do not go stale) and an
-effort level:
+(`opus`/`haiku`, never a dated model ID, so the definitions do not go stale) and an
+effort level. `worker` is the cost tier: a small model at its highest effort:
 
 | Agent | Model / effort | Takes |
 |---|---|---|
 | `executor` | `opus` / low | a settled spec with a clear pass/fail: implementation, tests, getting a check green, bulk edits, research that only collects |
 | `architect` | `opus` / high | complex multi-file implementation, design judgment, review and bug finding, synthesis, a spec that still has holes |
-| `worker` | `sonnet` / medium | single-shot, tool-free writing or checking from a complete brief |
+| `worker` | `haiku` / max | a small, settled change: narrow scope (one module and its test, or the files the brief names), done when a command or an existing test passes; or writing and checking to a complete brief |
 
 These are Claude Code-only: like `.claude/rules/`, they are not mirrored, and Codex CLI
 reads nothing under `.claude/agents/`. Under Codex CLI, a step a skill hands to one of
 these agents runs inline in the main session instead -- except `shipping-issues`,
-which is Claude Code only: Codex CLI does not run that workflow at all.
+which is Claude Code only: Codex CLI does not run that workflow at all, and ships
+issues with `codex-shipping-issues` instead.
+
+A model alias resolves per provider: on Bedrock, Vertex, Foundry, or Claude Platform on
+AWS, `haiku` can map to an older Haiku without `max` effort. Pin the model the tier
+expects there with `ANTHROPIC_DEFAULT_HAIKU_MODEL` (and `ANTHROPIC_DEFAULT_OPUS_MODEL`)
+in your own settings, not in this repository.
 
 ## Security and human approval
 
@@ -366,6 +373,15 @@ of a check that enforces it.
   needs repository admin permissions to succeed, and still needs sign-off before
   its first run against the live repository.
 
+In Codex, always load the repository-local `codex-shipping-issues` for issue shipping;
+it takes precedence over a global skill of the same name, and Codex never runs
+`shipping-issues`. In Codex, use GitHub MCP for every remote GitHub operation: never
+invoke `gh`, directly or through a helper that calls it, and never fall back to direct
+HTTP; report a capability MCP lacks. Local checkout, commit, and push stay in Git, and
+repository checks that use mocked CLI fixtures remain permitted. A Claude Code cloud
+session (`CLAUDE_CODE_REMOTE=true`) ships no issues here: it has no Xcode, and
+`shipping-issues`' preflight stops there.
+
 Standing exceptions: invoking one of these skills is the sign-off for the remote
 writes that skill exists to make, for that invocation only.
 
@@ -375,7 +391,9 @@ writes that skill exists to make, for that invocation only.
 - `shipping-issues` (Claude Code only; Codex CLI never runs it, so this exception
   never covers a Codex session): the writes its `SKILL.md` lists — priority and `blocked:` labels
   on open issues, branches and pushes, the pull request, merging it once its Codex
-  review has completed with the accepted findings addressed and CI passes on the
+  review has settled -- up to three rounds, every accepted finding of round 1 and the
+  accepted `P0`-`P2` findings of rounds 2 and 3 fixed (an accepted `P3` becomes a
+  follow-up), a fix push given 300 s for a new review to start -- and CI passes on the
   current head, the follow-up issues and comments it files, and removing the branches
   and worktrees it created. It never arms auto-merge: a pull request waiting on a
   required human review is held and reported.

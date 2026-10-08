@@ -83,47 +83,43 @@ Record the cleanup outcome (`--event cleanup ...`) and report anything it left
 
 ## Approval-gated commands
 
-The user's permission settings put some commands behind an approval prompt
-(`permissions.ask` in `settings.json` -- in practice the `rm -rf` family, and
-sometimes `wget` or a publish command). This skill runs unattended, so every
-such prompt raised mid-run parks the whole run until someone answers it, and
-several of them turn an unattended run into one the user has to sit through.
-The rule is not "never need approval" -- it is **ask once, at the end, for
-everything that could wait**. Check each such command against three questions,
-in order:
+Some commands are ones your host's permission settings gate behind an approval prompt --
+in practice the `rm -rf` family, and sometimes `wget` or a publish command. This skill
+runs unattended, so every such prompt raised mid-run parks the whole run until someone
+answers it, and several of them turn an unattended run into one the user has to sit
+through. The rule is not "never need approval" -- it is **ask once, at the end, for
+everything that could wait**. Check each such command against three questions, in order:
 
-1. **Is there an equivalent that raises no prompt?** Take it. Above all:
-   **`mv` into the holding area instead of deleting.** A move needs no
-   approval, is instant on the same filesystem, and doubles as a backup -- the
-   content is still there if the change turns out to be wrong. `curl` instead
-   of `wget`; `git checkout -- <path>` instead of deleting a probe edit.
-2. **Can it wait until the last merge?** Most can: clearing a scratch
-   directory, a stale build output, a throwaway fixture, a leftover clone --
-   nothing the issue's result depends on. Move it to the holding area, or, when
-   moving is not the equivalent (a non-deletion command), append the exact
-   command and why to `<runstate>/deferred.md`. Both are offered together in
-   [the final confirmation](#the-final-confirmation).
-3. **Does the issue's goal require it now?** Then it may run mid-run -- an issue
-   whose acceptance criterion *is* removing an existing directory, say. Even
-   then, reach for step 1 first: moving the directory into the holding area
-   achieves the same working-tree result with no prompt and a copy kept. For
-   tracked content, `git rm -r <dir>` is equally prompt-free and the commit
-   history is the backup; `mv` is for what git does not hold (untracked or
-   gitignored content, generated trees, local data). Only a case neither covers
-   -- the content is too large to keep, or lives where a move cannot reach --
-   takes the prompt mid-run, and the step 10 report says why.
+1. **Is there an equivalent that raises no prompt?** Take it. Above all: **`mv` into the
+   holding area instead of deleting.** A move needs no approval, is instant on the same
+   filesystem, and doubles as a backup -- the content is still there if the change turns
+   out to be wrong. `curl` instead of `wget`; `git checkout -- <path>` instead of
+   deleting a probe edit.
+2. **Can it wait until the last merge?** Most can: clearing a scratch directory, a stale
+   build output, a throwaway fixture, a leftover clone -- nothing the issue's result
+   depends on. Move it to the holding area, or, when moving is not the equivalent (a
+   non-deletion command), append the exact command and why to `<runstate>/deferred.md`.
+   Both are offered together in [the final confirmation](#the-final-confirmation).
+3. **Does the issue's goal require it now?** Then it may run mid-run -- an issue whose
+   acceptance criterion _is_ removing an existing directory, say. Even then, reach for
+   step 1 first: moving the directory into the holding area achieves the same
+   working-tree result with no prompt and a copy kept. For tracked content, follow the
+   move with `git add -A -- <dir>` to stage the deletion -- not `git rm -r`, which is not
+   on every allowlist and has stalled a background agent on a prompt nobody saw. Only a
+   case the move does not cover -- the content is too large to keep, or lives where a
+   move cannot reach -- takes the prompt mid-run, and the step 10 report says why.
 
-**The holding area** is `<runstate>/holding/<n>/` -- `<n>` the issue being
-worked, `run` for anything not tied to one. It sits outside every checkout, so
-a moved-out directory never reads as untracked content (the reason
-`<runstate>` exists -- [run-record.md](run-record.md)). Keep the original's
-relative path under it (`holding/42/Packages/TownsfolkKit/Sources/LegacyKit/`) so the report can
-name what came from where; on a name collision add a suffix rather than
-overwrite. A move across filesystems is a copy-then-delete -- fine for a
-fixture, slow for a `.build/` or `build/` tree; keep holding for what the run actually needs
-out of the way. **Never move anything this run did not create or the issue did
-not name** -- the holding area is not a way to clear someone else's untracked
-work out of a dirty tree; that is a [stop condition](../SKILL.md#stop-conditions).
+**The holding area** is `<runstate>/holding/<n>/` -- `<n>` the issue being worked, `run`
+for anything not tied to one. It sits outside every checkout, so a moved-out directory
+never reads as untracked content (the reason `<runstate>` exists --
+[run-record.md](run-record.md)). Keep the original's relative path under it
+(`holding/42/Packages/TownsfolkKit/Sources/LegacyKit/`) so the report can name what came from where; on a
+name collision add a suffix rather than overwrite. A move across filesystems is a
+copy-then-delete -- fine for a fixture, slow for a `.build/` or `build/` tree; keep holding for what
+the run actually needs out of the way. **Never move anything this run did not create or
+the issue did not name** -- the holding area is not a way to clear someone else's
+untracked work out of a dirty tree; that is a
+[stop condition](../SKILL.md#stop-conditions).
 
 Sub-agents follow the same rule and are handed the path as `{holding_dir}`
 ([delegation-templates.md](delegation-templates.md#standing-prohibitions-for-every-spawn));
@@ -155,34 +151,34 @@ deferred here -- the merges and issue closures are already done by now.
 
 ## What the report must not omit
 
-**There is no prescribed report format.** Shape, order and headings are yours --
-write the report the run actually needs. What is fixed is the list below: each
-line is a fact whose absence changes what the reader believes happened, so
-omitting one is a defect, not a stylistic choice.
+**There is no prescribed report format.** Shape, order and headings are yours -- write
+the report the run actually needs. What is fixed is the list below: each line is a fact
+whose absence changes what the reader believes happened, so omitting one is a defect,
+not a stylistic choice.
 
-- **Any issue left open behind a merged PR.** This is the failure mode the skill
-  exists to prevent; it can never be implied, only stated.
-- **How each merged PR was reviewed** -- its one Codex review: the reviewed
-  commit, each finding with its disposition (accepted, rejected, out of scope, and
-  why), the commit that addressed the accepted ones, and that the head which merged
-  was verified locally and by CI but **not re-reviewed** -- plus any `REJECTED` fix
-  this session did not resolve. A run that shipped unreviewed must not read like one
-  that passed, and no local reading of the diff is ever presented as a review.
-- **Every PR held unmerged, and why** -- its Codex review missing or failed, a
-  required human review outstanding, an unlinked closing keyword, or a finding that
-  needs a decision -- with the PR's URL and current CI state, so a human can finish
-  it.
-- **Acceptance criteria that shipped `not-met`, and why that was accepted.** If
-  none did, say the criteria were met. If the issue carried none, say that --
-  rather than implying it passed a check it never had.
-- **Every `DEFERRED` design's open question**, phrased as the question. These
-  are the only part of the report the user has to act on.
-- **Follow-ups filed**, what was fixed *inline* instead of filed (an unexplained
-  widened diff is indistinguishable from scope creep), and findings checked and
-  deliberately *not* filed with what prevented each -- a verified non-issue is a
-  result, and silence reads as "nothing was noticed".
-- **Everything held or deferred**, and any approval-gated command that had to
-  run mid-run with why it could not wait -- see
+- **Any issue left open behind a merged PR.** This is the failure mode the skill exists
+  to prevent; it can never be implied, only stated.
+- **How each merged PR was reviewed** -- each round's verdict and the commit it read
+  (`reviewed_sha:`), every finding with its round, its classification (accepted,
+  rejected, out of scope, or accepted and filed as a follow-up for its `P3` badge) and
+  reason, which commit fixed the fixed ones, any `REJECTED` line from a fix run this
+  session did not resolve, and whether the last fixes got a review of their own or
+  landed on `NO_NEW_REVIEW` or the 3-round cap, verified locally and by current-head CI.
+  A finding past the cap left untriaged is named, and so is a review that completed
+  after its PR merged (`completed_at:` later than the merge), so it can be checked. A
+  PR held on `NO_REVIEW` or a review `ERROR` is named with the PR left open. A run that
+  shipped unreviewed must not read like one that passed.
+- **Acceptance criteria that shipped `not-met`, and why that was accepted.** If none
+  did, say the criteria were met. If the issue carried none, say that -- rather than
+  implying it passed a check it never had.
+- **Every `DEFERRED` design's open question**, phrased as the question. These are the
+  only part of the report the user has to act on.
+- **Follow-ups filed**, what was fixed _inline_ instead of filed (an unexplained widened
+  diff is indistinguishable from scope creep), and findings checked and deliberately
+  _not_ filed with what prevented each -- a verified non-issue is a result, and silence
+  reads as "nothing was noticed".
+- **Everything held or deferred**, and any approval-gated command that had to run
+  mid-run with why it could not wait -- see
   [the final confirmation](#the-final-confirmation).
 - **Operator actions** the run surfaced -- things resolved by running a command
   or changing a setting rather than by a PR. The backlog will never show them,
