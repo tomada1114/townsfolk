@@ -158,6 +158,9 @@ extension SQLiteConnection {
         for interest in scene.interests {
             try upsert(interest)
         }
+        for assignment in scene.residentInterests {
+            try assign(assignment)
+        }
         if let delivered = scene.deliveredResponse {
             try run(
                 """

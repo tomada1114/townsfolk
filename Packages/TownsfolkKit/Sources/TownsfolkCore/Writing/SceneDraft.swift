@@ -53,9 +53,19 @@ public struct SceneDraft: Equatable, Sendable {
     )
     public var topicTags: [String]
 
+    /// Names taken only from the first quoted response's original user post.
+    @Guide(
+        description: """
+        Up to 3 literal names in the quoted seed post, each at most 40 characters; empty unless requested.
+        """,
+        .maximumCount(NameTerms.maximumCount),
+    )
+    public var names: [String]
+
     /// Creates a scene draft, as a test scripts the model's answer.
-    public init(posts: [PostDraft], topicTags: [String]) {
+    public init(posts: [PostDraft], topicTags: [String], names: [String] = []) {
         self.posts = posts
         self.topicTags = topicTags
+        self.names = names
     }
 }

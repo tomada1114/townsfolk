@@ -16,6 +16,7 @@ struct SceneValidation {
     /// The labels of the posts the prompt carried.
     let labels: [String: Post.ID]
     let tuning: Tuning
+    let extractNames: Bool
 
     private static func trimmed(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -66,7 +67,17 @@ struct SceneValidation {
             let target = replyTarget(post.replyTo, at: index)
             posts.append(WrittenPost(speaker: speaker, text: text, replyTarget: target))
         }
-        return .written(WrittenScene(seed: seed, posts: posts, topicTags: tags(draft.topicTags)))
+        let names: [String] = if extractNames, case let .yourPost(source, true, _) = seed {
+            NameTerms.validated(draft.names, in: source.text)
+        } else {
+            []
+        }
+        return .written(WrittenScene(
+            seed: seed,
+            posts: posts,
+            topicTags: tags(draft.topicTags),
+            names: names,
+        ))
     }
 
     /// What the post at `index` replies to: your quoted seed post for the first post,

@@ -2,11 +2,11 @@
 /// :163): drawn by rules, never by the model (`docs/architecture.md` › Principles).
 ///
 /// The draws, in order: the first seed — its kind uniformly among the kinds that have a
-/// candidate (a profile, a topic, an ongoing event), then a candidate of that kind
+/// candidate (a profile, a topic, an ongoing event, a name), then a candidate of that kind
 /// uniformly; the speaker count, uniform within 1 to 3 and no more than live in town; the
 /// speakers, the first seed's resident first and the rest uniformly among the other
 /// living residents; then up to two more seeds the same way as the first, among the
-/// speakers' profiles and the topics and events left, for the writer's refusal retries. A
+/// speakers' profiles and the topics, events and names left, for the writer's refusal retries. A
 /// profile seed's resident therefore always speaks. A relationship seed also requires its
 /// living partner to speak: the first seed can raise the count to two, and retry candidates
 /// include only links whose living partner is already among the speakers.
@@ -37,6 +37,8 @@ struct SceneCasting {
     let topics: [String]
     /// The events still going on, earliest first.
     var events: [TownEvent] = []
+    /// Included names, in the store's order; an empty pool adds no draw.
+    var names: [Interest] = []
     /// The move this scene is about, if one just happened.
     var news: News?
 
@@ -78,6 +80,15 @@ struct SceneCasting {
         }
     }
 
+    private func seedPools(of owners: [Resident.ID], partners: [Resident.ID]) -> [[SceneSeed]] {
+        [
+            profileSeeds(of: owners, partners: partners, aspects: Self.aspects),
+            topics.map(SceneSeed.topic),
+            events.map(SceneSeed.event),
+            names.map(SceneSeed.name),
+        ]
+    }
+
     /// The cast of one scene, or `nil` when nobody lives in town.
     func cast(using generator: inout some RandomNumberGenerator) -> Cast? {
         let living = residents.filter { $0.status == .living }.map(\.id)
@@ -85,13 +96,7 @@ struct SceneCasting {
         guard !living.isEmpty else {
             return nil
         }
-        let topicSeeds = topics.map(SceneSeed.topic)
-        let eventSeeds = events.map(SceneSeed.event)
-        var pools = [
-            profileSeeds(of: living, partners: living, aspects: Self.aspects),
-            topicSeeds,
-            eventSeeds,
-        ]
+        var pools = seedPools(of: living, partners: living)
         guard let first = news.map({ SceneSeed.event($0.event) })
             ?? Self.drawSeed(from: &pools, using: &generator)
         else {
@@ -114,15 +119,8 @@ struct SceneCasting {
             speakers.append(others.remove(at: generator.nextIndex(below: others.count)))
         }
         var seeds = [first]
-        pools = [
-            profileSeeds(
-                of: living.filter(speakers.contains),
-                partners: speakers,
-                aspects: Self.aspects,
-            ),
-            topicSeeds,
-            eventSeeds,
-        ].map { $0.filter { $0 != first } }
+        pools = seedPools(of: living.filter(speakers.contains), partners: speakers)
+            .map { $0.filter { $0 != first } }
         while seeds.count < SceneRequest.seedCount.upperBound {
             guard let next = Self.drawSeed(from: &pools, using: &generator) else {
                 break

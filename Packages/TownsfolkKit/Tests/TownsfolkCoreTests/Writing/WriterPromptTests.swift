@@ -19,6 +19,8 @@ struct WriterPromptTests {
     Each post is 1 or 2 sentences and at most 280 characters.
     To reply to a post, give its label, such as P3 for a recent post or S1 for an earlier \
     post of this scene.
+    Return up to 3 literal names in the quoted seed post, each at most 40 characters. \
+    You may discuss those names in the reply.
     """
 
     /// The snapshot prompt, one element per line.

@@ -66,11 +66,15 @@ public struct WrittenScene: Sendable, Equatable {
     /// Up to ``Post/maxTopicTags`` topic tags, each within ``Post/topicTagMaxLength``.
     public let topicTags: [String]
 
+    /// Validated literal names from an eligible first quoted response; otherwise empty.
+    public let names: [String]
+
     /// Creates a written scene.
-    public init(seed: SceneSeed, posts: [WrittenPost], topicTags: [String]) {
+    public init(seed: SceneSeed, posts: [WrittenPost], topicTags: [String], names: [String] = []) {
         self.seed = seed
         self.posts = posts
         self.topicTags = topicTags
+        self.names = names
     }
 }
 

@@ -96,7 +96,20 @@ public actor SceneWriter {
         }
         let retries = max(0, tuning.generation.refusalRetriesPerTurn)
         for seed in request.seeds.prefix(1 + retries) {
-            if let outcome = try await attempt(seed, of: request, turn: &turn) {
+            let extractNames: Bool
+            do throws(TownStoreError) {
+                extractNames = try await shouldExtractNames(from: seed)
+            } catch .cancelled {
+                throw CancellationError()
+            } catch {
+                return Self.skip(.storeReadFailed(error), calls: turn.calls)
+            }
+            if let outcome = try await attempt(
+                seed,
+                of: request,
+                turn: &turn,
+                extractNames: extractNames,
+            ) {
                 return outcome
             }
         }
@@ -109,6 +122,7 @@ public actor SceneWriter {
         _ seed: SceneSeed,
         of request: SceneRequest,
         turn: inout Turn,
+        extractNames: Bool,
     ) async throws -> SceneOutcome? {
         while true {
             try Task.checkCancellation()
@@ -117,6 +131,7 @@ public actor SceneWriter {
                 seed: seed,
                 context: turn.context,
                 tuning: tuning,
+                extractNames: extractNames,
             )
             let prompt: ScenePrompt
             switch try await fit(builder, cap: turn.postCap) {
@@ -136,6 +151,7 @@ public actor SceneWriter {
                     seed: seed,
                     labels: prompt.labels,
                     tuning: tuning,
+                    extractNames: extractNames,
                 )
                 let outcome = validation.outcome(for: content)
                 if case let .skipped(reason) = outcome {
@@ -157,6 +173,13 @@ public actor SceneWriter {
                 return nil
             }
         }
+    }
+
+    private func shouldExtractNames(from seed: SceneSeed) async throws(TownStoreError) -> Bool {
+        guard case let .yourPost(post, true, _) = seed else {
+            return false
+        }
+        return try await !store.hasResponse(to: post.id)
     }
 
     /// The prompt with the most of the newest recent posts — at most `cap` — whose

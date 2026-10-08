@@ -134,4 +134,41 @@ struct EngineResponseRelationshipTests {
             #expect(Set(seeds).count == 3)
         }
     }
+
+    @Test
+    func `forced response lead refills with a name and an eligible relationship`() async throws {
+        let jun = try EngineCast.jun()
+        let ren = try Self.linked(EngineCast.ren(), to: jun)
+        var setup = try EngineSetup(residents: [EngineCast.mika(), jun, ren])
+        // Schedule, then cast Mika and Jun with Mika's first two profile seeds.
+        // Ren displaces Mika as reply lead; refill selects the name pool, then Ren's link.
+        setup.generator = ScriptedGenerator([
+            0, 0, 0, 0, 0.4, 0, 0, 0, 0, 0, 0, 0.75, 0, 0, 0.5,
+        ])
+        let target = try Self.target(by: ren)
+        setup.priorPosts = [target]
+        setup.outcomes = WritingFixtures.refusals(3)
+        try await withEngine(setup) { harness in
+            let name = try EngineInterestUptakeTests.name("Rust")
+            try await harness.store.storeScene(.init(posts: [], interests: [name]))
+            try await harness.store.storeYourPost(EngineResponseFixtures.post(
+                at: EngineFixtures.time("10:00:01"),
+                reply: target.id,
+            ))
+            _ = try await harness.engine.step()
+            let calls = harness.model.calls
+            #expect(calls.count == 3)
+            for call in calls {
+                #expect(EngineFixtures.speakers(in: call.prompt) == ["Ren", "Jun"])
+            }
+            let seeds = calls.compactMap { EngineFixtures.seed(in: $0.prompt) }
+            #expect(seeds.first?.contains("Ren writes the first post.") == true)
+            #expect(Array(seeds.dropFirst()) == [
+                "Seed: Rust, a name Tomo brought up.",
+                "Seed: Ren's relationship with Jun: They play chess together.",
+            ])
+            #expect(Set(seeds).count == 3)
+            #expect(!seeds.contains { $0.contains("Mika's") })
+        }
+    }
 }
