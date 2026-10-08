@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cancelling response preparation now stops the engine step with cancellation instead
+  of reporting a store failure
+
 - Keep model generation guides consistent with the town-name, place-count, and resident
   post-length limits supplied in the runtime instructions
 
@@ -23,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   speed, so an ordinary scene does not start immediately on opening the timeline
 
 ### Added
+
+- The town responds to your posts minutes later, in one to three groups, and sometimes
+  brings them up again over the following day
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
 - Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
@@ -70,6 +76,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and read in full by VoiceOver as "Town status"
 
 ### Changed
+
+- Posting schedules the town's responses atomically at the speed chosen on Return,
+  even while a scene is being written; recovery repairs all eligible recent posts
+- Ordinary scenes come back only to already-answered posts, preserving the first reply's
+  delay; responses withdrawn while generation is running no longer reach the board
 
 - Residents with the same move-in time now read in binary name order, then id, so founded
   rosters have a repeatable order
