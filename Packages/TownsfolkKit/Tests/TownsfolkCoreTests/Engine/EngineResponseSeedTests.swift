@@ -1,0 +1,128 @@
+import Foundation
+import Testing
+import TownsfolkCore
+import TownsfolkTestSupport
+
+@Suite("Town response seeds")
+struct EngineResponseSeedTests {
+    @Test(arguments: [
+        (UInt64(1), ["10:12:31.950", "11:04:26.975"]),
+        (UInt64(4), ["10:11:27.099", "10:38:16.627", "10:58:18.904"]),
+    ])
+    func `weighted schedules`(seed: UInt64, due: [String]) async throws {
+        var setup = try EngineSetup.mikaAlone()
+        setup.generator = SplitMix64(seed: seed)
+        setup.due = EngineFixtures.noon
+        try await withEngine(setup) { harness in
+            try await harness.store.storeYourPost(EngineResponseFixtures.post())
+            _ = try await harness.engine.step()
+            #expect(try await harness.store.schedule()?.pendingResponses.map(\.dueAt) == due
+                .map(EngineFixtures.time))
+        }
+    }
+
+    @Test(arguments: [0.0, 0.699, 0.7, 0.999])
+    func `lead chance`(roll: Double) async throws {
+        var setup = try EngineSetup.mikaAlone()
+        // 2 scheduling draws, 7 ordinary casting draws, then the lead chance.
+        setup.generator = ScriptedGenerator(Array(repeating: 0, count: 9) + [roll])
+        setup.outcomes = [.content(WritingFixtures.mikaSpeaks)]
+        let target = try ResidentPostDraft(
+            author: setup.residents[0].id,
+            time: EngineFixtures.time("10:00:00"),
+        ).make()
+        setup.priorPosts = [target]
+        try await withEngine(setup) { harness in
+            try await harness.store.storeYourPost(EngineResponseFixtures.post(
+                at: EngineFixtures.time("10:00:01"),
+                reply: target.id,
+            ))
+            #expect(try await EngineFixtures.isStored(harness.engine.step()))
+            let seed = try #require(harness.model.calls.first
+                .flatMap { EngineFixtures.seed(in: $0.prompt) })
+            #expect(seed.contains("The first post replies to it."))
+            #expect(seed.contains("Mika writes the first post.") == (roll < 0.7))
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func `later has no lead`(ownTarget: Bool) async throws {
+        var setup = try EngineSetup.mikaAlone()
+        setup.generator = RepeatingGenerator(value: 0)
+        setup.outcomes = [.content(WritingFixtures.mikaSpeaks)]
+        try await withEngine(setup) { harness in
+            let target: Post
+            if ownTarget {
+                target = try EngineResponseFixtures.post(at: EngineFixtures.time("10:00:00"))
+                try await harness.store.storeYourPost(target)
+            } else {
+                target = try ResidentPostDraft(
+                    author: harness.residents[0].id,
+                    time: EngineFixtures.time("10:00:00"),
+                ).make()
+                try await harness.store.storeScene(.init(posts: [target]))
+            }
+            let post = try EngineResponseFixtures.post(
+                at: EngineFixtures.time("10:00:01"),
+                reply: target.id,
+            )
+            try await harness.store.storeYourPost(post)
+            if !ownTarget {
+                let first = try EngineResponseFixtures.answered(post, by: harness.residents[0].id)
+                try await harness.store.storeScene(.init(posts: [first]))
+            }
+            let pending = Schedule.PendingResponse(
+                post: post.id,
+                dueAt: EngineFixtures.time("10:05:00"),
+            )
+            try await harness.store.updatePendingResponses(adding: [pending])
+            #expect(try await EngineFixtures.isStored(harness.engine.step()))
+            let seed = try #require(harness.model.calls.first
+                .flatMap { EngineFixtures.seed(in: $0.prompt) })
+            #expect(!seed.contains("writes the first post."))
+        }
+    }
+
+    @Test(arguments: [86_400.0, 86_401.0])
+    func `coming back window`(age: Double) async throws {
+        var setup = try EngineSetup.mikaAlone()
+        setup.tuning.yourPost.postSeedChance = 1
+        setup.generator = RepeatingGenerator(value: 0)
+        setup.outcomes = [.content(WritingFixtures.mikaSpeaks)]
+        try await withEngine(setup) { harness in
+            let post = try EngineResponseFixtures
+                .post(at: EngineFixtures.start.addingTimeInterval(-age))
+            try await harness.store.storeYourPost(post)
+            let answered = try EngineResponseFixtures.answered(post, by: harness.residents[0].id)
+            try await harness.store.storeScene(.init(posts: [answered]))
+            #expect(try await EngineFixtures.isStored(harness.engine.step()))
+            let seed = try #require(harness.model.calls.first
+                .flatMap { EngineFixtures.seed(in: $0.prompt) })
+            #expect(seed.contains("Seed: what") == (age == 86_400))
+            #expect(!seed.contains("The first post replies to it."))
+            #expect(try await harness.storedPosts().first?.origin == .ordinary)
+        }
+    }
+
+    @Test
+    func `refusals never stall`() async throws {
+        var setup = try EngineSetup.mikaAlone()
+        setup.generator = RepeatingGenerator(value: 0)
+        setup.tuning.events.maxOngoingEvents = 0
+        setup.tuning.residents.population = 1 ... 1
+        setup.outcomes = WritingFixtures.refusals(3) + [.content(WritingFixtures.mikaSpeaks)]
+        try await withEngine(setup) { harness in
+            let post = try EngineResponseFixtures.post(at: EngineFixtures.time("10:00:00"))
+            try await harness.store.storeYourPost(post)
+            _ = try await harness.engine.step()
+            #expect(harness.model.calls.count == 3)
+            #expect(try await harness.store.schedule()?.pendingResponses.isEmpty == true)
+            harness.clock.advance(by: .seconds(180))
+            #expect(try await EngineFixtures.isStored(harness.engine.step()))
+            let seed = try #require(harness.model.calls.last
+                .flatMap { EngineFixtures.seed(in: $0.prompt) })
+            #expect(!seed.contains("Bread today?"))
+            #expect(try await harness.store.post(post.id) == post)
+        }
+    }
+}

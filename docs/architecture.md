@@ -223,8 +223,15 @@ up (§3.8).
   posts, tags, names, and the next due time → the view model reveals the posts one at a
   time, and the status line follows the tags and events.
 - **Your post.** The composer hands Core the text → Core validates it and stores it at
-  once → the engine schedules the responses, the first 2–10 minutes later at Normal →
-  each is a scene seeded by your post (§3.5).
+  once → the engine follows committed writes, schedules one to three responses in one
+  transaction, and re-arms its wait. Due responses precede ordinary scenes, after the
+  preceding scene's last post. They use the same writer with the post quoted first and
+  ordinary retry seeds; a successful response stores its posts and removes only that
+  pending response atomically. Refused alternatives keep it for a later turn, while a
+  left-out post loses its schedule. On launch the latest unanswered, unscheduled post
+  recovers the gap between the composer commit and scheduling. Response dates retain
+  the speed at posting; ordinary dates follow later speed changes.
+
 - **A pause.** Presence reports the window hidden, or the app inactive with the setting
   off → the engine stops and records when the town last ran → presence reports the
   window visible → the engine measures the pause and writes at most five catch-up scenes,

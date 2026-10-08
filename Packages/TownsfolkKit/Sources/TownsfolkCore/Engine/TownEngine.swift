@@ -105,16 +105,17 @@ public actor TownEngine {
     let residentDraw: ResidentSeedDraw
     var generator: any RandomNumberGenerator & Sendable
     var pending: Pending?
+    var responseRetryAt: Date?
     /// The move the next scene is about, until a scene is stored (REQ-009 of #25). Kept in
     /// memory, like ``pending``.
     var news: SceneCasting.News?
     /// When the previous turn of this run ran, which the next one measures its running
     /// time from; `nil` before the first, so a turn after launch draws no event or move.
     private var lastTurnAt: Date?
-    private var isBusy = false
+    var isBusy = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     /// The wait ``run()`` is in, cancelled to re-arm it after a speed change.
-    private var nap: Task<Void, Never>?
+    var nap: Task<Void, Never>?
 
     /// Creates an engine over `parts`, reading `world`, under `tuning`'s pace. Creating it
     /// reads and writes nothing.
@@ -160,6 +161,16 @@ public actor TownEngine {
     /// - Throws: `CancellationError` once its task is cancelled, whether it was waiting or
     ///   writing — the only way it returns.
     public func run() async throws {
+        let changes = await store.changes()
+        let observing = Task {
+            for await change in changes {
+                if Task.isCancelled {
+                    return
+                }
+                await responseChange(change)
+            }
+        }
+        defer { observing.cancel() }
         while true {
             try Task.checkCancellation()
             switch try await step() {
@@ -167,10 +178,10 @@ public actor TownEngine {
                 await untilIdle()
 
             case let .sceneStored(_, nextDue: due), let .skipped(_, nextDue: due):
-                try await wait(seconds: due.timeIntervalSince(currentTime()))
+                try await waitForNextTurn(fallback: due)
 
             case let .waiting(until: due):
-                try await wait(seconds: due.timeIntervalSince(currentTime()))
+                try await waitForNextTurn(fallback: due)
 
             case .failed, .modelUnavailable, .notFounded:
                 let factor = pace.drawFactor(using: &generator)
@@ -234,13 +245,24 @@ public actor TownEngine {
         let now = currentTime()
         let schedule: Schedule?
         do throws(TownStoreError) {
+            try await prepareResponses()
             schedule = try await store.schedule()
         } catch {
             return .failed(error)
         }
-        guard let due = schedule?.nextOrdinarySceneDue else {
+        guard let schedule else {
             return .notFounded
         }
+        var due = schedule.nextOrdinarySceneDue
+        if let response = schedule.pendingResponses.first {
+            let responseDue = max(response.dueAt, responseRetryAt ?? response.dueAt)
+            due = min(due, responseDue)
+        }
+        do throws(TownStoreError) {
+            if let last = try await store.lastScenePostTime() {
+                due = max(due, last)
+            }
+        } catch { return .failed(error) }
         guard due <= now else {
             return .waiting(until: due)
         }
@@ -259,7 +281,10 @@ public actor TownEngine {
             return await skip(.tooHot(heat), at: now)
         }
         try await changeTown(running: running, at: now)
-        return try await writeScene(at: now)
+        let response = schedule.pendingResponses.first.flatMap { pending in
+            pending.dueAt <= now && (responseRetryAt.map { $0 <= now } ?? true) ? pending : nil
+        }
+        return try await writeScene(at: now, response: response)
     }
 
     /// Draws an event, then a move, after `running` seconds of running time; nothing on a
@@ -274,7 +299,7 @@ public actor TownEngine {
 
     /// Waits `seconds` on the clock, or until a speed change re-arms the wait.
     /// - Throws: `CancellationError` when the calling task is cancelled.
-    private func wait(seconds: TimeInterval) async throws {
+    func wait(seconds: TimeInterval) async throws {
         guard seconds > 0 else {
             return
         }
@@ -296,7 +321,7 @@ public actor TownEngine {
     }
 
     /// Returns once no step holds the engine.
-    private func untilIdle() async {
+    func untilIdle() async {
         guard isBusy else {
             return
         }
@@ -305,7 +330,7 @@ public actor TownEngine {
         }
     }
 
-    private func becomeIdle() {
+    func becomeIdle() {
         isBusy = false
         let waiters = idleWaiters
         idleWaiters = []
