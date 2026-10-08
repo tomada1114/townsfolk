@@ -78,6 +78,7 @@ public final class TimelineViewModel {
     @ObservationIgnored package private(set) var loadGeneration = 0
     /// The sleep ``run()`` is in, cancelled to wake it early when a new post waits.
     @ObservationIgnored var sleeper: Task<Void, Never>?
+    @ObservationIgnored var pendingRead = TimelinePendingRead()
 
     /// Creates the timeline over `store`, showing nothing until ``run()`` loads it.
     ///
@@ -274,6 +275,7 @@ public final class TimelineViewModel {
     /// Moving away deleted the town: the timeline is empty again.
     func everythingDeleted() {
         loadGeneration += 1
+        pendingRead = TimelinePendingRead(needsNewest: false)
         isLoadingOlder = false
         log.removeAll()
         quoted = [:]

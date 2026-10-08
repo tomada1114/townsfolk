@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Recover missed timeline entries across pages when the town changes, and retry failed
+  timeline reads on the next clock tick
+
 - Wait one scene interval after the first scene when a town is founded, at the selected
   speed, so an ordinary scene does not start immediately on opening the timeline
 
