@@ -108,7 +108,7 @@ struct LocalizationTests {
                 Case(resource: SettingsWording.speedHint(speed), arguments: []),
             ]
         } + timelineCases() + availabilityCases() + composerCases()
-            + firstRunCases() + statusLineCases()
+            + firstRunCases() + statusLineCases() + profileCases()
     }
 
     /// The first-run screens' resources (S2, S3): each step's line, and its symbol's
@@ -206,21 +206,6 @@ struct LocalizationTests {
             Case(resource: ComposerWording.replyButton, arguments: []),
             Case(resource: ComposerWording.newPost, arguments: []),
             Case(resource: ComposerWording.reply, arguments: []),
-        ]
-    }
-
-    /// The status line's four templates and its VoiceOver label.
-    static func statusLineCases() -> [Case] {
-        let (event, topic, town) = ("Rain since noon", "the bakery's new bread", "Maplewood")
-        return [
-            Case(
-                resource: StatusLineWording.eventAndTopic(event: event, topic: topic),
-                arguments: [event, topic],
-            ),
-            Case(resource: StatusLineWording.event(event), arguments: [event]),
-            Case(resource: StatusLineWording.topic(topic), arguments: [topic]),
-            Case(resource: StatusLineWording.quiet(town: town), arguments: [town]),
-            Case(resource: StatusLineWording.accessibilityLabel, arguments: []),
         ]
     }
 
@@ -354,5 +339,48 @@ extension LocalizedStringResource {
         var resource = self
         resource.locale = locale
         return String(localized: resource)
+    }
+}
+
+/// The newer screens' cases, outside the struct body so it stays within type_body_length.
+extension LocalizationTests {
+    /// The resident profile's, the name button's, and the Town menu's Show Profile.
+    static func profileCases() -> [Case] {
+        let (name, description, term, date) = ("Jun", "old friend", "Rust", "Sep 30")
+        let (occupation, ageGroup) = ("Baker", "30s")
+        return [
+            Case(resource: ProfileWording.hobby, arguments: []),
+            Case(resource: ProfileWording.worry, arguments: []),
+            Case(resource: ProfileWording.knows, arguments: []),
+            Case(resource: ProfileWording.into, arguments: []),
+            Case(resource: ProfileWording.showProfile, arguments: []),
+            Case(resource: ProfileWording.nameHint, arguments: []),
+            Case(
+                resource: ProfileWording.summary(occupation: occupation, ageGroup: ageGroup),
+                arguments: [occupation, ageGroup],
+            ),
+            Case(
+                resource: ProfileWording.knowsLine(name: name, description: description),
+                arguments: [name, description],
+            ),
+            Case(resource: ProfileWording.interestLine(term: term), arguments: [term]),
+            Case(resource: ProfileWording.movedIn(date: date), arguments: [date]),
+            Case(resource: ProfileWording.movedOut(date: date), arguments: [date]),
+        ]
+    }
+
+    /// The status line's four templates and its VoiceOver label.
+    static func statusLineCases() -> [Case] {
+        let (event, topic, town) = ("Rain since noon", "the bakery's new bread", "Maplewood")
+        return [
+            Case(
+                resource: StatusLineWording.eventAndTopic(event: event, topic: topic),
+                arguments: [event, topic],
+            ),
+            Case(resource: StatusLineWording.event(event), arguments: [event]),
+            Case(resource: StatusLineWording.topic(topic), arguments: [topic]),
+            Case(resource: StatusLineWording.quiet(town: town), arguments: [town]),
+            Case(resource: StatusLineWording.accessibilityLabel, arguments: []),
+        ]
     }
 }

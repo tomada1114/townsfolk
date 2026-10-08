@@ -44,6 +44,14 @@ public final class TimelineViewModel {
     public private(set) var scrollToTopRequest = 0
     /// Counts up each time the timeline asks the view to move focus to the selected post.
     public private(set) var focusRequest = 0
+    /// The latest Show Profile (⌘I) ask, which the asked post's row answers by opening
+    /// its author's profile; `nil` before the first.
+    public internal(set) var profileRequest: ProfileRequest?
+    /// The one profile popover open in the window, or `nil`.
+    public internal(set) var presentedProfile: PresentedProfile?
+    /// Counts up per profile asked for; a read that finishes under an older count is
+    /// dropped, so only the latest choice ever opens.
+    @ObservationIgnored var profileLoadSerial = 0
     /// Your name, shown with "(you)" on every post of yours.
     public private(set) var displayName: DisplayName?
     /// The posts that arrived live and have not finished fading in.

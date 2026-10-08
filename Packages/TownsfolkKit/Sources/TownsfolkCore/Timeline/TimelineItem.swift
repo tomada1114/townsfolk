@@ -33,6 +33,8 @@ public struct TimelinePost: Identifiable, Sendable, Equatable {
     public let id: Post.ID
     /// The name in the header.
     public let author: Author
+    /// The resident who wrote it, or `nil` for a post of yours.
+    public let residentID: Resident.ID?
     /// What the post says; it always wraps and is never cut short.
     public let text: String
     /// When it happened, shown as a relative time.

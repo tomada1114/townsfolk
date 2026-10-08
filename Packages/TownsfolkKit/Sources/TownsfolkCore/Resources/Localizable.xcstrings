@@ -320,6 +320,105 @@
         }
       }
     },
+    "profile.into.line" : {
+      "comment" : "Resident profile: one line of the Into row. The argument is a name you brought up in a post that the resident took up.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (from you)"
+          }
+        }
+      }
+    },
+    "profile.knows.line" : {
+      "comment" : "Resident profile: one line of the Knows row. The arguments are the other resident's name and what they are to each other.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — %@"
+          }
+        }
+      }
+    },
+    "profile.movedIn" : {
+      "comment" : "Resident profile: the last line. The argument is the day they moved in, an abbreviated month and day such as \"Sep 30\".",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved in %@"
+          }
+        }
+      }
+    },
+    "profile.movedOut" : {
+      "comment" : "Resident profile: the last line for a resident who has left town. The argument is the day they moved out, an abbreviated month and day such as \"Oct 12\".",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved out %@"
+          }
+        }
+      }
+    },
+    "profile.row.hobby" : {
+      "comment" : "Resident profile: the label of the row naming what the resident does for fun.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hobby"
+          }
+        }
+      }
+    },
+    "profile.row.into" : {
+      "comment" : "Resident profile: the label of the row listing the names you brought up that the resident took up as their own, one per line.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Into"
+          }
+        }
+      }
+    },
+    "profile.row.knows" : {
+      "comment" : "Resident profile: the label of the row listing the other residents this one knows, one per line.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Knows"
+          }
+        }
+      }
+    },
+    "profile.row.worry" : {
+      "comment" : "Resident profile: the label of the row naming the resident's current worry.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Worry"
+          }
+        }
+      }
+    },
+    "profile.summary" : {
+      "comment" : "Resident profile: the line under the name. The arguments are the resident's occupation and age group, as the town wrote them.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %@"
+          }
+        }
+      }
+    },
     "settings.keepsMoving.help" : {
       "comment" : "Settings: helper text under the keep-moving toggle. \"Rests\" means the town pauses.",
       "localizations" : {
@@ -564,6 +663,17 @@
         }
       }
     },
+    "timeline.post.nameHint" : {
+      "comment" : "VoiceOver: the hint on a resident's name in a post header, which opens their profile.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show profile"
+          }
+        }
+      }
+    },
     "timeline.post.reading" : {
       "comment" : "VoiceOver: a resident's post. The arguments are the resident's name, the relative time (\"now\", \"5m\"), and the post's text.",
       "localizations" : {
@@ -681,6 +791,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scroll to Latest"
+          }
+        }
+      }
+    },
+    "town.menu.showProfile" : {
+      "comment" : "Menu bar: the Town menu command (⌘I) that opens the profile of the selected post's author.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Profile"
           }
         }
       }

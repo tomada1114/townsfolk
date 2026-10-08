@@ -117,6 +117,10 @@ struct TimelineGrouping {
     }
 
     private func row(for post: Post) -> TimelinePost {
+        var residentID: Resident.ID?
+        if case let .resident(id) = post.author {
+            residentID = id
+        }
         let author: TimelinePost.Author = switch post.author {
         case let .resident(id):
             .resident(residentNames[id] ?? "")
@@ -127,6 +131,7 @@ struct TimelineGrouping {
         return TimelinePost(
             id: post.id,
             author: author,
+            residentID: residentID,
             text: post.text,
             happenedAt: post.happenedAt,
         )
