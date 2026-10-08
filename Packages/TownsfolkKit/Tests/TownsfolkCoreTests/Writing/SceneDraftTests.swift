@@ -53,14 +53,22 @@ struct SceneDraftTests {
     }
 
     @Test
-    func `the schema asks for 1 to 3 posts, up to 3 tags, and states the length limits`() throws {
+    func `the schema states domain limits and defers tunable post length to the prompt`() throws {
         let encoded = try JSONEncoder().encode(SceneDraft.generationSchema)
         let schema = try #require(String(bytes: encoded, encoding: .utf8))
 
-        #expect(schema.contains(#""minItems":1"#))
-        #expect(schema.contains(#""maxItems":3"#))
-        #expect(schema.contains("at most 280 characters"))
-        #expect(schema.contains("each at most 40 characters"))
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let properties = try #require(object["properties"] as? [String: [String: Any]])
+        let posts = try #require(properties["posts"])
+        let tags = try #require(properties["topicTags"])
+        #expect(posts["minItems"] as? Int == WrittenScene.postCount.lowerBound)
+        #expect(posts["maxItems"] as? Int == WrittenScene.postCount.upperBound)
+        #expect(tags["maxItems"] as? Int == Post.maxTopicTags)
+        #expect(schema.contains("the character limit in the prompt"))
+        #expect(!schema
+            .contains("at most \(Tuning.default.timeline.residentPostMaxLength) characters"))
+        #expect(schema.contains("each at most \(Post.topicTagMaxLength) characters"))
+        #expect(schema.contains("Up to \(Post.maxTopicTags) short topic tags"))
         #expect(schema.contains("exactly as listed under Speakers"))
     }
 }
