@@ -14,16 +14,27 @@ extension TownStore {
         return included.isEmpty ? nil : try connection.post(id.rawValue, tuning: tuning)
     }
 
-    func latestYourPost() throws(TownStoreError) -> Post? {
+    /// Bounds the history before filtering, so an answered latest post never resurrects
+    /// old schedules displaced by the cap. Atomic repair rechecks each candidate.
+    func unscheduledYourPosts(maximum: Int) throws(TownStoreError) -> [Post] {
+        guard maximum >= 1 else { throw .invalidLimit(maximum) }
         let connection = try liveConnection()
         let ids = try connection.rows(
-            "SELECT id FROM posts WHERE author_resident_id IS NULL ORDER BY happened_at DESC, id DESC LIMIT 1",
-            [],
+            """
+            SELECT id FROM posts WHERE author_resident_id IS NULL
+            ORDER BY happened_at DESC, id DESC LIMIT ?
+            """,
+            [.integer(Int64(maximum))],
         ) { row throws(TownStoreError) in try row.uuid() }
-        guard let id = ids.first else {
-            return nil
+        var candidates: [Post] = []
+        for id in ids.reversed() {
+            let postID = Post.ID(rawValue: id)
+            guard try connection.responseRepairEligible(postID, maximum: maximum) else { continue }
+            if let post = try connection.post(id, tuning: tuning) {
+                candidates.append(post)
+            }
         }
-        return try responsePost(Post.ID(rawValue: id))
+        return candidates
     }
 
     func hasResponse(to id: Post.ID) throws(TownStoreError) -> Bool {

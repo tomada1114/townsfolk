@@ -6,21 +6,22 @@ import Observation
 ///
 /// Line breaks become spaces as you type, and the counter and whether Return posts follow
 /// the trimmed length (`docs/design/ux-guidelines.md:73-81`). Return stores your post
-/// through ``TownStore/storeYourPost(_:)`` in one transaction and clears the field; there
+/// through its injected writer in one transaction and clears the field; there
 /// is no pending state, since the timeline shows the post from the store's committed
 /// change (ux-guidelines.md:67). A post that cannot be posted, or a write the store
 /// refuses, leaves everything as typed and shows nothing.
 ///
 /// It posts whatever the model's availability — nothing here reads it
 /// (`docs/product/ux-flows.md:151-152`): the town's responses are the engine's, scheduled
-/// from what this stores. Construction reads and writes nothing, and nothing typed is
+/// with the atomic engine action, or repaired from legacy store writes. Construction
+/// reads and writes nothing, and nothing typed is
 /// ever logged (`.claude/rules/swift.md` › Logging).
 @MainActor
 @Observable
 public final class ComposerViewModel {
-    /// How a post reaches the store: ``TownStore/storeYourPost(_:)`` in the app, and in a
-    /// test a write it can hold open.
-    package typealias Write = @Sendable (Post) async throws(TownStoreError) -> Void
+    /// How a post reaches the town. Main-actor isolation lets the composition capture
+    /// settings synchronously before awaiting the engine's atomic posting action.
+    public typealias Write = @MainActor @Sendable (Post) async throws(TownStoreError) -> Void
 
     /// The Town menu's New Post command (⌘N).
     public static var newPostTitle: LocalizedStringResource {
@@ -93,10 +94,16 @@ public final class ComposerViewModel {
         )
     }
 
-    /// Creates a composer with an empty field that stores through `write` — for a test that
-    /// holds the store call open.
-    package convenience init(write: @escaping Write, now: @escaping @Sendable () -> Date) {
-        self.init(write: write, text: "", replyTarget: nil, tuning: .default, now: now)
+    /// Creates an empty composer posting through `write`. The app captures its current
+    /// speed inside this main-actor closure before awaiting
+    /// ``TownEngine/submitYourPost(_:speed:)``;
+    /// tests can hold the write open. Length validation still follows `tuning`.
+    public convenience init(
+        write: @escaping Write,
+        tuning: Tuning = .default,
+        now: @escaping @Sendable () -> Date = { Date.now },
+    ) {
+        self.init(write: write, text: "", replyTarget: nil, tuning: tuning, now: now)
     }
 
     /// Creates a composer already showing `text` and replying to `replyTarget`, with no
@@ -176,6 +183,8 @@ public final class ComposerViewModel {
         defer { isPosting = false }
         do {
             try await write(post)
+        } catch .cancelled {
+            return
         } catch {
             AppLog.composer.error("post not stored: \(String(describing: error), privacy: .public)")
             return

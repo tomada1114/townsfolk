@@ -222,15 +222,22 @@ up (§3.8).
   with a new seed up to twice, then the turn is skipped → one transaction stores the
   posts, tags, names, and the next due time → the view model reveals the posts one at a
   time, and the status line follows the tags and events.
-- **Your post.** The composer hands Core the text → Core validates it and stores it at
-  once → the engine follows committed writes, schedules one to three responses in one
-  transaction, and re-arms its wait. Due responses precede ordinary scenes, after the
-  preceding scene's last post. They use the same writer with the post quoted first and
-  ordinary retry seeds; a successful response stores its posts and removes only that
-  pending response atomically. Refused alternatives keep it for a later turn, while a
-  left-out post loses its schedule. On launch the latest unanswered, unscheduled post
-  recovers the gap between the composer commit and scheduling. Response dates retain
-  the speed at posting; ordinary dates follow later speed changes.
+- **Your post.** The composer validates the text, then calls its main-actor writer.
+  The app's writer captures `SettingsStore.speed` before its first await and calls
+  `TownEngine.submitYourPost(_:speed:)`. The engine draws without waiting for a scene
+  already being written; one store transaction inserts the post, adds its one to three
+  responses and prunes the oldest pending groups. The committed post change updates the
+  timeline, and the engine re-arms its wait. Response dates retain the Return-time speed;
+  ordinary dates follow later speed changes. Due responses precede ordinary scenes after
+  the preceding scene's last post, using the same writer with the post quoted first and
+  ordinary retry seeds. Success stores the scene and removes only that pending response
+  atomically; alternatives keep it for later, while a left-out post loses its schedule.
+  Legacy `TownStore.storeYourPost(_:)` writes remain supported. The engine repairs every
+  eligible unscheduled post within the newest capped post set, bounded before filtering
+  excluded or already answered posts so older displaced history does not return. Repair
+  rechecks eligibility and the cap inside its transaction. These legacy posts carry no
+  persisted speed, so repair necessarily uses the current setting; only the atomic
+  posting path guarantees the speed at Return.
 
 - **A pause.** Presence reports the window hidden, or the app inactive with the setting
   off → the engine stops and records when the town last ran → presence reports the
