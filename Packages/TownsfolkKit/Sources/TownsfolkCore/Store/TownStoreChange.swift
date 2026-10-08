@@ -31,6 +31,6 @@ public enum TownStoreChange: Sendable, Equatable {
     /// A scene was stored — its posts, in the order given, with everything else the
     /// scene changed.
     case sceneStored(posts: [Post.ID])
-    /// Your post was stored.
+    /// Your post was stored, including any responses scheduled atomically with it.
     case yourPostStored(Post.ID)
 }

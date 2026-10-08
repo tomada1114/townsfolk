@@ -25,11 +25,24 @@ public enum SceneRequestError: Error, Equatable, Sendable {
 /// store adds only recent posts, ongoing events, and names, so founding can write its
 /// first scene before anything is stored.
 public struct SceneRequest: Sendable, Equatable {
+    /// Which of your posts may appear in the recent conversation context. Explicit
+    /// post seeds remain available independently of this policy.
+    public enum YourPostContext: Sendable, Equatable {
+        /// Carry all included recent posts, for standalone writer callers.
+        case all
+        /// Carry only posts that residents have already answered, so ordinary scenes
+        /// cannot bypass a pending first response's delay.
+        case answeredOnly
+    }
+
     /// How many residents speak in one scene (requirements.md:161).
     public static let speakerCount = 1 ... 3
     /// How many seeds one turn may try (requirements.md:349: the first, then up to two
     /// retries after a refusal).
     public static let seedCount = 1 ... 3
+
+    /// The eligibility policy for your posts carried as recent context.
+    public let yourPostContext: YourPostContext
 
     /// Your display name, under which your posts are quoted.
     public let you: DisplayName
@@ -58,6 +71,7 @@ public struct SceneRequest: Sendable, Equatable {
         residents: [Resident],
         speakers: [Resident.ID],
         seeds: [SceneSeed],
+        yourPostContext: YourPostContext = .all,
     ) throws(SceneRequestError) {
         try Self.check(speakers: speakers, in: residents)
         guard Self.seedCount.contains(seeds.count) else {
@@ -74,6 +88,7 @@ public struct SceneRequest: Sendable, Equatable {
         self.residents = residents
         self.speakers = speakers
         self.seeds = seeds
+        self.yourPostContext = yourPostContext
     }
 
     private static func check(

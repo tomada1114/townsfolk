@@ -55,15 +55,7 @@ extension TownEngine {
                 EngineLog.recordMoveDropped(.noAxes)
                 return
             }
-            let reply = try await model.foundingReply(
-                NewResidentDraft.self,
-                instructions: TownChangePrompts.newcomerInstructions(),
-                prompt: TownChangePrompts.newcomerPrompt(
-                    town: town,
-                    seed: seed,
-                    residents: residents,
-                ),
-            )
+            let reply = try await newcomerReply(town: town, seed: seed, residents: residents)
             let newcomer: Resident
             switch reply {
             case let .done(draft):
@@ -93,6 +85,31 @@ extension TownEngine {
             return
         }
         EngineLog.recordMoveDropped(.retriesSpent(attempts: attempts))
+    }
+
+    /// Fits each draw separately: redrawn axes can have different token lengths.
+    private func newcomerReply(
+        town: Town,
+        seed: ResidentSeed,
+        residents: [Resident],
+    ) async throws -> FoundingAttempt<NewResidentDraft> {
+        let fitted = try await NewcomerPromptBudget.fit(
+            town: town, seed: seed, residents: residents, model: model, tuning: tuning,
+        )
+        switch fitted {
+        case let .done(prompt):
+            return try await model.foundingReply(
+                NewResidentDraft.self,
+                instructions: TownChangePrompts.newcomerInstructions(),
+                prompt: prompt,
+            )
+
+        case let .failed(reason):
+            return .failed(reason)
+
+        case .unavailable:
+            return .unavailable
+        }
     }
 
     /// Moves one of `living`, picked uniformly, away now; their posts stay, and they are

@@ -12,8 +12,8 @@ extension TownStore {
         try liveConnection().town(tuning: tuning)
     }
 
-    /// Every resident, living and moved out, in the order they moved in. Past residents
-    /// are kept so no one like them is invented again.
+    /// Every resident, living and moved out, ordered by move-in time, then binary name,
+    /// then id. Past residents are kept so no one like them is invented again.
     public func residents() throws(TownStoreError) -> [Resident] {
         try liveConnection().residents()
     }
@@ -44,14 +44,22 @@ extension TownStore {
     /// `date`, newest first, at most `limit` of them (requirements §3.8).
     /// - Throws: ``TownStoreError/invalidLimit(_:)`` for a limit below 1.
     public func recentPosts(before date: Date, limit: Int) throws(TownStoreError) -> [Post] {
-        guard limit >= 1 else {
-            throw .invalidLimit(limit)
-        }
+        try recentPosts(before: date, limit: limit, yourPosts: .all)
+    }
+
+    /// The engine can omit unanswered user posts before ordering and limiting context.
+    func recentPosts(
+        before date: Date,
+        limit: Int,
+        yourPosts: SceneRequest.YourPostContext,
+    ) throws(TownStoreError) -> [Post] {
+        guard limit >= 1 else { throw .invalidLimit(limit) }
         return try liveConnection().includedPosts(
             from: recentWindowStart(before: date),
             through: date,
             limit: limit,
             tuning: tuning,
+            yourPosts: yourPosts,
         )
     }
 

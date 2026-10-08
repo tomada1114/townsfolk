@@ -133,7 +133,7 @@ extension SQLiteConnection {
             """
             SELECT id, name, age_group, occupation, hobby, worry, personality, moved_in_at,
                 moved_out_at
-            FROM residents ORDER BY moved_in_at, id
+            FROM residents ORDER BY moved_in_at, name COLLATE BINARY, id
             """,
             [],
         ) { row throws(TownStoreError) in
@@ -225,14 +225,20 @@ extension SQLiteConnection {
         through end: Date,
         limit: Int,
         tuning: Tuning,
+        yourPosts: SceneRequest.YourPostContext,
     ) throws(TownStoreError) -> [Post] {
+        let answeredOnly = yourPosts == .answeredOnly ? 1 : 0
         let drafts = try rows(
             """
             SELECT id, author_resident_id, text, happened_at, reply_target_id, origin, scene_id
             FROM posts WHERE excluded = 0 AND happened_at >= ? AND happened_at <= ?
+            AND (? = 0 OR author_resident_id IS NOT NULL OR EXISTS (
+                SELECT 1 FROM posts AS answer
+                WHERE answer.reply_target_id = posts.id AND answer.origin = 'response'
+            ))
             ORDER BY happened_at DESC, id DESC LIMIT ?
             """,
-            [.date(start), .date(end), .integer(Int64(limit))],
+            [.date(start), .date(end), .integer(Int64(answeredOnly)), .integer(Int64(limit))],
         ) { row throws(TownStoreError) in
             try PostRow(&row)
         }
