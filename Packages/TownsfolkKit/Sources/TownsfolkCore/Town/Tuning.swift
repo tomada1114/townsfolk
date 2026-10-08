@@ -1,6 +1,6 @@
-/// Every starting value the requirements mark † — the numbers only running the real
-/// model on a real Mac can settle (requirements.md:13) — in one place, so tuning the
-/// town is an edit here rather than a hunt through method bodies.
+/// Starting values the requirements mark † — numbers only running the real model on a
+/// real Mac can settle (requirements.md:13) — and operational limits that need tuning,
+/// such as the generation read cap, in one place rather than scattered through methods.
 ///
 /// A type that obeys one of these takes a `Tuning` in its initializer, defaulting to
 /// ``default``, so a test hands it a smaller one to reach a boundary quickly
@@ -161,6 +161,9 @@ public struct Tuning: Sendable, Equatable {
     public struct Generation: Sendable, Equatable {
         /// How far back a scene's context reaches for recent posts — about a day (:307).
         public var recentContextWindow: Duration
+        /// Bounds each scene's store read before token fitting, independently of the model's
+        /// token budget; raise it to include more of a growing recent log.
+        public var maxRecentPosts = 64
         /// Retries with a new seed after a refusal before the turn is skipped (:349).
         public var refusalRetriesPerTurn = 2
         /// Refusals in a row with something in the context before it is left out
