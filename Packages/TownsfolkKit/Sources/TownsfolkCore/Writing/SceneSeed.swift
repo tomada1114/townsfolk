@@ -16,7 +16,7 @@ public enum SceneSeed: Sendable, Equatable {
     case yourPost(Post, quoted: Bool, leadSpeaker: Resident.ID?)
 
     /// The part of a resident's profile a ``profile(_:_:)`` seed is about.
-    public enum ProfileAspect: Sendable, Equatable, CaseIterable {
+    public enum ProfileAspect: Sendable, Hashable, CaseIterable {
         /// What they do for fun.
         case hobby
         /// What they do for a living.

@@ -55,8 +55,14 @@ struct SceneCasting {
         return pools[kind].remove(at: generator.nextIndex(below: pools[kind].count))
     }
 
-    private func profileSeeds(of owners: [Resident.ID], partners: [Resident.ID]) -> [SceneSeed] {
-        residents.filter { owners.contains($0.id) }.flatMap { resident in
+    /// Candidates in the caller's owner and scalar-aspect order. Response refills share
+    /// ordinary casting's relationship eligibility and target deduplication.
+    func profileSeeds(
+        of owners: [Resident.ID],
+        partners: [Resident.ID],
+        aspects: [SceneSeed.ProfileAspect],
+    ) -> [SceneSeed] {
+        owners.compactMap { id in residents.first { $0.id == id } }.flatMap { resident in
             var seen: Set<Resident.ID> = []
             let links = resident.relationships.filter { link in
                 guard seen.insert(link.resident).inserted else {
@@ -67,7 +73,7 @@ struct SceneCasting {
                     return partner.id == link.resident && available
                 }
             }
-            return Self.aspects.map { SceneSeed.profile(resident.id, $0) }
+            return aspects.map { SceneSeed.profile(resident.id, $0) }
                 + links.map { .profile(resident.id, .relationship($0.resident)) }
         }
     }
@@ -81,7 +87,11 @@ struct SceneCasting {
         }
         let topicSeeds = topics.map(SceneSeed.topic)
         let eventSeeds = events.map(SceneSeed.event)
-        var pools = [profileSeeds(of: living, partners: living), topicSeeds, eventSeeds]
+        var pools = [
+            profileSeeds(of: living, partners: living, aspects: Self.aspects),
+            topicSeeds,
+            eventSeeds,
+        ]
         guard let first = news.map({ SceneSeed.event($0.event) })
             ?? Self.drawSeed(from: &pools, using: &generator)
         else {
@@ -105,7 +115,11 @@ struct SceneCasting {
         }
         var seeds = [first]
         pools = [
-            profileSeeds(of: living.filter(speakers.contains), partners: speakers),
+            profileSeeds(
+                of: living.filter(speakers.contains),
+                partners: speakers,
+                aspects: Self.aspects,
+            ),
             topicSeeds,
             eventSeeds,
         ].map { $0.filter { $0 != first } }

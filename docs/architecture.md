@@ -265,7 +265,8 @@ which retains the scalar aspects used by founding. A relationship seed names the
 and stored description; both residents speak when both still live in town. A moved-away
 partner remains in the roster for naming, and refusal retries include only relationships
 whose living partner is already among the speakers. Repeated links to one partner form
-one candidate.
+one candidate. For a delayed reply, these constraints are checked again after its reply
+lead replaces a speaker; incompatible retries are refilled from the same eligible pools.
 
 The public `SceneSeed.ProfileAspect.relationship(Resident.ID)` case requires exhaustive
 caller switches to handle relationships. `SceneRequestError.unknownRelationship` rejects
