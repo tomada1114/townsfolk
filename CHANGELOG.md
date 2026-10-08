@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fit newcomer prompts to the model context as the town grows, retaining every taken
+  name and current resident while trimming the oldest past profiles first
+
 - Wait one scene interval after the first scene when a town is founded, at the selected
   speed, so an ordinary scene does not start immediately on opening the timeline
 
