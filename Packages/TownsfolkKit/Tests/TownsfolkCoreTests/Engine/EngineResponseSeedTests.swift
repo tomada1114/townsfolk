@@ -125,4 +125,33 @@ struct EngineResponseSeedTests {
             #expect(try await harness.store.post(post.id) == post)
         }
     }
+
+    @Test
+    func `displaced profile owner never seeds response retry`() async throws {
+        var setup = try EngineSetup(residents: [EngineCast.mika(), EngineCast.jun()])
+        setup.generator = RepeatingGenerator(value: 0)
+        let target = try ResidentPostDraft(
+            author: setup.residents[1].id,
+            time: EngineFixtures.time("10:00:00"),
+        ).make()
+        setup.priorPosts = [target]
+        let fallback = EngineFixtures.scene(by: "Jun", ["The library is quiet."], tags: [])
+        setup.outcomes = [.failure(.refused), .failure(.refused), .content(fallback)]
+        try await withEngine(setup) { harness in
+            let post = try EngineResponseFixtures.post(
+                at: EngineFixtures.time("10:00:01"),
+                reply: target.id,
+            )
+            try await harness.store.storeYourPost(post)
+            #expect(try await EngineFixtures.isStored(harness.engine.step()))
+            #expect(harness.model.calls.count == 3)
+            for call in harness.model.calls.dropFirst() {
+                #expect(EngineFixtures.speakers(in: call.prompt) == ["Jun"])
+                let seed = try #require(EngineFixtures.seed(in: call.prompt))
+                #expect(seed.contains("Jun's"))
+                #expect(!seed.contains("Mika's"))
+            }
+            #expect(try await harness.store.schedule()?.pendingResponses.map(\.post) == [post.id])
+        }
+    }
 }

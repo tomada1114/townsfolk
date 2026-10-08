@@ -110,7 +110,7 @@ extension TownEngine {
         }
         let cast: SceneCasting.Cast
         do throws(TownStoreError) {
-            cast = try await responseCast(ordinary, response: response, at: now)
+            cast = try await responseCast(ordinary, response: response, casting: casting, at: now)
         } catch { return .failed(error) }
         let request: SceneRequest
         do throws(SceneRequestError) {

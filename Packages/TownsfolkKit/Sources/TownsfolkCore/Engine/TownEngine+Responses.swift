@@ -2,6 +2,20 @@ import Foundation
 
 /// Your posts schedule delayed scenes through the same writer as ordinary scenes.
 extension TownEngine {
+    /// A fallback's profile owner must still be one of the final speakers.
+    private static func seed(_ seed: SceneSeed, fits speakers: [Resident.ID]) -> Bool {
+        switch seed {
+        case let .profile(resident, _):
+            speakers.contains(resident)
+
+        case .event, .name, .topic:
+            true
+
+        case .yourPost:
+            false
+        }
+    }
+
     /// Handles a committed store change. Also used by the run loop's subscription.
     func responseChange(_ change: TownStoreChange) async {
         guard affectsResponses(change) else {
@@ -156,6 +170,7 @@ extension TownEngine {
     func responseCast(
         _ ordinary: SceneCasting.Cast,
         response: Schedule.PendingResponse?,
+        casting: SceneCasting,
         at now: Date,
     ) async throws(TownStoreError) -> SceneCasting.Cast {
         let post: Post
@@ -176,14 +191,47 @@ extension TownEngine {
             quoted = false
         }
         var speakers = ordinary.speakers
+        var retries = Array(ordinary.seeds.prefix(tuning.generation.refusalRetriesPerTurn))
         if let lead, !speakers.contains(lead) {
             speakers[0] = lead
+            if retries.contains(where: { !Self.seed($0, fits: speakers) }) {
+                retries = responseRetries(keeping: retries, speakers: speakers, casting: casting)
+            }
         }
         return SceneCasting.Cast(
             speakers: speakers,
-            seeds: [.yourPost(post, quoted: quoted, leadSpeaker: lead)] + ordinary.seeds
-                .prefix(tuning.generation.refusalRetriesPerTurn),
+            seeds: [.yourPost(post, quoted: quoted, leadSpeaker: lead)] + retries,
         )
+    }
+
+    /// Keeps compatible retries and refills with the ordinary pools after lead casting.
+    /// Pool kinds are uniform, then their candidates are uniform, as in SceneCasting.
+    private func responseRetries(
+        keeping original: [SceneSeed],
+        speakers: [Resident.ID],
+        casting: SceneCasting,
+    ) -> [SceneSeed] {
+        let limit = min(
+            tuning.generation.refusalRetriesPerTurn,
+            SceneRequest.seedCount.upperBound - 1,
+        )
+        var retries = Array(original.filter { Self.seed($0, fits: speakers) }.prefix(limit))
+        let profiles = speakers.flatMap { resident in
+            SceneSeed.ProfileAspect.allCases.map { SceneSeed.profile(resident, $0) }
+        }
+        var pools = [
+            profiles,
+            casting.topics.map(SceneSeed.topic),
+            casting.events.map(SceneSeed.event),
+        ]
+        .map { candidates in candidates.filter { !retries.contains($0) } }
+        while retries.count < limit {
+            let kinds = pools.indices.filter { !pools[$0].isEmpty }
+            guard !kinds.isEmpty else { break }
+            let kind = kinds[generator.nextIndex(below: kinds.count)]
+            retries.append(pools[kind].remove(at: generator.nextIndex(below: pools[kind].count)))
+        }
+        return retries
     }
 
     private func responseLead(to post: Post) async throws(TownStoreError) -> Resident.ID? {
