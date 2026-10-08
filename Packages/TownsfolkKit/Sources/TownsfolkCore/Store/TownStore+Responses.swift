@@ -57,7 +57,10 @@ extension TownStore {
         let ids = try connection.rows(
             """
             SELECT id FROM posts WHERE author_resident_id IS NULL AND excluded = 0
-            AND happened_at >= ? AND happened_at <= ? ORDER BY happened_at DESC, id DESC
+            AND happened_at >= ? AND happened_at <= ?
+            AND EXISTS (SELECT 1 FROM posts AS answer
+            WHERE answer.reply_target_id = posts.id AND answer.origin = 'response')
+            ORDER BY happened_at DESC, id DESC
             """,
             [.date(start), .date(date)],
         ) { row throws(TownStoreError) in try row.uuid() }

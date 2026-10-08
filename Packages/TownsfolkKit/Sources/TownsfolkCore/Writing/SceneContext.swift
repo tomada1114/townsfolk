@@ -21,8 +21,9 @@ struct SceneContext {
         from store: TownStore,
         at date: Date,
         limit: Int,
+        yourPosts: SceneRequest.YourPostContext,
     ) async throws(TownStoreError) -> Self {
-        let recent = try await store.recentPosts(before: date, limit: limit)
+        let recent = try await store.recentPosts(before: date, limit: limit, yourPosts: yourPosts)
         let ongoing = try await store.ongoingEvents()
         let names = try await store.interests()
         return Self(recentPosts: recent, events: ongoing, interests: names)

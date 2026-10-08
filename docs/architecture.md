@@ -232,6 +232,13 @@ up (§3.8).
   the preceding scene's last post, using the same writer with the post quoted first and
   ordinary retry seeds. Success stores the scene and removes only that pending response
   atomically; alternatives keep it for later, while a left-out post loses its schedule.
+  The response transaction rechecks the exact pending post and due time and the source's
+  included flag. A response withdrawn while the model is running commits nothing and
+  leaves the ordinary due time unchanged. Coming-back seeds require a prior response
+  and remain eligible through 24 hours. The additive `SceneRequest.YourPostContext`
+  policy defaults to `.all` for standalone writer callers; the engine chooses
+  `.answeredOnly`, filtering unanswered user posts before ordering and limiting recent
+  context. An explicitly quoted due-response seed is still added to its prompt.
   Legacy `TownStore.storeYourPost(_:)` writes remain supported. The engine repairs every
   eligible unscheduled post within the newest capped post set, bounded before filtering
   excluded or already answered posts so older displaced history does not return. Repair

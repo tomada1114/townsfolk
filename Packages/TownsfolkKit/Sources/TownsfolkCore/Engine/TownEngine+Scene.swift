@@ -120,6 +120,7 @@ extension TownEngine {
                 residents: casting.residents,
                 speakers: cast.speakers,
                 seeds: cast.seeds,
+                yourPostContext: .answeredOnly,
             )
         } catch {
             return await skip(.invalidRequest(error), at: now)
@@ -142,7 +143,7 @@ extension TownEngine {
             return await skip(.writer(reason), at: now)
 
         case let .written(scene):
-            if case let .yourPost(post, _, _) = scene.seed {
+            if case let .yourPost(post, quoted: false, _) = scene.seed {
                 do throws(TownStoreError) {
                     guard try await store.responsePost(post.id) != nil else {
                         return await skip(.writer(.refused), at: now)
@@ -199,11 +200,21 @@ extension TownEngine {
         }
         let due = pace.due(after: last, speed: speed, factor: factor)
         do throws(TownStoreError) {
-            try await store.storeScene(TownStore.SceneStep(
+            let step = TownStore.SceneStep(
                 posts: posts,
                 deliveredResponse: response,
                 nextOrdinarySceneDue: due,
-            ))
+            )
+            if response != nil {
+                guard try await store.storeResponseScene(step) else {
+                    guard let schedule = try await store.schedule() else {
+                        return .notFounded
+                    }
+                    return .waiting(until: schedule.nextOrdinarySceneDue)
+                }
+            } else {
+                try await store.storeScene(step)
+            }
         } catch .cancelled {
             throw CancellationError()
         } catch {

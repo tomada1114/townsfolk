@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Posting schedules the town's responses atomically at the speed chosen on Return,
   even while a scene is being written; recovery repairs all eligible recent posts
+- Ordinary scenes come back only to already-answered posts, preserving the first reply's
+  delay; responses withdrawn while generation is running no longer reach the board
 
 - Residents with the same move-in time now read in binary name order, then id, so founded
   rosters have a repeatable order

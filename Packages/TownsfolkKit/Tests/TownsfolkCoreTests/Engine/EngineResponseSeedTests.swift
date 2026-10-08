@@ -83,7 +83,7 @@ struct EngineResponseSeedTests {
         }
     }
 
-    @Test(arguments: [86_400.0, 86_401.0])
+    @Test(arguments: [0.0, 86_400.0, 86_401.0])
     func `coming back window`(age: Double) async throws {
         var setup = try EngineSetup.mikaAlone()
         setup.tuning.yourPost.postSeedChance = 1
@@ -95,12 +95,43 @@ struct EngineResponseSeedTests {
             try await harness.store.storeYourPost(post)
             let answered = try EngineResponseFixtures.answered(post, by: harness.residents[0].id)
             try await harness.store.storeScene(.init(posts: [answered]))
+            let result = try await harness.engine.step()
+            guard case let .sceneStored(ids, _) = result else {
+                Issue.record("Expected an ordinary scene to be stored")
+                return
+            }
+            #expect(!ids.isEmpty)
+            let seed = try #require(harness.model.calls.first
+                .flatMap { EngineFixtures.seed(in: $0.prompt) })
+            #expect(seed.contains("Seed: what") == (age <= 86_400))
+            #expect(!seed.contains("The first post replies to it."))
+            #expect(harness.model.calls[0].prompt.contains("Bread today?") == (age <= 86_400))
+            for id in ids {
+                #expect(try await harness.store.post(id)?.origin == .ordinary)
+            }
+            #expect(try await harness.store.post(answered.id) == answered)
+        }
+    }
+
+    @Test
+    func `unanswered post cannot seed an ordinary scene before its delay`() async throws {
+        var setup = try EngineSetup.mikaAlone()
+        setup.tuning.yourPost.postSeedChance = 1
+        setup.generator = RepeatingGenerator(value: 0)
+        let content = WritingFixtures.content([
+            DraftPost(speaker: "Mika", text: "Rain today.", replyTo: "P1"),
+        ])
+        setup.outcomes = [.content(content)]
+        try await withEngine(setup) { harness in
+            let post = try EngineResponseFixtures.post()
+            try await harness.engine.submitYourPost(post, speed: .normal)
             #expect(try await EngineFixtures.isStored(harness.engine.step()))
             let seed = try #require(harness.model.calls.first
                 .flatMap { EngineFixtures.seed(in: $0.prompt) })
-            #expect(seed.contains("Seed: what") == (age == 86_400))
-            #expect(!seed.contains("The first post replies to it."))
-            #expect(try await harness.storedPosts().first?.origin == .ordinary)
+            #expect(!seed.contains("Seed: what"))
+            #expect(!harness.model.calls[0].prompt.contains("Bread today?"))
+            #expect(try await harness.storedPosts().first?.replyTarget == nil)
+            #expect(try await harness.store.schedule()?.pendingResponses.map(\.post) == [post.id])
         }
     }
 
@@ -110,12 +141,15 @@ struct EngineResponseSeedTests {
         setup.generator = RepeatingGenerator(value: 0)
         setup.tuning.events.maxOngoingEvents = 0
         setup.tuning.residents.population = 1 ... 1
-        setup.outcomes = WritingFixtures.refusals(3) + [.content(WritingFixtures.mikaSpeaks)]
+        setup.outcomes = WritingFixtures.refusals(9) + [.content(WritingFixtures.mikaSpeaks)]
         try await withEngine(setup) { harness in
             let post = try EngineResponseFixtures.post(at: EngineFixtures.time("10:00:00"))
             try await harness.store.storeYourPost(post)
-            _ = try await harness.engine.step()
-            #expect(harness.model.calls.count == 3)
+            for _ in 0 ..< 3 {
+                _ = try await harness.engine.step()
+                harness.clock.advance(by: .seconds(180))
+            }
+            #expect(harness.model.calls.count == 9)
             #expect(try await harness.store.schedule()?.pendingResponses.isEmpty == true)
             harness.clock.advance(by: .seconds(180))
             #expect(try await EngineFixtures.isStored(harness.engine.step()))
