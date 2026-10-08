@@ -61,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Scene prompts keep an existing period, exclamation mark, or question mark at the end
+  of a resident's worry without adding another period
 - Requires macOS 27.0 or later; building from source requires Xcode 27
 - The town window and the Settings window replace the example counter: one window
   titled "Townsfolk" that opens at 380 × 680 pt, stops shrinking at 320 × 440 pt, and
