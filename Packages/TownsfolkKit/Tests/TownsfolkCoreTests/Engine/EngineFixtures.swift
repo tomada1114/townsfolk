@@ -281,7 +281,10 @@ private func makeEngine(
 
 /// Runs `body` with an engine set up as `setup` says, on a directory and a settings suite
 /// of its own, both removed afterwards.
-func withEngine(_ setup: EngineSetup, _ body: (EngineHarness) async throws -> Void) async throws {
+nonisolated(nonsending) func withEngine(
+    _ setup: EngineSetup,
+    _ body: (EngineHarness) async throws -> Void,
+) async throws {
     let suite = "EngineTests-\(UUID().uuidString)"
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }

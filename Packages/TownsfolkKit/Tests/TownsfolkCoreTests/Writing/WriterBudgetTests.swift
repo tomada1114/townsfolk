@@ -12,11 +12,12 @@ private struct BudgetRun {
     var contextSize = WritingFixtures.roomyContextSize
     var outcomes: [FakeLanguageModelProvider.Outcome] = [.content(WriterBudgetTests.akiSpeaks)]
     var seeds: [SceneSeed] = [.topic("new bread")]
+    var tuning = Tuning.default
 
     func write(in store: TownStore) async throws -> (SceneOutcome, [Call]) {
         let cast = try WritingCast()
         let fake = WritingFixtures.fake(outcomes, contextSize: contextSize)
-        let writer = SceneWriter(model: fake, store: store)
+        let writer = SceneWriter(model: fake, store: store, tuning: tuning)
         let request = try cast.request(speakers: [cast.aki], seeds: seeds)
         let outcome = try await writer.write(request, at: WritingFixtures.now)
         return (outcome, fake.calls)
@@ -40,6 +41,7 @@ struct WriterBudgetTests {
     /// `Tuning.generation.outputTokenReserve`'s starting value (requirements.md:413).
     static let reserve = 1_024
     static let lineLength = 19
+    static let numberedPostCount = 1_000
 
     static var akiSpeaks: GeneratedContent {
         WritingFixtures.content([DraftPost(speaker: "Aki", text: "Hello.")])
@@ -63,6 +65,35 @@ struct WriterBudgetTests {
         call.instructions.count + call.prompt.count
     }
 
+    /// Stores numbered posts at one-second intervals, all inside the recent window.
+    static func storeNumberedPosts(in directory: TownDirectory) throws {
+        let firstPostTime = Int64(WritingFixtures.now.timeIntervalSince1970 * 1_000)
+            - Int64(numberedPostCount * 1_000)
+        let database = try directory.raw()
+        try database.execute("""
+        WITH RECURSIVE sequence(number) AS (
+            SELECT 1
+            UNION ALL SELECT number + 1 FROM sequence WHERE number < \(numberedPostCount)
+        )
+        INSERT INTO posts (id, author_resident_id, text, happened_at, reply_target_id,
+            origin, scene_id)
+        SELECT printf('00000000-0000-0000-0000-%012d', number), NULL,
+            printf('Note %04d.', number), \(firstPostTime) + (number * 1_000),
+            NULL, NULL, NULL
+        FROM sequence
+        """)
+    }
+
+    static func note(_ index: Int) -> String {
+        "Note \(String(format: "%04d", index))."
+    }
+
+    /// Makes one numbered post fail the store's normal text validation when read.
+    static func corruptPost(_ index: Int, in directory: TownDirectory) throws {
+        let database = try directory.raw()
+        try database.execute("UPDATE posts SET text = '   ' WHERE text = '\(note(index))'")
+    }
+
     @Test
     func `a prompt within the budget carries every recent post`() async throws {
         try await withStore { store, _ in
@@ -70,6 +101,54 @@ struct WriterBudgetTests {
             let (outcome, calls) = try await BudgetRun().write(in: store)
             #expect(Self.notesCarried(by: calls) == [Self.notes])
             #expect(outcome != .skipped(.overflow))
+        }
+    }
+
+    @Test(arguments: [64, 8])
+    func `the bounded read carries only the newest configured posts`(limit: Int) async throws {
+        try await withStore { store, directory in
+            try Self.storeNumberedPosts(in: directory)
+            try Self.corruptPost(Self.numberedPostCount - limit, in: directory)
+            var tuning = Tuning.default
+            if limit != 64 {
+                tuning.generation.maxRecentPosts = limit
+            }
+
+            let (outcome, calls) = try await BudgetRun(tuning: tuning).write(in: store)
+
+            guard case .written = outcome else {
+                Issue.record("expected the capped recent posts to write a scene, got \(outcome)")
+                return
+            }
+            let call = try #require(calls.first)
+            let carried = (1 ... Self.numberedPostCount).map(Self.note).filter { note in
+                call.prompt.contains("\"\(note)\"")
+            }
+            let expected = ((Self.numberedPostCount - limit + 1) ... Self.numberedPostCount)
+                .map(Self.note)
+            #expect(calls.count == 1)
+            #expect(carried == expected)
+        }
+    }
+
+    @Test
+    func `a corrupt post inside the read cap still fails the store read`() async throws {
+        try await withStore { store, directory in
+            try Self.storeNumberedPosts(in: directory)
+            try Self.corruptPost(Self.numberedPostCount, in: directory)
+            var tuning = Tuning.default
+            tuning.generation.maxRecentPosts = 8
+            let cast = try WritingCast()
+            let fake = WritingFixtures.fake([.content(Self.akiSpeaks)])
+            let writer = SceneWriter(model: fake, store: store, tuning: tuning)
+            let request = try cast.request(speakers: [cast.aki], seeds: [.topic("new bread")])
+
+            let outcome = try await writer.write(request, at: WritingFixtures.now)
+
+            #expect(
+                outcome == .skipped(.storeReadFailed(.rejectedRow(.empty(.postText)))),
+            )
+            #expect(fake.calls.isEmpty)
         }
     }
 

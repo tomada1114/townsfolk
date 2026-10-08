@@ -42,12 +42,22 @@ final class EngineClock: Clock, Sendable {
         var sleepers: [Int: Sleeper] = [:]
         var cancelled: Set<Int> = []
         var waiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var deadlineWaiters: [
+            (deadline: Duration, continuation: CheckedContinuation<Void, Never>)
+        ] =
+            []
 
         /// Takes the waiters whose count of sleepers is now reached.
         mutating func takeSatisfiedWaiters() -> [CheckedContinuation<Void, Never>] {
             let satisfied = waiters.filter { $0.count <= sleepers.count }
             waiters.removeAll { $0.count <= sleepers.count }
-            return satisfied.map(\.continuation)
+            let deadlines = deadlineWaiters.filter { waiter in
+                sleepers.values.contains { $0.deadline.offset == waiter.deadline }
+            }
+            deadlineWaiters.removeAll { waiter in
+                sleepers.values.contains { $0.deadline.offset == waiter.deadline }
+            }
+            return satisfied.map(\.continuation) + deadlines.map(\.continuation)
         }
     }
 
@@ -159,6 +169,23 @@ final class EngineClock: Clock, Sendable {
                 return false
             }
             if isReached {
+                continuation.resume()
+            }
+        }
+    }
+
+    /// Waits for the engine to re-arm a sleep to this exact deadline.
+    func waitForDeadline(_ deadline: Duration) async {
+        await withCheckedContinuation { continuation in
+            let reached = state.withLock { state in
+                let hasDeadline = state.sleepers.values.contains { $0.deadline.offset == deadline }
+                if hasDeadline {
+                    return true
+                }
+                state.deadlineWaiters.append((deadline, continuation))
+                return false
+            }
+            if reached {
                 continuation.resume()
             }
         }

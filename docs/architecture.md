@@ -222,9 +222,30 @@ up (§3.8).
   with a new seed up to twice, then the turn is skipped → one transaction stores the
   posts, tags, names, and the next due time → the view model reveals the posts one at a
   time, and the status line follows the tags and events.
-- **Your post.** The composer hands Core the text → Core validates it and stores it at
-  once → the engine schedules the responses, the first 2–10 minutes later at Normal →
-  each is a scene seeded by your post (§3.5).
+- **Your post.** The composer validates the text, then calls its main-actor writer.
+  The app's writer captures `SettingsStore.speed` before its first await and calls
+  `TownEngine.submitYourPost(_:speed:)`. The engine draws without waiting for a scene
+  already being written; one store transaction inserts the post, adds its one to three
+  responses and prunes the oldest pending groups. The committed post change updates the
+  timeline, and the engine re-arms its wait. Response dates retain the Return-time speed;
+  ordinary dates follow later speed changes. Due responses precede ordinary scenes after
+  the preceding scene's last post, using the same writer with the post quoted first and
+  ordinary retry seeds. Success stores the scene and removes only that pending response
+  atomically; alternatives keep it for later, while a left-out post loses its schedule.
+  The response transaction rechecks the exact pending post and due time and the source's
+  included flag. A response withdrawn while the model is running commits nothing and
+  leaves the ordinary due time unchanged. Coming-back seeds require a prior response
+  and remain eligible through 24 hours. The additive `SceneRequest.YourPostContext`
+  policy defaults to `.all` for standalone writer callers; the engine chooses
+  `.answeredOnly`, filtering unanswered user posts before ordering and limiting recent
+  context. An explicitly quoted due-response seed is still added to its prompt.
+  Legacy `TownStore.storeYourPost(_:)` writes remain supported. The engine repairs every
+  eligible unscheduled post within the newest capped post set, bounded before filtering
+  excluded or already answered posts so older displaced history does not return. Repair
+  rechecks eligibility and the cap inside its transaction. These legacy posts carry no
+  persisted speed, so repair necessarily uses the current setting; only the atomic
+  posting path guarantees the speed at Return.
+
 - **A pause.** Presence reports the window hidden, or the app inactive with the setting
   off → the engine stops and records when the town last ran → presence reports the
   window visible → the engine measures the pause and writes at most five catch-up scenes,
@@ -374,10 +395,11 @@ its own. There is no port: the store runs the same under `swift test`.
   newest-first paging past 100,000 posts.
 - **Format.** Dates are integer milliseconds since 1970 UTC, so keyset comparisons are
   exact; ids are uppercase UUID text; a list inside a value is a child table ordered by
-  `position`; foreign keys are on and deferred to the commit; enum codes are text with no
-  `CHECK`, so a later version can add one without rebuilding a table; the journal is
-  SQLite's default rollback journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the
-  source of truth for the schema.
+  `position`; resident reads order by `moved_in_at`, `name COLLATE BINARY`, then `id`; foreign
+  keys are on and deferred to the commit; enum codes are text with no `CHECK`, so a later
+  version can add one without rebuilding a table; the journal is SQLite's default rollback
+  journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the source of truth for the
+  schema.
 - **One transaction per step of the town** — a scene's posts, tags, names, and next due
   time; a new resident with its move event; a founded town, written only after all of
   its generation succeeded — so a crash repeats or loses nothing.

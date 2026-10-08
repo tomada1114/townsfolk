@@ -12,10 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Residents can talk about their stored relationships as ordinary scene seeds, with
   both residents speaking when they still live in town. Past residents remain named
   in relationship seeds without returning as speakers.
+
+- Cancelling response preparation now stops the engine step with cancellation instead
+  of reporting a store failure
+
+- Keep model generation guides consistent with the town-name, place-count, and resident
+  post-length limits supplied in the runtime instructions
+
+- Bound each scene's recent-post read to 64 posts by default, so a growing log stays
+  bounded before token fitting; the working limit can be tuned independently of the
+  model's token budget
+
+- Fit newcomer prompts to the model context as the town grows, retaining every taken
+  name and current resident while trimming the oldest past profiles first
+
 - Wait one scene interval after the first scene when a town is founded, at the selected
   speed, so an ordinary scene does not start immediately on opening the timeline
 
 ### Added
+
+- The town responds to your posts minutes later, in one to three groups, and sometimes
+  brings them up again over the following day
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
 - Settings (⌘,) holds your name, the town's speed, and whether the town keeps moving
@@ -64,6 +81,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Posting schedules the town's responses atomically at the speed chosen on Return,
+  even while a scene is being written; recovery repairs all eligible recent posts
+- Ordinary scenes come back only to already-answered posts, preserving the first reply's
+  delay; responses withdrawn while generation is running no longer reach the board
+
+- Residents with the same move-in time now read in binary name order, then id, so founded
+  rosters have a repeatable order
 - Scene prompts keep an existing period, exclamation mark, or question mark at the end
   of a resident's worry without adding another period
 - Requires macOS 27.0 or later; building from source requires Xcode 27

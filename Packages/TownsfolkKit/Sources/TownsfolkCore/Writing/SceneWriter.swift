@@ -87,8 +87,10 @@ public actor SceneWriter {
         }
         var turn: Turn
         do throws(TownStoreError) {
-            let limit = max(1, model.contextSize)
-            turn = try await Turn(context: SceneContext.read(from: store, at: date, limit: limit))
+            let limit = max(1, min(tuning.generation.maxRecentPosts, model.contextSize))
+            turn = try await Turn(context: SceneContext.read(
+                from: store, at: date, limit: limit, yourPosts: request.yourPostContext,
+            ))
         } catch {
             return Self.skip(.storeReadFailed(error), calls: 0)
         }
