@@ -56,7 +56,6 @@ public final class TimelineViewModel {
     public private(set) var displayName: DisplayName?
     /// The posts that arrived live and have not finished fading in.
     private var liveArrivals: Set<Post.ID> = []
-
     @ObservationIgnored let store: TownStore?
     @ObservationIgnored let environment: TimelineEnvironment
     @ObservationIgnored private let eventSymbols: [EventKindID: String]
@@ -79,7 +78,6 @@ public final class TimelineViewModel {
     /// The sleep ``run()`` is in, cancelled to wake it early when a new post waits.
     @ObservationIgnored var sleeper: Task<Void, Never>?
     @ObservationIgnored var pendingRead = TimelinePendingRead()
-
     /// Creates the timeline over `store`, showing nothing until ``run()`` loads it.
     ///
     /// - Parameters:
@@ -209,12 +207,6 @@ public final class TimelineViewModel {
 
     // MARK: Changes from the store and the clock
 
-    /// The town and its residents as last read.
-    func townRead(_ town: Town?, residents: [Resident]) {
-        title = town?.name ?? Self.untitled
-        residentNames = Dictionary(residents.map { ($0.id, $0.name) }) { first, _ in first }
-    }
-
     /// A page — the newest at launch, or the next older one — was read: its rows are
     /// shown without motion, and its cursor says where the next starts.
     func pageLoaded(_ page: TimelinePage) {
@@ -226,13 +218,12 @@ public final class TimelineViewModel {
     }
 
     /// Entries read after a change in the store; the new ones whose time has come arrive.
-    func entriesArrived(_ entries: [TimelineEntry]) {
+    package func entriesArrived(_ entries: [TimelineEntry]) {
         now = environment.now()
         arrived(log.arrive(entries, now: now))
     }
 
-    /// The clock woke the timeline: times are written afresh, and every post whose time
-    /// has come arrives.
+    /// The clock woke: refresh times and reveal every post whose time has come.
     func clockTicked() {
         now = environment.now()
         arrived(log.takeDue(now: now))
@@ -248,8 +239,7 @@ public final class TimelineViewModel {
         pageLoaded(page)
     }
 
-    /// An older page read that began in `generation` failed; the next page may be asked
-    /// for again unless the town was deleted meanwhile.
+    /// A failed older page may be asked for again unless the town was deleted meanwhile.
     func olderPageFailed(startedIn generation: Int) {
         if generation == loadGeneration {
             isLoadingOlder = false
@@ -367,6 +357,16 @@ public final class TimelineViewModel {
 }
 
 extension TimelineViewModel {
+    /// Refreshed names repair shown rows even when a change read returns only duplicates.
+    package func townRead(_ town: Town?, residents: [Resident]) {
+        title = town?.name ?? Self.untitled
+        let names = Dictionary(residents.map { ($0.id, $0.name) }) { first, _ in first }
+        if names != residentNames {
+            residentNames = names
+            rebuild()
+        }
+    }
+
     /// Announces each arriving resident's post that replies to one of yours; one whose
     /// target is not read yet waits for it, unless the store was already asked.
     private func announceReplies(to ids: [Post.ID]) {
