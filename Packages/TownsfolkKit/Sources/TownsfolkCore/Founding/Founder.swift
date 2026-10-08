@@ -54,7 +54,7 @@ public actor Founder {
     ///   - store: Where the founded town is stored, once everything succeeded.
     ///   - now: The current time, read for the scene's context and the stored times.
     ///   - generator: What every draw is made with.
-    ///   - tuning: The founding limits, the resident count, and the attempts allowed.
+    ///   - tuning: The founding limits, resident count, attempts allowed, and scene pace.
     public init(
         model: any LanguageModelProviding,
         writer: SceneWriter,
@@ -94,8 +94,8 @@ public actor Founder {
     /// A failed call, a refusal, an answer breaking a limit, a repeated name, or a skipped
     /// first scene is one failed attempt, retried with new seeds; the town and residents
     /// already invented are kept, and only the failed step is retried. Each call starts a
-    /// fresh count. The stored schedule's next ordinary scene is due at the founding
-    /// time, for the engine's first step to set (#19).
+    /// fresh count. The next ordinary scene is one drawn interval at `speed` after the
+    /// first scene's last post, so the engine waits before writing again.
     ///
     /// - Returns: ``FoundingOutcome/founded`` once everything is stored;
     ///   ``FoundingOutcome/failed`` when the failed attempts reach
@@ -106,6 +106,7 @@ public actor Founder {
     ///   stored (requirements.md:148).
     public func found(
         displayName you: DisplayName,
+        speed: Speed = .normal,
         progress: @Sendable (FoundingProgress) async -> Void,
     ) async throws -> FoundingOutcome {
         try Task.checkCancellation()
@@ -118,7 +119,7 @@ public actor Founder {
         }
         AppLog.founding.info("founding started")
         do {
-            try await foundTown(you: you, progress: progress)
+            try await foundTown(you: you, speed: speed, progress: progress)
         } catch let ending as Ending {
             return Self.outcome(of: ending)
         }
@@ -129,6 +130,7 @@ public actor Founder {
     /// - Throws: ``Ending`` when founding ends without a town, or `CancellationError`.
     private func foundTown(
         you: DisplayName,
+        speed: Speed,
         progress: @Sendable (FoundingProgress) async -> Void,
     ) async throws {
         let count = tuning.founding.foundingResidentCount
@@ -173,7 +175,7 @@ public actor Founder {
 
         // The store itself refuses a cancelled task, so a cancellation that lands while
         // the write waits its turn still keeps nothing.
-        try await save(town: town, residents: residents, scene: scene)
+        try await save(town: town, residents: residents, scene: scene, speed: speed)
     }
 
     /// Runs `attempt` until it succeeds, counting each failure against the run.
@@ -296,14 +298,25 @@ public actor Founder {
     /// - Throws: `CancellationError` when the store refused a cancelled task, and
     ///   ``Ending/failed`` when the write fails otherwise; either leaves the store as it
     ///   was.
-    private func save(town: Town, residents: [Resident], scene: WrittenScene) async throws {
+    private func save(
+        town: Town,
+        residents: [Resident],
+        scene: WrittenScene,
+        speed: Speed,
+    ) async throws {
+        // Anchor the interval to the same millisecond the last post is stored at.
+        let storedAt = ScenePace.wholeMilliseconds(now())
+        let pace = ScenePace(tuning: tuning)
+        let factor = pace.drawFactor(using: &generator)
+        let nextDue = pace.due(after: storedAt, speed: speed, factor: factor)
         let step: TownStore.FoundingStep
         do throws(TownValueError) {
             step = try TownStore.FoundingStep(
                 town: town,
                 residents: residents,
                 firstScene: scene,
-                storedAt: now(),
+                storedAt: storedAt,
+                nextOrdinarySceneDue: nextDue,
                 tuning: tuning,
             )
         } catch {
