@@ -3,12 +3,11 @@ import FoundationModels
 /// What one scene call asks the model to write: 1–3 posts, a short exchange, and 0–3
 /// topic tags for the scene (requirements §3.2, §3.11, :395).
 ///
-/// The guides are part of what the model is told (`docs/architecture.md` › The on-device
-/// model), so they state the limits; they are a request, not a guarantee, and
-/// ``SceneWriter`` checks every limit again before a draft becomes a ``WrittenScene``. The
-/// numbers in the descriptions are literals because a guide is fixed at compile time:
-/// they mirror `Tuning.timeline.residentPostMaxLength` (280) and
-/// ``Post/topicTagMaxLength`` (40), and change with them.
+/// The guides state domain invariants and defer tunable post length to the runtime
+/// instructions, so an injected `Tuning` does not conflict with this fixed schema.
+/// ``SceneWriter`` checks every limit again before a draft becomes a ``WrittenScene``.
+/// The topic-tag description mirrors ``Post/maxTopicTags`` and
+/// ``Post/topicTagMaxLength``; schema tests keep those compile-time literals in sync.
 @Generable
 public struct SceneDraft: Equatable, Sendable {
     /// One post the model wrote.
@@ -20,7 +19,9 @@ public struct SceneDraft: Equatable, Sendable {
         )
         public var speaker: String
         /// What the post says.
-        @Guide(description: "The post: 1 or 2 sentences, at most 280 characters.")
+        @Guide(
+            description: "The post: 1 or 2 sentences, within the character limit in the instructions.",
+        )
         public var text: String
         /// The label of the post it replies to, as the prompt labels them.
         @Guide(
