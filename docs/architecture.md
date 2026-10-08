@@ -221,6 +221,12 @@ engine and screen models together. `AppModel` retains one cancellable engine tas
 with an interim app-active input from `scenePhase`; #29 replaces that input with window
 presence. It awaits cancellation before restarting, retains name entry behind the
 unavailable screen, and leaves founding only after its arrival announcement is posted.
+The founding factory captures its speed synchronously and supplies that exact value
+through `AppTownSession.Screens`' optional `foundingSpeed` closure. At handover the root
+preserves that schedule if the setting is unchanged, and reconciles a speed chosen
+during founding before the engine starts; delayed observation does not redraw a speed
+already chosen on name entry. Existing screen factories may omit the closure and keep
+the root's initial-speed fallback.
 Settings and Town commands receive that same root model explicitly. The public
 `RootView()` placeholder initializer is replaced by `RootView(model:)`; callers now
 construct and pass an `AppModel`. Root routing is tested over a fake provider because

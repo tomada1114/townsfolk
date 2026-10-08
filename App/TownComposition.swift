@@ -89,8 +89,11 @@ enum TownComposition {
         let symbols = Dictionary(uniqueKeysWithValues:
             seeds.eventKinds.map { ($0.id, $0.symbol) }
                 + seeds.fixedEventKinds.map { ($0.id, $0.symbol) })
+        var foundingSpeed: Speed?
         let firstRun = FirstRunViewModel(defaults: defaults, tuning: tuning) { name in
-            FoundingViewModel(
+            let speed = SettingsStore(defaults: defaults, tuning: tuning).speed
+            foundingSpeed = speed
+            return FoundingViewModel(
                 displayName: name,
                 founder: Founder(
                     model: provider,
@@ -100,7 +103,7 @@ enum TownComposition {
                     tuning: tuning,
                 ),
                 store: store,
-                speed: SettingsStore(defaults: defaults, tuning: tuning).speed,
+                speed: speed,
                 clock: ContinuousClock(),
             )
         }
@@ -119,7 +122,7 @@ enum TownComposition {
                 tuning: tuning,
             ),
             statusLine: StatusLineViewModel(store: store, eventSymbols: symbols),
-        )
+        ) { foundingSpeed }
     }
 
     nonisolated static func thermalState() -> ThermalState {

@@ -138,9 +138,12 @@ public final class AppModel {
         guard !isReopening else {
             return
         }
-        if let founding = session?.firstRun.founding {
+        if let session, let founding = session.firstRun.founding {
             if town == nil, synchronizedFounding !== founding {
                 synchronizedFounding = founding
+                if let speed = session.foundingSpeed() {
+                    lastSpeed = speed
+                }
                 settings.nameSubmitted(founding.displayName.value)
                 displayNameChanged()
             }

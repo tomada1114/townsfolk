@@ -12,18 +12,24 @@ public struct AppTownSession {
         public let composer: ComposerViewModel
         /// Town status.
         public let statusLine: StatusLineViewModel
+        let foundingSpeed: @MainActor () -> Speed?
 
-        /// Keeps the screen-model wiring in the composition root.
+        /// Keeps screen wiring in App. `foundingSpeed` returns the speed captured when
+        /// the founding factory creates its model, so late observation cannot mistake
+        /// an earlier name-entry setting for a change during founding. Omitting it keeps
+        /// the root's initial-speed fallback for existing callers.
         public init(
             firstRun: FirstRunViewModel,
             timeline: TimelineViewModel,
             composer: ComposerViewModel,
             statusLine: StatusLineViewModel,
+            foundingSpeed: @escaping @MainActor () -> Speed? = { nil },
         ) {
             self.firstRun = firstRun
             self.timeline = timeline
             self.composer = composer
             self.statusLine = statusLine
+            self.foundingSpeed = foundingSpeed
         }
     }
 
@@ -39,6 +45,7 @@ public struct AppTownSession {
     public let statusLine: StatusLineViewModel
     let run: @MainActor () async throws -> Void
     let speedChanged: @MainActor () async -> Void
+    let foundingSpeed: @MainActor () -> Speed?
 
     /// Binds the store and screens to the engine actions. The closures let tests observe
     /// lifecycle without introducing a second engine implementation or a new port.
@@ -53,6 +60,7 @@ public struct AppTownSession {
         timeline = screens.timeline
         composer = screens.composer
         statusLine = screens.statusLine
+        foundingSpeed = screens.foundingSpeed
         self.run = run
         self.speedChanged = speedChanged
     }
