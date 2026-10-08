@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one to two days of running time someone moves in or away, keeping the town between 3
   and 10 residents, each move a "Ren moved in." or "Jun moved away." row that the next
   scene talks about. Nothing is drawn while the Mac runs hot or the model is unavailable
+- The status line, ready for the town window to show above the composer: one line
+  saying what is going on — an ongoing event with its symbol, then the latest topic
+  ("Rain since noon · the bakery's new bread"), "Everyone's talking about …", or "A quiet
+  day in …" — cut at the tail when the window is narrow, crossfading when it changes,
+  and read in full by VoiceOver as "Town status"
 
 ### Changed
 
