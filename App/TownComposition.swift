@@ -37,7 +37,7 @@ enum TownComposition {
         return AppTownSession(
             store: store,
             screens: screens(
-                store: store,
+                town: (store: store, engine: engine),
                 provider: provider,
                 defaults: defaults,
                 seeds: seeds,
@@ -79,12 +79,13 @@ enum TownComposition {
     }
 
     private static func screens(
-        store: TownStore,
+        town: (store: TownStore, engine: TownEngine),
         provider: any LanguageModelProviding,
         defaults: UserDefaults,
         seeds: SeedTables,
         tuning: Tuning,
     ) -> AppTownSession.Screens {
+        let (store, engine) = town
         let symbols = Dictionary(uniqueKeysWithValues:
             seeds.eventKinds.map { ($0.id, $0.symbol) }
                 + seeds.fixedEventKinds.map { ($0.id, $0.symbol) })
@@ -110,7 +111,13 @@ enum TownComposition {
                 displayName: SettingsStore(defaults: defaults, tuning: tuning).displayName,
                 eventSymbols: symbols,
             ),
-            composer: ComposerViewModel(store: store, tuning: tuning),
+            composer: ComposerViewModel(
+                write: { post throws(TownStoreError) in
+                    let speed = SettingsStore(defaults: defaults, tuning: tuning).speed
+                    try await engine.submitYourPost(post, speed: speed)
+                },
+                tuning: tuning,
+            ),
             statusLine: StatusLineViewModel(store: store, eventSymbols: symbols),
         )
     }
