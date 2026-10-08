@@ -69,6 +69,7 @@ public final class FoundingViewModel {
     /// `nil` for a preview, which never founds.
     @ObservationIgnored private let founder: Founder?
     @ObservationIgnored private let store: TownStore?
+    @ObservationIgnored private let speed: Speed
     @ObservationIgnored private let clock: any Clock<Duration>
     @ObservationIgnored private let slowAfter: Duration
     @ObservationIgnored private var isRunning = false
@@ -113,6 +114,7 @@ public final class FoundingViewModel {
     ///   - founder: #20's founder; nothing else may use it, or its scene writer, while
     ///     founding runs.
     ///   - store: The store `founder` writes to, read once for the new town's name.
+    ///   - speed: The selected speed for the first ordinary scene's interval.
     ///   - clock: What the slow wait sleeps on.
     ///   - slowAfter: How long founding runs before the slow line shows
     ///     (ux-guidelines › States: 60 s). Not a † starting value, so not in ``Tuning``.
@@ -120,12 +122,14 @@ public final class FoundingViewModel {
         displayName: DisplayName,
         founder: Founder,
         store: TownStore,
+        speed: Speed = .normal,
         clock: any Clock<Duration> = ContinuousClock(),
         slowAfter: Duration = defaultSlowAfter,
     ) {
         self.displayName = displayName
         self.founder = founder
         self.store = store
+        self.speed = speed
         self.clock = clock
         self.slowAfter = slowAfter
         phase = .founding
@@ -144,6 +148,7 @@ public final class FoundingViewModel {
         self.displayName = displayName
         founder = nil
         store = nil
+        speed = .normal
         clock = ContinuousClock()
         slowAfter = .zero
         self.phase = phase
@@ -171,7 +176,7 @@ public final class FoundingViewModel {
         isSlow = false
         let watch = Task { await self.watchForSlow() }
         defer { watch.cancel() }
-        let outcome = try await founder.found(displayName: displayName) { step in
+        let outcome = try await founder.found(displayName: displayName, speed: speed) { step in
             await self.stepFinished(step)
         }
         await ended(outcome)
