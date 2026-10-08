@@ -23,7 +23,13 @@ public enum SceneSeed: Sendable, Equatable {
         case occupation
         /// How they come across.
         case personality
+        /// A stored link to this other resident, including someone who moved away.
+        case relationship(Resident.ID)
         /// What they worry about.
         case worry
+
+        /// Scalar aspects used by founding; relationship candidates need a resident's
+        /// stored links and the roster, so ordinary scene casting adds those separately.
+        public static let allCases: [Self] = [.hobby, .occupation, .personality, .worry]
     }
 }

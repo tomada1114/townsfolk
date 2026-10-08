@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Residents can talk about their stored relationships as ordinary scene seeds, with
+  both residents speaking when they still live in town. Past residents remain named
+  in relationship seeds without returning as speakers.
+
 ### Added
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)

@@ -100,6 +100,52 @@ struct EngineCastingTests {
         }
     }
 
+    @Test(arguments: [(false, false), (true, false), (false, true)])
+    func `relationship seeds include a living partner but never cast a moved out partner`(
+        movedOut: Bool,
+        duplicateLink: Bool,
+    ) async throws {
+        let partner = try movedOut ? EngineCast.sora() : EngineCast.jun()
+        let link = try Resident.Relationship(
+            resident: partner.id,
+            description: "They play chess together.",
+        )
+        let mika = try Resident(
+            id: Resident.ID(),
+            name: "Mika",
+            profile: StoreFixtures.profile(),
+            movedInAt: StoreFixtures.morning,
+            relationships: duplicateLink ? [link, link, link] : [link],
+        )
+        var seen = false
+        for seed: UInt64 in Array(0 ..< 30) + [36] {
+            var setup = try EngineSetup(residents: [mika, partner, EngineCast.aki()])
+            setup.outcomes = WritingFixtures.refusals(3)
+            setup.generator = SplitMix64(seed: seed)
+            if duplicateLink, seed == 0 {
+                setup.generator = ScriptedGenerator([0, 0, 0.5, 0, 0, 0.4, 0, 0.4])
+            }
+            let picked = try await Self.turn(setup)
+            let relationshipSeed = "Seed: Mika's relationship with \(partner.name): They play chess together."
+            if picked.seeds.contains(relationshipSeed) {
+                seen = true
+                #expect(picked.speakers.contains("Mika"), "seed \(seed)")
+                #expect(picked.speakers.contains(partner.name) == !movedOut, "seed \(seed)")
+            }
+            if seed == 36, !movedOut, !duplicateLink {
+                // SplitMix64's third draw asks for one speaker; the relationship needs two.
+                #expect(picked.seeds
+                    .first == "Seed: Mika's relationship with Jun: They play chess together.")
+                #expect(picked.speakers == ["Mika", "Jun"])
+            }
+            #expect((1 ... 3).contains(picked.speakers.count))
+            #expect(Set(picked.speakers).count == picked.speakers.count)
+            #expect(picked.seeds.count == 3, "seed \(seed)")
+            #expect(Set(picked.seeds).count == picked.seeds.count)
+        }
+        #expect(seen)
+    }
+
     @Test
     func `with three residents every speaker count from 1 to 3 is drawn`() async throws {
         var counts: Set<Int> = []

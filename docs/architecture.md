@@ -233,6 +233,19 @@ up (§3.8).
   store → the model invents the town, its residents, and a first scene → one transaction
   stores them all → the timeline opens on "You moved to …" (§3.1, §3.9).
 
+Ordinary profile seeds include stored relationships, identified by the other resident's
+ID. Casting derives these candidates from the roster rather than `ProfileAspect.allCases`,
+which retains the scalar aspects used by founding. A relationship seed names the partner
+and stored description; both residents speak when both still live in town. A moved-away
+partner remains in the roster for naming, and refusal retries include only relationships
+whose living partner is already among the speakers. Repeated links to one partner form
+one candidate.
+
+The public `SceneSeed.ProfileAspect.relationship(Resident.ID)` case requires exhaustive
+caller switches to handle relationships. `SceneRequestError.unknownRelationship` rejects
+an absent stored link; `unknownResident` also rejects a relationship partner missing from
+the roster. Callers switching over request errors must handle the added case.
+
 ### Quality targets
 
 | Target | Checked by |
