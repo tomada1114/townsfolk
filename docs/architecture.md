@@ -190,6 +190,7 @@ reasons. What the app is comes from `AGENTS.md` › Product and
 |---|---|---|
 | The town engine: schedule, speakers, seeds, influence, events, moves, catch-up, whether the town runs | Core | one engine that takes one step at a time, driven by an injected clock, random number generator, and `Tuning`, which holds the requirements' † starting values (`designing-core-logic`) |
 | Prompts, `@Generable` outputs, the context budget, the retry rules | Core | `import FoundationModels` ([The on-device model](#the-on-device-model)) |
+| Candidate-post sentence validation | Core | `SceneValidation` uses `import NaturalLanguage` and `NLTokenizer(unit: .sentence)` ([Sentence validation](#sentence-validation)) |
 | The model call, availability, token counts | Platform | an adapter behind `LanguageModelProviding` ([The on-device model](#the-on-device-model)) |
 | The town's store and its migrations | Core | `TownStore` over `import SQLite3` ([Persistence](#persistence)) |
 | Settings | Core | `UserDefaults` keys ([Persistence](#persistence)) |
@@ -520,6 +521,36 @@ macOS 27's `LanguageModel` protocol is the first place to look.
   — Apple documents a context window of 4,096 tokens per session; checked 2026-09-30
 - <https://developer.apple.com/documentation/foundationmodels/languagemodel> — "A
   protocol that you use to interface with a model."; macOS 27.0+ — checked 2026-09-30
+
+#### Sentence validation
+
+Core retains `import NaturalLanguage` for `NLTokenizer(unit: .sentence)`, because
+sentence validity determines whether generated text may enter the feed. This comparison
+with Foundation's `.bySentences` is reproducible with:
+
+```swift
+import Foundation
+import NaturalLanguage
+
+let text = "Dr. Sato said hi. Nice."
+let range = text.startIndex ..< text.endIndex
+var foundationSentenceCount = 0
+text.enumerateSubstrings(in: range, options: .bySentences) { _, _, _, _ in
+    foundationSentenceCount += 1
+}
+let tokenizer = NLTokenizer(unit: .sentence)
+tokenizer.string = text
+let naturalLanguageSentenceCount = tokenizer.tokens(for: range).count
+print("Foundation .bySentences: \(foundationSentenceCount); NLTokenizer: \(naturalLanguageSentenceCount)")
+```
+
+On macOS 27.0 with Swift 6.4, this reports `Foundation .bySentences: 3; NLTokenizer: 2`
+(checked 2026-10-08). Keep `NLTokenizer` so this valid two-sentence post is accepted.
+
+- `Packages/TownsfolkKit/Sources/TownsfolkCore/Writing/SceneValidation.swift` — sentence
+  counting with `NLTokenizer` — checked 2026-10-08
+- `Packages/TownsfolkKit/Tests/TownsfolkCoreTests/Writing/WriterValidationTests.swift` — the
+  accepted `Dr. Sato said hi. Nice.` regression case — checked 2026-10-08
 
 #### Window presence
 
