@@ -184,12 +184,16 @@ extension SQLiteConnection {
     }
 
     func includedInterests() throws(TownStoreError) -> [Interest] {
+        try includedInterests(includingExcluded: false)
+    }
+
+    func includedInterests(includingExcluded: Bool) throws(TownStoreError) -> [Interest] {
         let drafts = try rows(
             """
             SELECT id, term, first_mentioned_at, last_mentioned_at, mentions FROM interests
-            WHERE excluded = 0 ORDER BY last_mentioned_at DESC, id DESC
+            WHERE excluded = 0 OR ? = 1 ORDER BY last_mentioned_at DESC, id DESC
             """,
-            [],
+            [.integer(includingExcluded ? 1 : 0)],
         ) { row throws(TownStoreError) in
             try InterestRow(&row)
         }

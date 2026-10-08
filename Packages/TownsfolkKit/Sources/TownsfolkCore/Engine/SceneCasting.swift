@@ -35,6 +35,8 @@ struct SceneCasting {
     let topics: [String]
     /// The events still going on, earliest first.
     var events: [TownEvent] = []
+    /// Included names, in the store's order; an empty pool adds no draw.
+    var names: [Interest] = []
     /// The move this scene is about, if one just happened.
     var news: News?
 
@@ -66,7 +68,8 @@ struct SceneCasting {
         }
         let topicSeeds = topics.map(SceneSeed.topic)
         let eventSeeds = events.map(SceneSeed.event)
-        var pools = [Self.profileSeeds(of: living), topicSeeds, eventSeeds]
+        let nameSeeds = names.map(SceneSeed.name)
+        var pools = [Self.profileSeeds(of: living), topicSeeds, eventSeeds, nameSeeds]
         guard let first = news.map({ SceneSeed.event($0.event) })
             ?? Self.drawSeed(from: &pools, using: &generator)
         else {
@@ -90,6 +93,7 @@ struct SceneCasting {
             Self.profileSeeds(of: living.filter(speakers.contains)),
             topicSeeds,
             eventSeeds,
+            nameSeeds,
         ].map { $0.filter { $0 != first } }
         while seeds.count < SceneRequest.seedCount.upperBound {
             guard let next = Self.drawSeed(from: &pools, using: &generator) else {

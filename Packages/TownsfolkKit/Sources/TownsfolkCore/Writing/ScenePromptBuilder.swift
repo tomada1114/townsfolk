@@ -10,6 +10,7 @@ struct ScenePromptBuilder {
     let seed: SceneSeed
     let context: SceneContext
     let tuning: Tuning
+    let extractNames: Bool
 
     private var you: String {
         Self.oneLine(request.you.value)
@@ -63,6 +64,16 @@ struct ScenePromptBuilder {
         }
         let lines = context.events.map { "- \(Self.oneLine($0.description))" }
         return (["Ongoing events:"] + lines).joined(separator: "\n")
+    }
+
+    private var namesInstruction: String {
+        if extractNames {
+            return """
+            Return up to 3 literal names in the quoted seed post, each at most 40 characters. \
+            You may discuss those names in the reply.
+            """
+        }
+        return "Return an empty names list."
     }
 
     /// The instructions: the same for every scene under one `tuning`.
@@ -136,7 +147,7 @@ struct ScenePromptBuilder {
             recentSection(kept, labels: labels),
         ]
         return ScenePrompt(
-            instructions: Self.instructions(tuning: tuning),
+            instructions: Self.instructions(tuning: tuning) + "\n" + namesInstruction,
             prompt: sections.compactMap(\.self).joined(separator: "\n\n"),
             labels: labels,
             postsCarried: kept.count,

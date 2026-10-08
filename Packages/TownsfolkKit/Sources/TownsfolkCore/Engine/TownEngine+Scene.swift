@@ -96,12 +96,7 @@ extension TownEngine {
                 return .notFounded
             }
             town = founded
-            casting = try await SceneCasting(
-                residents: store.residents(),
-                topics: store.recentTopicTags(before: now),
-                events: store.ongoingEvents(),
-                news: news,
-            )
+            casting = try await sceneCasting(at: now)
         } catch {
             return .failed(error)
         }
@@ -111,7 +106,9 @@ extension TownEngine {
         let cast: SceneCasting.Cast
         do throws(TownStoreError) {
             cast = try await responseCast(ordinary, response: response, casting: casting, at: now)
-        } catch { return .failed(error) }
+        } catch {
+            return .failed(error)
+        }
         let request: SceneRequest
         do throws(SceneRequestError) {
             request = try SceneRequest(
@@ -154,7 +151,9 @@ extension TownEngine {
                     guard try await store.responsePost(post.id) != nil else {
                         return await skip(.writer(.refused), at: now)
                     }
-                } catch { return .failed(error) }
+                } catch {
+                    return .failed(error)
+                }
             }
             let delivered = deliveredResponse(for: scene, pending: response)
             let stored = try await storeWritten(scene, at: now, response: delivered)
@@ -175,7 +174,10 @@ extension TownEngine {
         pending: Schedule.PendingResponse?,
     ) -> Schedule.PendingResponse? {
         guard case let .yourPost(post, quoted: true, _) = scene.seed,
-              post.id == pending?.post else { return nil }
+              post.id == pending?.post
+        else {
+            return nil
+        }
         return pending
     }
 
@@ -206,20 +208,20 @@ extension TownEngine {
         }
         let due = pace.due(after: last, speed: speed, factor: factor)
         do throws(TownStoreError) {
+            let residents = try await store.residents()
             let step = TownStore.SceneStep(
                 posts: posts,
+                residentInterests: NameInterestRules.uptake(
+                    of: scene, among: residents, using: &generator,
+                ),
                 deliveredResponse: response,
                 nextOrdinarySceneDue: due,
             )
-            if response != nil {
-                guard try await store.storeResponseScene(step) else {
-                    guard let schedule = try await store.schedule() else {
-                        return .notFounded
-                    }
-                    return .waiting(until: schedule.nextOrdinarySceneDue)
+            guard try await persist(step, from: scene) else {
+                guard let schedule = try await store.schedule() else {
+                    return .notFounded
                 }
-            } else {
-                try await store.storeScene(step)
+                return .waiting(until: schedule.nextOrdinarySceneDue)
             }
         } catch .cancelled {
             throw CancellationError()
@@ -232,5 +234,29 @@ extension TownEngine {
             EngineLog.recordResponseStored(posts.count)
         }
         return .sceneStored(posts: posts.map(\.id), nextDue: due)
+    }
+
+    private func persist(
+        _ step: TownStore.SceneStep,
+        from scene: WrittenScene,
+    ) async throws(TownStoreError) -> Bool {
+        if step.deliveredResponse != nil {
+            return try await store.storeResponseScene(step, extractedNames: scene.names)
+        }
+        if case let .name(name) = scene.seed {
+            return try await store.storeNameScene(step, seededBy: name.id)
+        }
+        try await store.storeScene(step)
+        return true
+    }
+
+    private func sceneCasting(at now: Date) async throws(TownStoreError) -> SceneCasting {
+        try await SceneCasting(
+            residents: store.residents(),
+            topics: store.recentTopicTags(before: now),
+            events: store.ongoingEvents(),
+            names: store.interests(),
+            news: news,
+        )
     }
 }

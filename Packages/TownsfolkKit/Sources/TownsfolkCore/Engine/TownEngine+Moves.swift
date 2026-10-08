@@ -5,6 +5,11 @@ import Foundation
 /// Each move is one transaction — the resident with its event — and becomes the next
 /// scene's news.
 extension TownEngine {
+    private enum MoveResult {
+        case finished
+        case redraw
+    }
+
     /// Draws whether someone moves after `running` seconds of running time, and moves them
     /// if so: in or away with the chance ``TownChangeRules/direction(living:roll:)`` gives,
     /// never past `Tuning.residents.population` (REQ-005).
@@ -55,17 +60,19 @@ extension TownEngine {
                 EngineLog.recordMoveDropped(.noAxes)
                 return
             }
-            let reply = try await newcomerReply(town: town, seed: seed, residents: residents)
+            guard let input = try await newcomerInput(axes: seed) else {
+                return
+            }
+            let reply = try await newcomerReply(town: town, seed: input, residents: residents)
             let newcomer: Resident
             switch reply {
             case let .done(draft):
                 do throws(FoundingFailure) {
-                    newcomer = try draft.resident(
-                        id: Resident.ID(),
-                        seed: seed,
+                    newcomer = try input.resident(
+                        from: draft,
                         among: living,
                         alsoTaken: past,
-                        movedInAt: now,
+                        at: now,
                     )
                 } catch {
                     EngineLog.recordNewcomerFailed(error)
@@ -81,16 +88,44 @@ extension TownEngine {
                 return
             }
             let wording = EngineWording.movedIn(name: newcomer.name)
-            try await storeMove(newcomer, kind: .moveIn, wording: wording, at: now)
-            return
+            let result = try await storeMove(
+                newcomer,
+                kind: .moveIn,
+                wording: wording,
+                at: now,
+                name: input.name,
+            )
+            if case .finished = result {
+                return
+            }
         }
         EngineLog.recordMoveDropped(.retriesSpent(attempts: attempts))
+    }
+
+    private func newcomerInput(axes: ResidentSeed) async throws -> NewcomerInput? {
+        let names: [Interest]
+        do throws(TownStoreError) {
+            let current = try await store.residents()
+            names = try await NameInterestRules.unheld(store.interests(), among: current)
+        } catch .cancelled {
+            throw CancellationError()
+        } catch {
+            EngineLog.recordMoveDropped(.storeFailed(error))
+            return nil
+        }
+        try Task.checkCancellation()
+        guard !names.isEmpty else {
+            return NewcomerInput(axes: axes, name: nil)
+        }
+        let name = generator.nextUnit() < tuning.residents.newcomerFromNameChance
+            ? names[generator.nextIndex(below: names.count)] : nil
+        return NewcomerInput(axes: axes, name: name)
     }
 
     /// Fits each draw separately: redrawn axes can have different token lengths.
     private func newcomerReply(
         town: Town,
-        seed: ResidentSeed,
+        seed: NewcomerInput,
         residents: [Resident],
     ) async throws -> FoundingAttempt<NewResidentDraft> {
         let fitted = try await NewcomerPromptBudget.fit(
@@ -133,7 +168,7 @@ extension TownEngine {
             return
         }
         let wording = EngineWording.movedAway(name: moved.name)
-        try await storeMove(moved, kind: .moveOut, wording: wording, at: now)
+        _ = try await storeMove(moved, kind: .moveOut, wording: wording, at: now)
     }
 
     /// Stores `resident` as they are after the move, with its row of `kind` — one
@@ -144,7 +179,8 @@ extension TownEngine {
         kind: EventKindID,
         wording: LocalizedStringResource,
         at now: Date,
-    ) async throws {
+        name: Interest? = nil,
+    ) async throws -> MoveResult {
         let event: TownEvent
         do throws(TownValueError) {
             event = try TownEvent(
@@ -158,17 +194,24 @@ extension TownEngine {
             )
         } catch {
             EngineLog.recordMoveDropped(.invalid(error))
-            return
+            return .finished
         }
         do throws(TownStoreError) {
-            try await store.recordMove(TownStore.MoveStep(resident: resident, event: event))
+            let move = TownStore.MoveStep(resident: resident, event: event)
+            if let name {
+                guard try await store.recordNameMove(move, seededBy: name.id)
+                else { return .redraw }
+            } else {
+                try await store.recordMove(move)
+            }
         } catch .cancelled {
             throw CancellationError()
         } catch {
             EngineLog.recordMoveDropped(.storeFailed(error))
-            return
+            return .finished
         }
         news = SceneCasting.News(event: event, newcomer: kind == .moveIn ? resident.id : nil)
         EngineLog.recordMove(kind)
+        return .finished
     }
 }

@@ -175,6 +175,7 @@ extension TownEngine {
             profiles,
             casting.topics.map(SceneSeed.topic),
             casting.events.map(SceneSeed.event),
+            casting.names.map(SceneSeed.name),
         ]
         .map { candidates in candidates.filter { !retries.contains($0) } }
         while retries.count < limit {

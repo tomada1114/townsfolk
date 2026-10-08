@@ -232,6 +232,11 @@ up (§3.8).
   the preceding scene's last post, using the same writer with the post quoted first and
   ordinary retry seeds. Success stores the scene and removes only that pending response
   atomically; alternatives keep it for later, while a left-out post loses its schedule.
+  That same call extracts at most three literal names from the original user post only
+  for its first successfully stored quoted response. Validation retains source spelling;
+  the response transaction rechecks prior responses and merges names ignoring case,
+  including excluded rows, with source links and original source timestamps. A refusal,
+  ordinary fallback, cancellation, or rollback consumes no extraction opportunity.
   The response transaction rechecks the exact pending post and due time and the source's
   included flag. A response withdrawn while the model is running commits nothing and
   leaves the ordinary due time unchanged. Coming-back seeds require a prior response
@@ -246,6 +251,15 @@ up (§3.8).
   persisted speed, so repair necessarily uses the current setting; only the atomic
   posting path guarantees the speed at Return.
 
+- **Names becoming interests.** Included names form another ordinary seed pool, with
+  kinds drawn uniformly before their candidates. A successful name scene may give an
+  unheld name to one actual living speaker with room below five interests. The scene
+  appends only the interest association and rechecks inclusion, capacity, and the lack
+  of any living holder at commit. An excluded name seed withdraws the whole held scene.
+  Newcomers draw from included names with no living holder with probability 0.5. The
+  selected name survives every prompt-budget reduction and becomes their sole initial
+  interest in the move transaction; an excluded or newly claimed seed retries within
+  the ordinary newcomer attempt limit. Past residents' holdings do not block a name.
 - **A pause.** Presence reports the window hidden, or the app inactive with the setting
   off → the engine stops and records when the town last ran → presence reports the
   window visible → the engine measures the pause and writes at most five catch-up scenes,
@@ -388,7 +402,8 @@ its own. There is no port: the store runs the same under `swift test`.
   journal. `TownSchema` (`Sources/TownsfolkCore/Store/`) is the source of truth for the
   schema.
 - **One transaction per step of the town** — a scene's posts, tags, names, and next due
-  time; a new resident with its move event; a founded town, written only after all of
+  time and additive resident-interest associations; a new resident with its initial
+  interest and move event; a founded town, written only after all of
   its generation succeeded — so a crash repeats or loses nothing.
 - **Versions.** `PRAGMA user_version` holds the schema version; Core keeps an ordered
   list of migrations, run in one transaction when the store opens, each with a test that

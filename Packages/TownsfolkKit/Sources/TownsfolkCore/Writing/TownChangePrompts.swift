@@ -43,17 +43,23 @@ enum TownChangePrompts {
     /// fit the context, but their names remain taken (requirements.md:259–:260).
     static func newcomerPrompt(
         town: Town,
-        seed: ResidentSeed,
+        seed: NewcomerInput,
         residents: [Resident],
         withoutPastProfiles: Set<Resident.ID>,
     ) -> String {
         let newcomer = """
         The new resident, moving in now:
-        Life stage: \(ScenePromptBuilder.oneLine(seed.lifeStage.text))
-        Occupation: \(ScenePromptBuilder.oneLine(seed.occupation.text))
-        Personality: \(ScenePromptBuilder.oneLine(seed.personality.text))
-        Hobby: \(ScenePromptBuilder.oneLine(seed.hobby.text))
+        Life stage: \(ScenePromptBuilder.oneLine(seed.axes.lifeStage.text))
+        Occupation: \(ScenePromptBuilder.oneLine(seed.axes.occupation.text))
+        Personality: \(ScenePromptBuilder.oneLine(seed.axes.personality.text))
+        Hobby: \(ScenePromptBuilder.oneLine(seed.axes.hobby.text))
         """
+        let interest = seed.name.map { name in
+            """
+            Name brought up by the user: "\(ScenePromptBuilder.oneLine(name.term))". \
+            The newcomer starts with an interest in it.
+            """
+        }
         let names = residents.map { ScenePromptBuilder.oneLine($0.name) }
         let living = residents.filter { $0.status == .living }
         let past = residents.filter { $0.status == .movedOut }
@@ -61,8 +67,8 @@ enum TownChangePrompts {
             ["Names already taken: \(names.isEmpty ? "none" : names.joined(separator: ", "))"]
         known += list("Residents so far", living)
         known += list("Past residents", past, withoutProfiles: withoutPastProfiles)
-        return [townSection(town), newcomer, known.joined(separator: "\n")]
-            .joined(separator: "\n\n")
+        return [townSection(town), newcomer, interest, known.joined(separator: "\n")]
+            .compactMap(\.self).joined(separator: "\n\n")
     }
 
     private static func townSection(_ town: Town) -> String {
