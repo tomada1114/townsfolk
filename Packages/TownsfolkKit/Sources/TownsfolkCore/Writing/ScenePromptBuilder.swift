@@ -42,7 +42,9 @@ struct ScenePromptBuilder {
             var line = "- \(name): \(Self.oneLine(profile.ageGroup)), "
             line += "\(Self.oneLine(profile.occupation))."
             line += " Hobby: \(Self.oneLine(profile.hobby))."
-            line += " Worry: \(Self.oneLine(profile.worry))."
+            let worry = Self.oneLine(profile.worry)
+            let worryEnding = ".!?".contains(worry.last ?? " ") ? "" : "."
+            line += " Worry: \(worry)\(worryEnding)"
             line += " Personality: \(Self.oneLine(profile.personality))."
             let interests = resident.interests.compactMap { id in
                 context.interests.first { $0.id == id }.map { Self.oneLine($0.term) }
