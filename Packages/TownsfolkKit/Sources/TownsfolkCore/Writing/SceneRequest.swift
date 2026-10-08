@@ -16,7 +16,9 @@ public enum SceneRequestError: Error, Equatable, Sendable {
     case speakerCount(Int)
     /// A speaker is not a living resident of the roster.
     case speakerNotLiving
-    /// A profile seed names someone not in the roster.
+    /// A relationship seed names a link absent from its owner's stored profile.
+    case unknownRelationship
+    /// A profile seed's owner or relationship partner is absent from the roster.
     case unknownResident
 }
 
@@ -64,7 +66,7 @@ public struct SceneRequest: Sendable, Equatable {
     /// - Throws: ``SceneRequestError`` for speakers or seeds outside their counts or
     ///   repeated, a speaker who is not a living resident of `residents`, a profile seed
     ///   of someone not in `residents`, a post seed that is not yours, or a lead speaker
-    ///   who is not speaking.
+    ///   who is not speaking, or a relationship seed without its stored link or roster partner.
     public init(
         you: DisplayName,
         town: Town,
@@ -117,9 +119,17 @@ public struct SceneRequest: Sendable, Equatable {
         case .event, .name, .topic:
             return
 
-        case let .profile(resident, _):
-            guard residents.contains(where: { $0.id == resident }) else {
+        case let .profile(id, aspect):
+            guard let resident = residents.first(where: { $0.id == id }) else {
                 throw .unknownResident
+            }
+            if case let .relationship(partner) = aspect {
+                guard residents.contains(where: { $0.id == partner }) else {
+                    throw .unknownResident
+                }
+                guard resident.relationships.contains(where: { $0.resident == partner }) else {
+                    throw .unknownRelationship
+                }
             }
 
         case let .yourPost(post, _, lead):

@@ -91,6 +91,23 @@ struct SceneRequestTests {
     }
 
     @Test
+    func `a relationship seed needs a roster partner and a stored relationship`() throws {
+        let cast = try WritingCast()
+        #expect(throws: SceneRequestError.unknownResident) {
+            try cast.request(
+                speakers: [cast.mika],
+                seeds: [.profile(cast.mika.id, .relationship(Resident.ID()))],
+            )
+        }
+        #expect(throws: SceneRequestError.unknownRelationship) {
+            try cast.request(
+                speakers: [cast.mika],
+                seeds: [.profile(cast.mika.id, .relationship(cast.jun.id))],
+            )
+        }
+    }
+
+    @Test
     func `a post seed that is not yours is refused`() throws {
         let cast = try WritingCast()
         let theirs = try cast.post(by: cast.jun, "Bread is out.", minute: 1)

@@ -103,22 +103,28 @@ struct ScenePromptBuilder {
     }
 
     /// The part of `profile` a profile seed names, as "hobby: fishing".
-    private static func describe(
+    private func describe(
         _ aspect: SceneSeed.ProfileAspect,
-        in profile: Resident.Profile,
+        of resident: Resident,
     ) -> String {
+        let profile = resident.profile
         switch aspect {
         case .hobby:
-            "hobby: \(oneLine(profile.hobby))"
+            return "hobby: \(Self.oneLine(profile.hobby))"
 
         case .occupation:
-            "occupation: \(oneLine(profile.occupation))"
+            return "occupation: \(Self.oneLine(profile.occupation))"
 
         case .personality:
-            "personality: \(oneLine(profile.personality))"
+            return "personality: \(Self.oneLine(profile.personality))"
 
         case .worry:
-            "worry: \(oneLine(profile.worry))"
+            return "worry: \(Self.oneLine(profile.worry))"
+
+        case let .relationship(partner):
+            let name = request.residents.first { $0.id == partner }?.name ?? "a resident"
+            let link = resident.relationships.first { $0.resident == partner }
+            return "relationship with \(Self.oneLine(name)): \(Self.oneLine(link?.description ?? ""))"
         }
     }
 
@@ -191,8 +197,12 @@ struct ScenePromptBuilder {
             // SceneRequest refuses a profile seed of someone not in the roster.
             let resident = request.residents.first { $0.id == id }
             let about = resident
-                .map { "\(Self.oneLine($0.name))'s \(Self.describe(aspect, in: $0.profile))" }
-            return "Seed: \(about ?? "a resident")."
+                .map { "\(Self.oneLine($0.name))'s \(describe(aspect, of: $0))" }
+            let text = about ?? "a resident"
+            if case .relationship = aspect, ".!?".contains(text.last ?? " ") {
+                return "Seed: \(text)"
+            }
+            return "Seed: \(text)."
 
         case let .topic(topic):
             return "Seed: the topic \"\(Self.oneLine(topic))\", still going."

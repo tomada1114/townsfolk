@@ -273,6 +273,20 @@ up (§3.8).
   default). The last-post anchor and due time share the store's millisecond precision;
   the first engine step therefore waits for the scheduled turn.
 
+Ordinary profile seeds include stored relationships, identified by the other resident's
+ID. Casting derives these candidates from the roster rather than `ProfileAspect.allCases`,
+which retains the scalar aspects used by founding. A relationship seed names the partner
+and stored description; both residents speak when both still live in town. A moved-away
+partner remains in the roster for naming, and refusal retries include only relationships
+whose living partner is already among the speakers. Repeated links to one partner form
+one candidate. For a delayed reply, these constraints are checked again after its reply
+lead replaces a speaker; incompatible retries are refilled from the same eligible pools.
+
+The public `SceneSeed.ProfileAspect.relationship(Resident.ID)` case requires exhaustive
+caller switches to handle relationships. `SceneRequestError.unknownRelationship` rejects
+an absent stored link; `unknownResident` also rejects a relationship partner missing from
+the roster. Callers switching over request errors must handle the added case.
+
 ### Quality targets
 
 | Target | Checked by |

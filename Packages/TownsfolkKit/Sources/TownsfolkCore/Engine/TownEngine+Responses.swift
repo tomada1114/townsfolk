@@ -2,17 +2,32 @@ import Foundation
 
 /// Your posts schedule delayed scenes through the same writer as ordinary scenes.
 extension TownEngine {
-    /// A fallback's profile owner must still be one of the final speakers.
-    private static func seed(_ seed: SceneSeed, fits speakers: [Resident.ID]) -> Bool {
+    /// A profile owner and its living relationship partner must survive lead casting.
+    private static func seed(
+        _ seed: SceneSeed,
+        fits speakers: [Resident.ID],
+        in residents: [Resident],
+    ) -> Bool {
         switch seed {
-        case let .profile(resident, _):
-            speakers.contains(resident)
+        case let .profile(resident, aspect):
+            guard speakers.contains(resident) else {
+                return false
+            }
+            switch aspect {
+            case .hobby, .occupation, .personality, .worry:
+                return true
+
+            case let .relationship(partner):
+                return residents.contains { other in
+                    other.id == partner && (other.status == .movedOut || speakers.contains(partner))
+                }
+            }
 
         case .event, .name, .topic:
-            true
+            return true
 
         case .yourPost:
-            false
+            return false
         }
     }
 
@@ -146,7 +161,7 @@ extension TownEngine {
         var retries = Array(ordinary.seeds.prefix(tuning.generation.refusalRetriesPerTurn))
         if let lead, !speakers.contains(lead) {
             speakers[0] = lead
-            if retries.contains(where: { !Self.seed($0, fits: speakers) }) {
+            if retries.contains(where: { !Self.seed($0, fits: speakers, in: casting.residents) }) {
                 retries = responseRetries(keeping: retries, speakers: speakers, casting: casting)
             }
         }
@@ -167,10 +182,13 @@ extension TownEngine {
             tuning.generation.refusalRetriesPerTurn,
             SceneRequest.seedCount.upperBound - 1,
         )
-        var retries = Array(original.filter { Self.seed($0, fits: speakers) }.prefix(limit))
-        let profiles = speakers.flatMap { resident in
-            SceneSeed.ProfileAspect.allCases.map { SceneSeed.profile(resident, $0) }
-        }
+        var retries = Array(original.filter { Self.seed($0, fits: speakers, in: casting.residents) }
+            .prefix(limit))
+        let profiles = casting.profileSeeds(
+            of: speakers,
+            partners: speakers,
+            aspects: SceneSeed.ProfileAspect.allCases,
+        )
         var pools = [
             profiles,
             casting.topics.map(SceneSeed.topic),
