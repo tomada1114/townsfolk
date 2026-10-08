@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Bound each scene's recent-post read to 64 posts by default, so a growing log stays
+  bounded before token fitting; the working limit can be tuned independently of the
+  model's token budget
+
 - Fit newcomer prompts to the model context as the town grows, retaining every taken
   name and current resident while trimming the oldest past profiles first
 

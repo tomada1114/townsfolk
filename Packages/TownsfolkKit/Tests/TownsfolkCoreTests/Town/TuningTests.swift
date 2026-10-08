@@ -1,8 +1,8 @@
 import Testing
 import TownsfolkCore
 
-/// Pins every starting value in `Tuning.default` to the literal in issue #5's table,
-/// one expectation per entry, so changing a † value is a deliberate edit here too.
+/// Pins each requirements-marked starting value, plus the generation read-cap default,
+/// so changing either is a deliberate edit here too.
 @Suite("Tuning")
 struct TuningTests {
     let tuning = Tuning.default
@@ -71,8 +71,9 @@ struct TuningTests {
     }
 
     @Test
-    func `generation starts at the requirements' values`() {
+    func `generation starts at the selected defaults`() {
         #expect(tuning.generation.recentContextWindow == .seconds(86_400))
+        #expect(tuning.generation.maxRecentPosts == 64)
         #expect(tuning.generation.refusalRetriesPerTurn == 2)
         #expect(tuning.generation.refusalsBeforeLeftOut == 3)
         #expect(tuning.generation.outputTokenReserve == 1_024)
@@ -90,7 +91,10 @@ struct TuningTests {
     func `a changed copy differs from the default and leaves it untouched`() {
         var custom = Tuning.default
         custom.founding.displayNameLength = 2 ... 4
+        custom.generation.maxRecentPosts = 8
         #expect(custom != Tuning.default)
+        #expect(custom.generation.maxRecentPosts == 8)
         #expect(Tuning.default.founding.displayNameLength == 1 ... 20)
+        #expect(Tuning.default.generation.maxRecentPosts == 64)
     }
 }
