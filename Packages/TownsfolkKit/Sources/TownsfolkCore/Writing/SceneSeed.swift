@@ -3,7 +3,7 @@
 /// seed it is handed and moves to the caller's next one after a refusal
 /// (`docs/architecture.md` › Principles).
 public enum SceneSeed: Sendable, Equatable {
-    /// An ongoing event.
+    /// An ongoing event, or a move that just happened — an ended event, told as news.
     case event(TownEvent)
     /// A name you brought up.
     case name(Interest)

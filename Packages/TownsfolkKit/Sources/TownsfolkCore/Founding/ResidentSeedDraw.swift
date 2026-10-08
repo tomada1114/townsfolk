@@ -30,6 +30,26 @@ struct ResidentSeedDraw {
         )
     }
 
+    /// One entry of each axis, each drawn uniformly on its own — a newcomer's axes
+    /// (requirements.md:259) — or `nil` when an axis is empty.
+    func drawEachAxis(using generator: inout some RandomNumberGenerator) -> ResidentSeed? {
+        let sizes = [
+            axes.occupations.count, axes.personalities.count, axes.lifeStages.count,
+            axes.hobbies.count,
+        ]
+        guard !sizes.contains(0) else {
+            return nil
+        }
+        // The combination number `seed(at:)` reads back, the occupation varying fastest.
+        var index = 0
+        var stride = 1
+        for size in sizes {
+            index += generator.nextIndex(below: size) * stride
+            stride *= size
+        }
+        return seed(at: index)
+    }
+
     /// A combination in none of `excluded`, or `nil` when every combination is.
     func draw(
         excluding excluded: Set<Int>,

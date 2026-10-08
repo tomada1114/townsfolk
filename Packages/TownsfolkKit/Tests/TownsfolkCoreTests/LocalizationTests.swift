@@ -172,13 +172,18 @@ struct LocalizationTests {
         ]
     }
 
-    /// The model-unavailable screen's and banner's resources.
+    /// The model-unavailable screen's and banner's resources, and the rows founding and
+    /// moves write into the log.
     static func availabilityCases() -> [Case] {
         [ModelAvailability.appleIntelligenceOff, .modelNotReady, .deviceNotEligible]
             .compactMap(AvailabilityWording.message)
             .map { Case(resource: $0, arguments: []) }
             + [Case(resource: AvailabilityWording.openSystemSettings, arguments: [])]
             + [Case(resource: FoundingWording.movedTo(town: "Maplewood"), arguments: ["Maplewood"])]
+            + [
+                Case(resource: EngineWording.movedIn(name: "Ren"), arguments: ["Ren"]),
+                Case(resource: EngineWording.movedAway(name: "Jun"), arguments: ["Jun"]),
+            ]
     }
 
     /// The composer's, the hover Reply button's, and the Town menu's New Post and Reply.

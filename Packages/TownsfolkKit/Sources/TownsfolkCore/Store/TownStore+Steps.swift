@@ -160,7 +160,14 @@ extension TownStore {
     }
 
     /// Stores an event that starts.
+    ///
+    /// Checked for cancellation here, inside the store, as ``storeScene(_:)`` is.
+    /// - Throws: ``TownStoreError/cancelled`` when the calling task was cancelled before
+    ///   the transaction began; nothing is written.
     public func startEvent(_ event: TownEvent) throws(TownStoreError) {
+        guard !Task.isCancelled else {
+            throw .cancelled
+        }
         try commit(.eventStarted(event.id)) { connection throws(TownStoreError) in
             try connection.insert(event)
         }
@@ -180,7 +187,14 @@ extension TownStore {
     }
 
     /// Stores a move: the resident as they are afterwards, with the event recording it.
+    ///
+    /// Checked for cancellation here, inside the store, as ``storeScene(_:)`` is.
+    /// - Throws: ``TownStoreError/cancelled`` when the calling task was cancelled before
+    ///   the transaction began; nothing is written.
     public func recordMove(_ move: MoveStep) throws(TownStoreError) {
+        guard !Task.isCancelled else {
+            throw .cancelled
+        }
         try commit(.moveRecorded(move.resident.id)) { connection throws(TownStoreError) in
             try connection.upsert(move.resident)
             try connection.insert(move.event)

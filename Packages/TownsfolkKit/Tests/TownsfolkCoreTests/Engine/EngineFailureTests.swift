@@ -18,6 +18,12 @@ struct EngineFailureTests {
     BEGIN SELECT RAISE(ABORT, 'planted by the test'); END
     """
 
+    /// Refuses every post, so no scene can be stored.
+    static let refuseEveryPost = """
+    CREATE TRIGGER refuse_every_post BEFORE INSERT ON posts
+    BEGIN SELECT RAISE(ABORT, 'planted by the test'); END
+    """
+
     /// Mika alone with 120 posts already stored, answering two-post scenes.
     static func townOf120Posts() throws -> EngineSetup {
         var setup = try EngineSetup.mikaAlone()
