@@ -39,9 +39,14 @@ enum TownChangePrompts {
     }
 
     /// A newcomer call's prompt: the town, the drawn axes, every name taken, and every
-    /// current and past resident's occupation and personality, so the newcomer stays
-    /// unlike them (requirements.md:259–:260).
-    static func newcomerPrompt(town: Town, seed: ResidentSeed, residents: [Resident]) -> String {
+    /// current resident's occupation and personality. Past profiles may be left out to
+    /// fit the context, but their names remain taken (requirements.md:259–:260).
+    static func newcomerPrompt(
+        town: Town,
+        seed: ResidentSeed,
+        residents: [Resident],
+        withoutPastProfiles: Set<Resident.ID>,
+    ) -> String {
         let newcomer = """
         The new resident, moving in now:
         Life stage: \(ScenePromptBuilder.oneLine(seed.lifeStage.text))
@@ -55,7 +60,7 @@ enum TownChangePrompts {
         var known =
             ["Names already taken: \(names.isEmpty ? "none" : names.joined(separator: ", "))"]
         known += list("Residents so far", living)
-        known += list("Past residents", past)
+        known += list("Past residents", past, withoutProfiles: withoutPastProfiles)
         return [townSection(town), newcomer, known.joined(separator: "\n")]
             .joined(separator: "\n\n")
     }
@@ -70,12 +75,19 @@ enum TownChangePrompts {
 
     /// `heading`, then one line per resident, as "- Mika: baker, cheerful."; "none" for
     /// nobody.
-    private static func list(_ heading: String, _ residents: [Resident]) -> [String] {
+    private static func list(
+        _ heading: String,
+        _ residents: [Resident],
+        withoutProfiles: Set<Resident.ID> = [],
+    ) -> [String] {
         guard !residents.isEmpty else {
             return ["\(heading): none"]
         }
         return ["\(heading):"] + residents.map { resident in
             let name = ScenePromptBuilder.oneLine(resident.name)
+            guard !withoutProfiles.contains(resident.id) else {
+                return "- \(name)"
+            }
             let occupation = ScenePromptBuilder.oneLine(resident.profile.occupation)
             let personality = ScenePromptBuilder.oneLine(resident.profile.personality)
             return "- \(name): \(occupation), \(personality)."
