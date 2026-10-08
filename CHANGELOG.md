@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Wait one scene interval after the first scene when a town is founded, at the selected
+  speed, so an ordinary scene does not start immediately on opening the timeline
+
 ### Added
 
 - Initial project scaffold from [macos-app-template](https://github.com/tomada1114/macos-app-template)
