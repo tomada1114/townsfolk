@@ -3,24 +3,25 @@ import FoundationModels
 /// What the founding town call asks the model to invent: the town's name, its setting,
 /// and the places its residents talk about (requirements §3.1, :393).
 ///
-/// The guides are part of what the model is told; they state the limits, which
-/// ``Founder`` checks again through ``Town``'s own initializer. The numbers in the
-/// descriptions are literals because a guide is fixed at compile time: they mirror
-/// `Tuning.founding.townNameMaxLength` (30), ``Town/settingMaxLength`` (400),
-/// `Tuning.founding.placeCount` (3–5), and ``Town/placeNameMaxLength`` (30), and change
-/// with them.
+/// The fixed guides defer tunable name length and place count to the runtime instructions,
+/// so they agree with the caller's injected `Tuning`. ``Founder`` checks every limit
+/// again through ``Town``'s initializer. Immutable setting and place-name lengths
+/// remain in the descriptions; schema tests keep their compile-time literals in sync
+/// with ``Town/settingMaxLength`` and ``Town/placeNameMaxLength``.
 @Generable
 public struct TownDraft: Equatable, Sendable {
     /// The town's name.
-    @Guide(description: "The town's name, at most 30 characters.")
+    @Guide(description: "The town's name, within the character limit in the instructions.")
     public var name: String
     /// What the town is like.
     @Guide(description: "What the town is like, in 2 or 3 sentences and at most 400 characters.")
     public var setting: String
     /// The named places residents talk about.
     @Guide(
-        description: "3 to 5 named places in town that residents talk about, each at most 30 characters.",
-        .count(Tuning.default.founding.placeCount),
+        description: """
+        The number of places requested in the instructions, named places in town that residents \
+        talk about, each at most 30 characters.
+        """,
     )
     public var places: [String]
 
