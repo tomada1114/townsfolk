@@ -44,12 +44,12 @@ gating the issue being implemented) from a step 8b one. A `DEFERRED` line is the
 more valuable of the two to read back: it is a question waiting on a human, and
 the label still says blocked.
 
-`review` records one Codex review round of a PR once its findings are answered
-(`--field round=<k>`, [implement-and-review.md](implement-and-review.md#fixing-the-accepted-findings)); after
-a context compaction, the `review` lines for a PR say which rounds not to wait for, or
-fix against, again. `blocked` carries the reason a PR is held: `no-review`,
-`review-error`, `review-finding`, `review-cap`, `review-required`, `not-linked`,
-`linear-history`, `merge-conflict`.
+`review` records a branch's pre-PR review once its findings are triaged
+(`--field issue=<n> --field status=<code-review|code-review+agent-fix|DELEGATED> --field effort=<medium|high> --field findings=<n> --field skipped=<n>`,
+[implement-and-review.md](implement-and-review.md#running-the-review)); after a context
+compaction, a `review` line for an issue says its branch is already reviewed: do not
+review it again. `blocked` carries the reason a PR is held: `review-finding`,
+`review-required`, `not-linked`, `linear-history`, `merge-conflict`.
 
 `parallel-group` records the plan's grouping decision once per batch (plan.py
 --record writes it) --

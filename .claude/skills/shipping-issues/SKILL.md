@@ -2,8 +2,8 @@
 name: shipping-issues
 description: >-
   Claude Code only, outside a cloud session. Rank open GitHub Issues by their
-  `priority: P0`-`P3` labels, backfilling missing ones, then implement the top issue, open a PR that closes it, wait for the PR's automatic Codex
-  reviews (up to 3) and fix their accepted findings, watch CI to green, merge, and return to the
+  `priority: P0`-`P3` labels, backfilling missing ones, then implement the top issue, review the branch locally with `/code-review` and fix its accepted
+  findings, open a PR that closes it, watch CI to green, merge, and return to the
   default branch. Pass "all" to work through every issue in dependency order, independent
   ones in parallel git worktrees. Use when asked to ship the remaining issues, take on the
   next issue, or clear the ticket backlog.
@@ -13,7 +13,7 @@ description: >-
 
 Claude Code only. In Codex, use `codex-shipping-issues`; do not run this workflow. A
 Claude Code cloud session (`CLAUDE_CODE_REMOTE=true`) is unsupported here -- it has no
-Xcode -- and preflight stops there. **Done:** review settled, PR merged, issue CLOSED, no gate
+Xcode -- and preflight stops there. **Done:** branch reviewed, PR merged, issue CLOSED, no gate
 deleted or weakened.
 
 **Invoking this skill is the sign-off for exactly the remote writes it lists, for this
@@ -23,8 +23,7 @@ creating the PR, merging it, filing and labelling follow-up issues, step 8b's de
 comments, and deleting its own branches at cleanup. Anything outside that list stops and
 asks: a force-push, a hook bypass, a weakened gate, a new dependency (proposed, then the
 run waits for sign-off), `just labels` (a missing label definition stops the label
-scripts with exit 4), an `@codex review` comment, or a reply to or resolution of a
-review thread. The go-ahead is a settled [step 5](#5-wait-for-the-pr-review) plus
+scripts with exit 4). The go-ahead is the [step 4](#4-review-the-branch) review plus
 [step 6](#6-ci-to-green)'s `PASS` for the current head: the merge happens in that same
 turn, with no "shall I merge?" and no summary-then-wait. Re-confirming per issue defeats
 `all` mode entirely. The only pauses are the [Stop conditions](#stop-conditions) and two
@@ -115,21 +114,25 @@ Run [agent-implementation.md](references/agent-implementation.md) per issue --
 `executor`, or `architect` when foundational -- and **judge
 each result here**, `ACCEPTANCE` first. At most 2 patch rounds on the same tier; a third miss is `NEEDS-CLARIFICATION`.
 
-## 4. Open the PR
+## 4. Review the branch
 
-Right after step 3 accepts a branch (parallel: each branch, in batch order) -- opening
-starts the review and CI. Push; no commits -> `SKIPPED(<why>)`. Open a **regular,
-non-draft** PR against the default branch: `PR-TITLE`, then `PR-SUMMARY`, **`Closes
-#N`**, `TEST-PLAN`. Record `--event pr-created`, run `link_check.sh <pr> --issue <n>
---fix` ([pr-ci-merge.md](references/pr-ci-merge.md#opening-the-pr)).
+Before any PR exists; in parallel mode review, triage, then fix every branch. One pass,
+no re-review. `/code-review medium <branch> --fix` -- **effort first, branch second**;
+`medium` always, `high` only for a change that can lose or corrode existing data or when
+the user asked, never `low`, `xhigh`, `max` or `ultra`
+([why](references/cost-discipline.md#code-review-effort)). **`--fix` is serial-mode
+only** ([why](references/recovery.md#--fix-and-why-it-is-serial-mode-only)): in parallel
+mode review without it, one `executor` per branch with accepted findings (`F1`, `F2`, ...)
+from [agent-review-fix.md](references/agent-review-fix.md). No `/code-review` ->
+[agent-review-fallback.md](references/agent-review-fallback.md). Triage, fix pass, record:
+[implement-and-review.md](references/implement-and-review.md#running-the-review).
 
-## 5. Wait for the PR review
+## 5. Open the PR
 
-Each Codex review, on opening and maybe after a fix push, is a round, at most 3 per PR;
-never ask for one. `${CLAUDE_SKILL_DIR}/scripts/review_watch.py <pr>` into `<runstate>/review/<pr>.log` alongside step
-6 ([how](references/pr-ci-merge.md#waiting-for-the-pr-review)). `FINDINGS`: triage the
-round's `F<n>`, fix the accepted (round 1 all, 2-3 `P0`-`P2`), verify, push, then CI and
-`--after-push <sha>`. `NO_REVIEW`/`ERROR`/past 1800 s -> held for step 10, no local review.
+Push; no commits -> `SKIPPED(<why>)`. Open a **regular, non-draft** PR against the
+default branch: `PR-TITLE`, then `PR-SUMMARY`, **`Closes #N`**, `TEST-PLAN`. Record
+`--event pr-created`, run `link_check.sh <pr> --issue <n> --fix`
+([pr-ci-merge.md](references/pr-ci-merge.md#opening-the-pr)). No PR review is awaited.
 
 ## 6. CI to green
 
@@ -144,8 +147,8 @@ step 7 in the same turn.
 
 ## 7. Merge and confirm the issue closed
 
-On `PASS` for the current head, step 5 settled, run **in that same turn**
-`land_pr.sh <pr> --issue <n> --head-sha <sha> --review-log <runstate>/review/<pr>.log`,
+On `PASS` for the current head, run **in that same turn**
+`land_pr.sh <pr> --issue <n> --head-sha <sha>`,
 `<sha>` the CI log's `head_sha:`, and read `result:` and `issue:` ([landing-outcomes.md](references/landing-outcomes.md)). A
 PR waiting on a required human review is **held and reported, never armed for
 auto-merge**. Record `--event merged`, then `git switch <default_branch> && git pull
@@ -195,7 +198,7 @@ human, a merge conflict needs a product decision, the repository requires linear
 history (`--event blocked --field reason=linear-history`), the same CI failure survives
 the retry ceiling on two issues, or the fix needs a write `AGENTS.md`'s "Security and
 human approval" keeps outside this skill's exception (a gate change, entitlements or
-signing, a new dependency, `just labels`, `just ruleset`), or two PRs end `NO_REVIEW`.
+signing, a new dependency, `just labels`, `just ruleset`).
 
 Also stop on **a change this run did not make** -- a dirty main checkout no step
 touched, a branch moved underneath you, the default branch ahead of the last merge, a

@@ -273,8 +273,8 @@ tool that sees the generated copy rather than the authored one:
 | `designing-ui` | how a screen looks: HIG-based craft rules (system text styles, semantic and accent colors, light and dark, contrast, SF Symbols, window sizing, menu commands and shortcuts, motion, copy) and the app's design lock, recorded in `docs/design/design-direction.md` › Design lock |
 | `building-swiftui-screens` | a view in `TownsfolkUI`: a thin renderer over a `TownsfolkCore` `@Observable` view model (how it holds its model, what `body` may contain), `#Preview` per state, accessibility identifiers and labels, Reduce Motion, keyboard reachability, and verifying a screen |
 | `starting-an-app` | turning this template into a new app: `scripts/bootstrap.sh`'s rename, what the new repository keeps, its `just labels` and `just ruleset` setup, choosing the app shape (windowed or menu-bar agent), and deciding the sandbox posture |
-| `shipping-issues` | Claude Code only (Codex CLI never runs it), outside a cloud session: shipping the open issue backlog: ranking issues by `priority: P0`-`P3`, implementing the top one, opening its PR, addressing up to three rounds of the PR's automatic Codex review, and taking it through CI to merge |
-| `codex-shipping-issues` | Codex CLI only: shipping one GitHub issue from a Codex-managed checkout through a regular PR, up to three Codex review rounds with their findings addressed, current-head CI, and an explicitly authorized merge, over GitHub MCP with no `gh` |
+| `shipping-issues` | Claude Code only (Codex CLI never runs it), outside a cloud session: shipping the open issue backlog: ranking issues by `priority: P0`-`P3`, implementing the top one, reviewing each branch locally with `/code-review` before its PR, opening the PR, and taking it through CI to merge |
+| `codex-shipping-issues` | Codex CLI only: shipping one GitHub issue from a Codex-managed checkout through a regular PR after a read-only fresh-context review of the branch with its findings addressed, current-head CI, and an explicitly authorized merge, over GitHub MCP with no `gh` |
 | `steering-the-roadmap` | the app's direction in `docs/architecture/roadmap.md`: its Now / Next / Later horizons, who changes it and when, how the backlog and parked `on hold` issues feed it, and answering "what is next?" before `shipping-issues` |
 | `localizing-the-app` | a string a person reads: the String Catalog `Localizable.xcstrings` in `TownsfolkCore`, `defaultLocalization`, Core view models returning `LocalizedStringResource` (`bundle: .module`), `Text(resource)` in `TownsfolkUI`, keeping the catalog and `LocalizationTests` in step, `xcodebuild -exportLocalizations`, plurals, and what adding a language involves |
 | `merging-dependency-prs` | landing open Dependabot (SwiftPM, GitHub Actions) and Renovate (`mise.toml`) PRs: the security checklist, one human approval for a listed batch of passing PRs, and a combined branch for conflicting bumps |
@@ -387,11 +387,8 @@ writes that skill exists to make, for that invocation only.
 - `create-pr`: pushing the current branch and creating or updating its pull request.
 - `shipping-issues` (Claude Code only; Codex CLI never runs it, so this exception
   never covers a Codex session): the writes its `SKILL.md` lists — priority and `blocked:` labels
-  on open issues, branches and pushes, the pull request, merging it once its Codex
-  review has settled -- up to three rounds, every accepted finding of round 1 and the
-  accepted `P0`-`P2` findings of rounds 2 and 3 fixed (an accepted `P3` becomes a
-  follow-up), a fix push given 300 s for a new review to start -- and CI passes on the
-  current head, the follow-up issues and comments it files, and removing the branches
+  on open issues, branches and pushes, the pull request, merging it once the
+  local branch review's accepted findings are fixed and CI passes on the current head, the follow-up issues and comments it files, and removing the branches
   and worktrees it created. It never arms auto-merge: a pull request waiting on a
   required human review is held and reported.
 
